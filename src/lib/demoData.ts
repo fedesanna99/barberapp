@@ -24,6 +24,7 @@ export interface DemoDate {
   day: string
   num: number
   month: string
+  date: Date
 }
 
 export const BARBERS: DemoBarber[] = [
@@ -49,6 +50,11 @@ export const CUT_LOG = [
   { date: 'Mar 5',  barber: 'Marco Barba' },
 ]
 
+export const UPCOMING = [
+  { barber: 'Marco Barba', date: 'Sat 24 May',  time: '10:00', tag: 'Skin fade'  },
+  { barber: 'Fadi Nour',   date: 'Mon 2 Jun',   time: '11:30', tag: 'Beard trim' },
+]
+
 export const SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','17:00']
 export const TAKEN_INDICES = new Set([1, 4, 7])
 
@@ -64,6 +70,7 @@ export function getNext7Days(): DemoDate[] {
       day:   i === 0 ? 'Today' : DAY_NAMES[d.getDay()],
       num:   d.getDate(),
       month: MONTH_NAMES[d.getMonth()],
+      date:  d,
     }
   })
 }

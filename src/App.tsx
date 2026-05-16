@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { C } from './lib/colors'
+import { useAuth } from './hooks/useAuth'
 import { Toast } from './components/Toast'
 import { Feed } from './screens/Feed'
 import { Discover } from './screens/Discover'
@@ -21,6 +22,9 @@ const NAV: { id: ScreenId; icon: string; label: string }[] = [
 ]
 
 export default function App() {
+  const { session } = useAuth()
+  const userId = session?.user.id
+
   const [loggedIn, setLoggedIn]         = useState(false)
   const [authView, setAuthView]         = useState<AuthView>('login')
   const [screen, setScreen]             = useState<ScreenId>('feed')
@@ -73,7 +77,7 @@ export default function App() {
             <>
               {screen === 'feed'     && <Feed     onBook={setBookingBarber} />}
               {screen === 'discover' && <Discover onBook={setBookingBarber} />}
-              {screen === 'profile'  && <Profile />}
+              {screen === 'profile'  && <Profile userId={userId} />}
               {screen === 'menu'     && <Menu onLogout={() => { setLoggedIn(false); setScreen('feed'); setAuthView('login') }} />}
             </>
           )}

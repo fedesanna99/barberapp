@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
 import { SLOTS, TAKEN_INDICES, getNext7Days } from '../lib/demoData'
 import type { DemoBarber, DemoDate } from '../lib/demoData'
+import { useAvailability } from '../hooks/useAvailability'
+import { IS_DEMO } from '../lib/supabase'
 
 interface BookingSheetProps {
   barber: DemoBarber
@@ -10,11 +12,27 @@ interface BookingSheetProps {
   onConfirm: (barber: DemoBarber, date: DemoDate, time: string) => void
 }
 
+// Demo fallback: convert index-based TAKEN_INDICES to a set of slot strings
+const DEMO_TAKEN = new Set(SLOTS.filter((_, i) => TAKEN_INDICES.has(i)))
+
 export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) {
-  const dates = getNext7Days()
+  const dates = useMemo(() => getNext7Days(), [])
   const [selDate, setSelDate] = useState(0)
-  const [selTime, setSelTime] = useState<number | null>(null)
+  const [selTime, setSelTime] = useState<string | null>(null)
   const [step, setStep]       = useState<'datetime' | 'confirm'>('datetime')
+
+  // In demo mode pass undefined so the hook skips DB calls entirely.
+  // In production the barber.id would be a real UUID string.
+  const barberId = IS_DEMO ? undefined : String(barber.id)
+  const { slots, booked, loading } = useAvailability(barberId, dates[selDate].date)
+
+  const effectiveSlots  = IS_DEMO ? SLOTS  : slots
+  const effectiveBooked = IS_DEMO ? DEMO_TAKEN : booked
+
+  function handleDateChange(i: number) {
+    setSelDate(i)
+    setSelTime(null)
+  }
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose()
@@ -56,7 +74,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
               {dates.map((d, i) => (
                 <button
                   key={i}
-                  onClick={() => { setSelDate(i); setSelTime(null) }}
+                  onClick={() => handleDateChange(i)}
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                     padding: '8px 10px', borderRadius: 12,
@@ -82,32 +100,48 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
             </div>
 
             {/* Time grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: '0 16px 16px' }}>
-              {SLOTS.map((t, i) => {
-                const taken = TAKEN_INDICES.has(i)
-                const sel   = selTime === i
-                return (
-                  <button
-                    key={i}
-                    onClick={() => !taken && setSelTime(i)}
-                    style={{
-                      padding: '10px 0',
-                      border:      `0.5px solid ${sel ? C.text : C.border}`,
-                      borderRadius: 10,
-                      textAlign:   'center',
-                      fontSize:    13,
-                      cursor:      taken ? 'not-allowed' : 'pointer',
-                      color:       sel ? C.bg : taken ? C.hint : C.text,
-                      background:  sel ? C.text : C.bg,
-                      opacity:     taken ? 0.3 : 1,
-                      transition:  'all .15s',
-                      fontFamily:  'inherit',
-                    }}
-                  >
-                    {t}
-                  </button>
-                )
-              })}
+            <div style={{ padding: '0 16px 16px', minHeight: 80 }}>
+              {loading ? (
+                // Loading skeleton
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  {Array.from({ length: 9 }).map((_, i) => (
+                    <div key={i} style={{ height: 40, borderRadius: 10, background: C.surface, animation: 'pulse 1.4s ease-in-out infinite', animationDelay: `${i * 0.07}s` }} />
+                  ))}
+                </div>
+              ) : effectiveSlots.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: C.hint, fontSize: 13 }}>
+                  <i className="ti ti-calendar-off" style={{ fontSize: 28, display: 'block', marginBottom: 6 }} />
+                  No availability for this day
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  {effectiveSlots.map(t => {
+                    const taken = effectiveBooked.has(t)
+                    const sel   = selTime === t
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => !taken && setSelTime(t)}
+                        style={{
+                          padding: '10px 0',
+                          border:      `0.5px solid ${sel ? C.text : C.border}`,
+                          borderRadius: 10,
+                          textAlign:   'center',
+                          fontSize:    13,
+                          cursor:      taken ? 'not-allowed' : 'pointer',
+                          color:       sel ? C.bg : taken ? C.hint : C.text,
+                          background:  sel ? C.text : C.bg,
+                          opacity:     taken ? 0.3 : 1,
+                          transition:  'all .15s',
+                          fontFamily:  'inherit',
+                        }}
+                      >
+                        {t}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Continue button */}
@@ -124,7 +158,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                   fontFamily:  'inherit', transition: 'all .2s',
                 }}
               >
-                {selTime !== null ? `Continue → ${SLOTS[selTime]}` : 'Select a time slot'}
+                {selTime !== null ? `Continue → ${selTime}` : 'Select a time slot'}
               </button>
             </div>
             <div style={{ textAlign: 'center', marginTop: 12 }}>
@@ -149,7 +183,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
               {[
                 ['Barber',    barber.name],
                 ['Date',      `${dates[selDate].day}, ${dates[selDate].num} ${dates[selDate].month}`],
-                ['Time',      SLOTS[selTime!]],
+                ['Time',      selTime!],
                 ['Service',   barber.tags[0]],
                 ['Duration',  '30 min'],
                 ['Price',     '~€25'],
@@ -167,7 +201,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
 
             <div style={{ padding: '0 16px' }}>
               <button
-                onClick={() => onConfirm(barber, dates[selDate], SLOTS[selTime!])}
+                onClick={() => onConfirm(barber, dates[selDate], selTime!)}
                 style={{
                   width: '100%', padding: 15, borderRadius: 12,
                   background: C.green, color: '#fff',
