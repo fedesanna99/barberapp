@@ -3,7 +3,7 @@ import { C } from '../lib/colors'
 
 export interface Comment {
   id: string
-  postId: number
+  postId: string
   author: string
   text: string
 }

@@ -9,7 +9,8 @@ import { useFollows } from '../hooks/useFollows'
 import { uploadAvatar, uploadPostPhoto } from '../hooks/useUpload'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import type { BookingWithBarber } from '../hooks/useBooking'
-import type { Post, PostWithBarber } from '../types/supabase'
+import type { Post } from '../types/supabase'
+import type { FeedPost } from '../hooks/useFeed'
 
 interface Props {
   userId?: string
@@ -106,7 +107,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
         } else {
           setOwnPosts(prev => [{
             id: crypto.randomUUID(), barber_id: barberId,
-            image_url: url, caption: null, likes_count: 0,
+            image_url: url, caption: null, label: null, likes_count: 0,
             created_at: new Date().toISOString(),
           }, ...prev])
         }
@@ -247,7 +248,7 @@ function OwnPostGrid({ posts }: { posts: Post[] }) {
   )
 }
 
-function ClientGrid({ localCuts, posts }: { localCuts: { id: string; url: string }[]; posts: PostWithBarber[] }) {
+function ClientGrid({ localCuts, posts }: { localCuts: { id: string; url: string }[]; posts: FeedPost[] }) {
   return (
     <>
       {localCuts.map(cut => (
@@ -259,33 +260,28 @@ function ClientGrid({ localCuts, posts }: { localCuts: { id: string; url: string
           }}
         />
       ))}
-      {posts.slice(0, Math.max(0, 8 - localCuts.length)).map(post => {
-        const name = post.barbers?.profile?.display_name ?? null
-        return (
-          <div
-            key={post.id}
-            style={{
-              aspectRatio: '1', cursor: 'pointer', overflow: 'hidden',
-              position: 'relative', background: C.surface,
-              ...(post.image_url
-                ? { backgroundImage: `url(${post.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                : { display: 'flex', alignItems: 'center', justifyContent: 'center' }),
-            }}
-          >
-            {!post.image_url && <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />}
-            {name && (
-              <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0,
-                padding: '16px 4px 5px',
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.5))',
-                textAlign: 'center',
-              }}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{name}</div>
-              </div>
-            )}
+      {posts.slice(0, Math.max(0, 8 - localCuts.length)).map(post => (
+        <div
+          key={post.id}
+          style={{
+            aspectRatio: '1', cursor: 'pointer', overflow: 'hidden',
+            position: 'relative', background: C.surface,
+            ...(post.imageUrl
+              ? { backgroundImage: `url(${post.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+              : { display: 'flex', alignItems: 'center', justifyContent: 'center' }),
+          }}
+        >
+          {!post.imageUrl && <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            padding: '16px 4px 5px',
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.5))',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{post.barberName}</div>
           </div>
-        )
-      })}
+        </div>
+      ))}
     </>
   )
 }

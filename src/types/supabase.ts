@@ -84,6 +84,7 @@ export type Database = {
           barber_id: string
           image_url: string
           caption: string | null
+          label: string | null
           likes_count: number
           created_at: string
         }
@@ -92,12 +93,14 @@ export type Database = {
           barber_id: string
           image_url: string
           caption?: string | null
+          label?: string | null
           likes_count?: number
           created_at?: string
         }
         Update: {
           image_url?: string
           caption?: string | null
+          label?: string | null
         }
         Relationships: [
           {
@@ -265,7 +268,7 @@ export type BarberWithProfile = Barber & {
 }
 
 export type PostWithBarber = Post & {
-  barbers: Pick<Barber, 'id'> & {
+  barbers: Pick<Barber, 'id' | 'city'> & {
     profile: Pick<Profile, 'display_name' | 'avatar_url'>
   }
 }

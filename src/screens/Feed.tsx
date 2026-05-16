@@ -1,21 +1,27 @@
 import { useState, useRef } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
-import { BARBERS, POSTS as SEED_POSTS, getBarberById } from '../lib/demoData'
-import type { DemoPost, DemoBarber } from '../lib/demoData'
+import { BARBERS } from '../lib/demoData'
+import type { DemoBarber } from '../lib/demoData'
+import { useFeed, accentFromId, initialsFromName } from '../hooks/useFeed'
+import type { FeedPost } from '../hooks/useFeed'
+import { supabase, IS_DEMO } from '../lib/supabase'
+import { uploadPostPhoto } from '../hooks/useUpload'
 import { CommentsSheet } from './CommentsSheet'
 import type { Comment } from './CommentsSheet'
 
 const SEED_COMMENTS: Comment[] = [
-  { id: 's1', postId: 1, author: 'Luca R.',    text: 'Fuoco 🔥 quella linea è chirurgica'   },
-  { id: 's2', postId: 1, author: 'Marco T.',   text: 'Devo prenotare prima possibile'        },
-  { id: 's3', postId: 2, author: 'Andrea G.',  text: 'Lo shave arabo è una cosa seria 👌'   },
-  { id: 's4', postId: 2, author: 'Youssef K.', text: 'Il migliore in zona senza dubbi'       },
-  { id: 's5', postId: 3, author: 'Paolo V.',   text: 'French crop perfetto, bravo!'          },
-  { id: 's6', postId: 4, author: 'Gianni M.',  text: 'Classic never dies ✂️'                },
+  { id: 's1', postId: '1', author: 'Luca R.',    text: 'Fuoco 🔥 quella linea è chirurgica'   },
+  { id: 's2', postId: '1', author: 'Marco T.',   text: 'Devo prenotare prima possibile'        },
+  { id: 's3', postId: '2', author: 'Andrea G.',  text: 'Lo shave arabo è una cosa seria 👌'   },
+  { id: 's4', postId: '2', author: 'Youssef K.', text: 'Il migliore in zona senza dubbi'       },
+  { id: 's5', postId: '3', author: 'Paolo V.',   text: 'French crop perfetto, bravo!'          },
+  { id: 's6', postId: '4', author: 'Gianni M.',  text: 'Classic never dies ✂️'                },
 ]
 
 interface FeedProps {
+  userId?:             string
+  barberId?:           string
   onBook:              (barber: DemoBarber) => void
   onViewProfile:       (barber: DemoBarber) => void
   isBarber?:           boolean
@@ -23,18 +29,33 @@ interface FeedProps {
   onShowLikedChange?:  (v: boolean) => void
 }
 
-export function Feed({ onBook, onViewProfile, isBarber, showLiked = false, onShowLikedChange }: FeedProps) {
-  const [posts,           setPosts]           = useState<DemoPost[]>(SEED_POSTS)
-  const [liked,           setLiked]           = useState<Record<number, boolean>>({})
-  const [saved,           setSaved]           = useState<Record<number, boolean>>({})
-  const [comments,        setComments]        = useState<Comment[]>(SEED_COMMENTS)
-  const [activePostId,    setActivePostId]    = useState<number | null>(null)
-  const [showNewPost,     setShowNewPost]     = useState(false)
+function postToBarber(p: FeedPost): DemoBarber {
+  let numId = 0
+  for (const c of p.barberId) numId = (numId * 31 + c.charCodeAt(0)) & 0x7fffffff
+  return {
+    id: numId,
+    name: p.barberName,
+    initials: p.barberInitials,
+    city: p.barberCity,
+    dist: 0,
+    rating: 4.8,
+    tags: [],
+    followers: 0,
+    accent: p.barberAccent,
+  }
+}
 
-  const toggleLike = (id: number) => setLiked(l => ({ ...l, [id]: !l[id] }))
-  const toggleSave = (id: number) => setSaved(s => ({ ...s, [id]: !s[id] }))
+export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLiked = false, onShowLikedChange }: FeedProps) {
+  const feed = useFeed(userId)
 
-  function addComment(postId: number, text: string) {
+  const [saved,        setSaved]        = useState<Record<string, boolean>>({})
+  const [comments,     setComments]     = useState<Comment[]>(SEED_COMMENTS)
+  const [activePostId, setActivePostId] = useState<string | null>(null)
+  const [showNewPost,  setShowNewPost]  = useState(false)
+
+  function toggleSave(id: string) { setSaved(s => ({ ...s, [id]: !s[id] })) }
+
+  function addComment(postId: string, text: string) {
     setComments(prev => [...prev, { id: crypto.randomUUID(), postId, author: 'You', text }])
   }
 
@@ -42,23 +63,64 @@ export function Feed({ onBook, onViewProfile, isBarber, showLiked = false, onSho
     setComments(prev => prev.filter(c => c.id !== id))
   }
 
-  function addPost(caption: string, label: string, imageUrl?: string) {
-    const newPost: DemoPost = {
-      id: Date.now(),
-      barberId: 1,
-      likes: 0,
-      caption,
-      label,
-      timeAgo: 'Just now',
-      comments: 0,
-      imageUrl,
+  async function toggleLike(post: FeedPost) {
+    const isLiked = feed.likedIds.has(post.id)
+    feed.setLiked(post.id, !isLiked)  // optimistic update
+    if (IS_DEMO || !userId) return
+    if (isLiked) {
+      await supabase.from('likes').delete().eq('user_id', userId).eq('post_id', post.id)
+    } else {
+      await supabase.from('likes').insert({ user_id: userId, post_id: post.id })
     }
-    setPosts(prev => [newPost, ...prev])
-    setShowNewPost(false)
   }
 
-  const visiblePosts  = showLiked ? posts.filter(p => liked[p.id]) : posts
-  const activePost    = posts.find(p => p.id === activePostId) ?? null
+  async function addPost(caption: string, label: string, file?: File): Promise<void> {
+    if (IS_DEMO) {
+      feed.prependPost({
+        id: String(Date.now()),
+        barberId: '1',
+        barberName: 'You',
+        barberInitials: 'YO',
+        barberCity: '',
+        barberAccent: C.accent,
+        barberAvatarUrl: undefined,
+        likesCount: 0,
+        caption,
+        label,
+        createdAt: new Date().toISOString(),
+        timeAgo: 'Just now',
+        imageUrl: file ? URL.createObjectURL(file) : undefined,
+      })
+      return
+    }
+    if (!barberId || !file) return
+    const imageUrl = await uploadPostPhoto(file, barberId)
+    const { data, error } = await supabase
+      .from('posts')
+      .insert({ barber_id: barberId, image_url: imageUrl, caption, label })
+      .select('*, barbers ( id, city, profile:profiles ( display_name, avatar_url ) )')
+      .single()
+    if (error || !data) return
+    const b = (data.barbers as any)
+    feed.prependPost({
+      id: data.id,
+      barberId: b.id,
+      barberName: b.profile.display_name ?? 'Barber',
+      barberInitials: initialsFromName(b.profile.display_name),
+      barberCity: b.city ?? '',
+      barberAccent: accentFromId(b.id),
+      barberAvatarUrl: b.profile.avatar_url ?? undefined,
+      likesCount: 0,
+      caption: data.caption ?? '',
+      label: data.label ?? '',
+      createdAt: data.created_at,
+      timeAgo: 'Just now',
+      imageUrl: data.image_url,
+    })
+  }
+
+  const visiblePosts  = showLiked ? feed.posts.filter(p => feed.likedIds.has(p.id)) : feed.posts
+  const activePost    = feed.posts.find(p => p.id === activePostId) ?? null
   const sheetComments = activePostId !== null ? comments.filter(c => c.postId === activePostId) : []
 
   return (
@@ -98,40 +160,43 @@ export function Feed({ onBook, onViewProfile, isBarber, showLiked = false, onSho
           </div>
         )}
 
-        {/* Stories row */}
-        {!showLiked && <div style={{ display: 'flex', gap: 12, padding: '4px 16px 14px', overflowX: 'auto' }}>
-          {BARBERS.map(b => (
-            <div key={b.id} onClick={() => onViewProfile(b)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', minWidth: 58 }}>
-              <div style={{ padding: 2.5, borderRadius: '50%', background: `linear-gradient(135deg,${C.accent},#E8B86D)` }}>
-                <div style={{
-                  width: 46, height: 46, borderRadius: '50%',
-                  background: b.accent + '22',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 500, color: b.accent,
-                  border: `2px solid ${C.bg}`,
-                }}>
-                  {b.initials}
+        {/* Stories row (demo barbers) */}
+        {!showLiked && (
+          <div style={{ display: 'flex', gap: 12, padding: '4px 16px 14px', overflowX: 'auto' }}>
+            {BARBERS.map(b => (
+              <div key={b.id} onClick={() => onViewProfile(b)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', minWidth: 58 }}>
+                <div style={{ padding: 2.5, borderRadius: '50%', background: `linear-gradient(135deg,${C.accent},#E8B86D)` }}>
+                  <div style={{
+                    width: 46, height: 46, borderRadius: '50%',
+                    background: b.accent + '22',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 500, color: b.accent,
+                    border: `2px solid ${C.bg}`,
+                  }}>
+                    {b.initials}
+                  </div>
                 </div>
+                <span style={{ fontSize: 10, color: C.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 58, textAlign: 'center' }}>
+                  {b.name.split(' ')[0]}
+                </span>
               </div>
-              <span style={{ fontSize: 10, color: C.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 58, textAlign: 'center' }}>
-                {b.name.split(' ')[0]}
-              </span>
-            </div>
-          ))}
-        </div>}
+            ))}
+          </div>
+        )}
 
-        {/* Posts */}
+        {/* Empty liked feed */}
         {showLiked && visiblePosts.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px 16px', color: C.hint, fontSize: 13 }}>
             <i className="ti ti-heart" style={{ fontSize: 32, display: 'block', marginBottom: 8 }} />
             No liked posts yet
           </div>
         )}
+
+        {/* Post list */}
         {visiblePosts.map((post, idx) => {
-          const barber      = getBarberById(post.barberId)!
-          const isLiked     = liked[post.id]
-          const isSaved     = saved[post.id]
-          const count       = comments.filter(c => c.postId === post.id).length
+          const isLiked = feed.likedIds.has(post.id)
+          const isSaved = saved[post.id]
+          const count   = comments.filter(c => c.postId === post.id).length
 
           return (
             <div key={post.id}>
@@ -139,15 +204,18 @@ export function Feed({ onBook, onViewProfile, isBarber, showLiked = false, onSho
 
               {/* Post header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer' }} onClick={() => onViewProfile(barber)}>
-                  <Avatar initials={barber.initials} size={36} accent={barber.accent} />
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer' }}
+                  onClick={() => onViewProfile(postToBarber(post))}
+                >
+                  <Avatar initials={post.barberInitials} size={36} accent={post.barberAccent} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{barber.name}</div>
-                    <div style={{ fontSize: 11, color: C.hint }}>{barber.city} · {post.timeAgo}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{post.barberName}</div>
+                    <div style={{ fontSize: 11, color: C.hint }}>{post.barberCity} · {post.timeAgo}</div>
                   </div>
                 </div>
                 <button
-                  onClick={() => onBook(barber)}
+                  onClick={() => onBook(postToBarber(post))}
                   style={{ padding: '6px 13px', borderRadius: 8, background: C.text, color: C.bg, fontSize: 12, border: 'none', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit' }}
                 >
                   Book
@@ -157,23 +225,25 @@ export function Feed({ onBook, onViewProfile, isBarber, showLiked = false, onSho
               {/* Post image */}
               <div style={{
                 width: '100%', height: 220,
-                background: barber.accent + '18',
+                background: post.barberAccent + '18',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 position: 'relative', overflow: 'hidden',
                 borderTop: `0.5px solid ${C.border}`, borderBottom: `0.5px solid ${C.border}`,
               }}>
                 {post.imageUrl
                   ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <i className="ti ti-scissors" style={{ fontSize: 52, color: barber.accent, opacity: 0.35 }} />
+                  : <i className="ti ti-scissors" style={{ fontSize: 52, color: post.barberAccent, opacity: 0.35 }} />
                 }
-                <div style={{ position: 'absolute', bottom: 10, left: 12, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, padding: '3px 10px', borderRadius: 20 }}>
-                  {post.label}
-                </div>
+                {post.label && (
+                  <div style={{ position: 'absolute', bottom: 10, left: 12, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, padding: '3px 10px', borderRadius: 20 }}>
+                    {post.label}
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px 4px' }}>
-                <button onClick={() => toggleLike(post.id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}>
+                <button onClick={() => toggleLike(post)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}>
                   <i className="ti ti-heart" style={{ fontSize: 22, color: isLiked ? C.red : C.muted }} />
                 </button>
                 <button onClick={() => setActivePostId(post.id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -187,36 +257,41 @@ export function Feed({ onBook, onViewProfile, isBarber, showLiked = false, onSho
               </div>
 
               <div style={{ padding: '0 16px 2px', fontSize: 13, fontWeight: 500, color: C.text }}>
-                {post.likes + (isLiked ? 1 : 0)} likes
+                {post.likesCount + (isLiked ? 1 : 0)} likes
               </div>
               <div style={{ padding: '0 16px 4px', fontSize: 13, color: C.text }}>
-                <span style={{ fontWeight: 500 }}>{barber.name}</span>{' '}{post.caption}
+                <span style={{ fontWeight: 500 }}>{post.barberName}</span>{' '}{post.caption}
               </div>
-              {count > 0 && (
-                <div
-                  onClick={() => setActivePostId(post.id)}
-                  style={{ padding: '0 16px 14px', fontSize: 12, color: C.hint, cursor: 'pointer' }}
-                >
-                  View all {count} comment{count !== 1 ? 's' : ''}
-                </div>
-              )}
-              {count === 0 && (
-                <div
-                  onClick={() => setActivePostId(post.id)}
-                  style={{ padding: '0 16px 14px', fontSize: 12, color: C.hint, cursor: 'pointer' }}
-                >
-                  Add a comment…
-                </div>
-              )}
+              <div
+                onClick={() => setActivePostId(post.id)}
+                style={{ padding: '0 16px 14px', fontSize: 12, color: C.hint, cursor: 'pointer' }}
+              >
+                {count > 0 ? `View all ${count} comment${count !== 1 ? 's' : ''}` : 'Add a comment…'}
+              </div>
             </div>
           )
         })}
+
+        {/* Load more */}
+        {feed.loading && (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: C.hint }}>
+            <i className="ti ti-loader-2" style={{ fontSize: 20, animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        )}
+        {feed.hasMore && !feed.loading && (
+          <div
+            onClick={feed.loadMore}
+            style={{ textAlign: 'center', padding: '16px 0', color: C.accent, fontSize: 13, cursor: 'pointer' }}
+          >
+            Load more
+          </div>
+        )}
       </div>
 
       {/* Comments sheet */}
-      {activePost !== null && (
+      {activePost && (
         <CommentsSheet
-          postLabel={activePost.label}
+          postLabel={activePost.label || activePost.caption}
           comments={sheetComments}
           isBarber={!!isBarber}
           onAdd={text => addComment(activePost.id, text)}
@@ -227,27 +302,50 @@ export function Feed({ onBook, onViewProfile, isBarber, showLiked = false, onSho
 
       {/* New post sheet */}
       {showNewPost && (
-        <NewPostSheet onAdd={addPost} onClose={() => setShowNewPost(false)} />
+        <NewPostSheet
+          onAdd={async (caption, label, file) => {
+            await addPost(caption, label, file)
+            setShowNewPost(false)
+          }}
+          onClose={() => setShowNewPost(false)}
+          requirePhoto={!IS_DEMO}
+        />
       )}
     </div>
   )
 }
 
-function NewPostSheet({ onAdd, onClose }: { onAdd: (caption: string, label: string, imageUrl?: string) => void; onClose: () => void }) {
+function NewPostSheet({
+  onAdd,
+  onClose,
+  requirePhoto,
+}: {
+  onAdd: (caption: string, label: string, file?: File) => Promise<void>
+  onClose: () => void
+  requirePhoto?: boolean
+}) {
   const [caption,  setCaption]  = useState('')
   const [label,    setLabel]    = useState('')
+  const [file,     setFile]     = useState<File | null>(null)
   const [preview,  setPreview]  = useState<string | null>(null)
+  const [loading,  setLoading]  = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const url = URL.createObjectURL(file)
-    setPreview(url)
+    const f = e.target.files?.[0]
+    if (!f) return
+    setFile(f)
+    setPreview(URL.createObjectURL(f))
   }
 
-  const canPost = caption.trim().length > 0 && label.trim().length > 0
+  const canPost = caption.trim().length > 0 && label.trim().length > 0 && (!requirePhoto || file !== null)
+
+  async function handlePost() {
+    if (!canPost || loading) return
+    setLoading(true)
+    await onAdd(caption.trim(), label.trim(), file ?? undefined)
+    setLoading(false)
+  }
 
   return (
     <div
@@ -297,7 +395,9 @@ function NewPostSheet({ onAdd, onClose }: { onAdd: (caption: string, label: stri
           ) : (
             <>
               <i className="ti ti-camera-plus" style={{ fontSize: 30, color: C.hint }} />
-              <span style={{ fontSize: 12, color: C.hint }}>Tap to add a photo</span>
+              <span style={{ fontSize: 12, color: C.hint }}>
+                {requirePhoto ? 'Tap to add a photo (required)' : 'Tap to add a photo'}
+              </span>
             </>
           )}
         </div>
@@ -327,16 +427,21 @@ function NewPostSheet({ onAdd, onClose }: { onAdd: (caption: string, label: stri
             }}
           />
           <button
-            onClick={() => canPost && onAdd(caption.trim(), label.trim(), preview ?? undefined)}
+            onClick={handlePost}
+            disabled={!canPost || loading}
             style={{
               padding: 13, borderRadius: 12,
-              background: canPost ? C.text : C.borderMed,
+              background: canPost && !loading ? C.text : C.borderMed,
               color: C.bg, fontSize: 14, fontWeight: 500,
-              border: 'none', cursor: canPost ? 'pointer' : 'default', fontFamily: 'inherit',
-              transition: 'background .15s',
+              border: 'none', cursor: canPost && !loading ? 'pointer' : 'default',
+              fontFamily: 'inherit', transition: 'background .15s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
-            Post
+            {loading
+              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Uploading…</>
+              : 'Post'
+            }
           </button>
         </div>
       </div>
