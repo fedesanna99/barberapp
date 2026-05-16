@@ -1,0 +1,117 @@
+import { useState } from 'react'
+import { C } from './lib/colors'
+import { Toast } from './components/Toast'
+import { Feed } from './screens/Feed'
+import { Discover } from './screens/Discover'
+import { Profile } from './screens/Profile'
+import { Menu } from './screens/Menu'
+import { BookingSheet } from './screens/BookingSheet'
+import { Login } from './screens/Login'
+import { Register } from './screens/Register'
+import type { DemoBarber, DemoDate } from './lib/demoData'
+
+type ScreenId   = 'feed' | 'discover' | 'profile' | 'menu'
+type AuthView   = 'login' | 'register'
+
+const NAV: { id: ScreenId; icon: string; label: string }[] = [
+  { id: 'feed',     icon: 'ti-layout-grid', label: 'Feed'     },
+  { id: 'discover', icon: 'ti-map-search',  label: 'Discover' },
+  { id: 'profile',  icon: 'ti-user',        label: 'Profile'  },
+  { id: 'menu',     icon: 'ti-menu-2',      label: 'Menu'     },
+]
+
+export default function App() {
+  const [loggedIn, setLoggedIn]         = useState(false)
+  const [authView, setAuthView]         = useState<AuthView>('login')
+  const [screen, setScreen]             = useState<ScreenId>('feed')
+  const [bookingBarber, setBookingBarber] = useState<DemoBarber | null>(null)
+  const [toast, setToast]               = useState<string | null>(null)
+
+  function handleLogin(asBarber = false) {
+    setLoggedIn(true)
+    if (asBarber) setScreen('profile')
+  }
+
+  function handleConfirm(barber: DemoBarber, date: DemoDate, time: string) {
+    setBookingBarber(null)
+    setToast(`${barber.name} · ${date.day} ${date.num} ${date.month} at ${time}`)
+  }
+
+  return (
+    /* Center the phone frame on the page */
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 24px' }}>
+      <div style={{
+        width: 360, background: C.bg,
+        borderRadius: 44,
+        border: `1.5px solid ${C.borderMed}`,
+        overflow: 'hidden',
+        display: 'flex', flexDirection: 'column',
+        height: 700,
+        position: 'relative',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.12)',
+      }}>
+
+        {/* Status bar */}
+        <div style={{
+          height: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 24px', flexShrink: 0, borderBottom: `0.5px solid ${C.border}`,
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>9:41</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <i className="ti ti-wifi"    style={{ fontSize: 14, color: C.text }} />
+            <i className="ti ti-battery" style={{ fontSize: 14, color: C.text }} />
+          </div>
+        </div>
+
+        {/* Screen area */}
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          {!loggedIn ? (
+            authView === 'register'
+              ? <Register onRegister={asBarber => handleLogin(asBarber)} onGoToLogin={() => setAuthView('login')} />
+              : <Login    onLogin={handleLogin} onGoToRegister={() => setAuthView('register')} />
+          ) : (
+            <>
+              {screen === 'feed'     && <Feed     onBook={setBookingBarber} />}
+              {screen === 'discover' && <Discover onBook={setBookingBarber} />}
+              {screen === 'profile'  && <Profile />}
+              {screen === 'menu'     && <Menu onLogout={() => { setLoggedIn(false); setScreen('feed'); setAuthView('login') }} />}
+            </>
+          )}
+
+          {bookingBarber && (
+            <BookingSheet
+              barber={bookingBarber}
+              onClose={() => setBookingBarber(null)}
+              onConfirm={handleConfirm}
+            />
+          )}
+
+          {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+        </div>
+
+        {/* Bottom navbar — hidden on login screen */}
+        <div style={{ height: loggedIn ? 64 : 0, borderTop: loggedIn ? `0.5px solid ${C.border}` : 'none', display: 'flex', flexShrink: 0, overflow: 'hidden', transition: 'height .25s' }}>
+          {NAV.map(({ id, icon, label }) => {
+            const active = screen === id
+            return (
+              <button
+                key={id}
+                onClick={() => setScreen(id)}
+                style={{
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  gap: 2, cursor: 'pointer', border: 'none',
+                  background: 'none', padding: '6px 0 0', fontFamily: 'inherit',
+                }}
+              >
+                <i className={`ti ${icon}`} style={{ fontSize: 22, color: active ? C.text : C.hint }} />
+                <span style={{ fontSize: 9, color: active ? C.text : C.hint, fontWeight: active ? 500 : 400 }}>{label}</span>
+                <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.text, opacity: active ? 1 : 0, marginTop: 1, transition: 'opacity .2s' }} />
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}

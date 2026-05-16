@@ -1,0 +1,18 @@
+From barber_app_database_schema.html Here's the complete data model — every table the app needs, nothing it doesn't.
+
+Supabase is the stack. One project gives you Postgres (this schema, foreign keys, RLS), Auth (Google + Apple login in 10 lines), Storage (bucket for post photos and avatars), and Realtime (for booking status updates). 
+
+Supabase auth When a user signs up, a trigger auto-creates a `profiles` row. The `role` field is either `"client"` or `"barber"` — this single field gates the entire barber-side experience (posting, setting availability, receiving bookings). No separate user tables to sync.
+
+BARBERS  is a 1-to-1 extension of `PROFILES`. A barber is still a profile — they can browse the feed and book other barbers. The `BARBERS` table just adds shop metadata and is only created when a user self-registers as a barber.
+
+`AVAILABILITY drives the booking engine. Rather than storing every possible slot, you store weekly recurring windows (e.g. Mon 09:00–18:00). The app generates the concrete time chips on the fly and cross-references `BOOKINGS` to mark what's already taken. Clean, minimal, easy to query.
+
+`FOLLOWS` and `LIKES are pure join tables — no extra columns, just two FKs and a composite primary key. They're small and fast.
+
+Row-Level Security rules to write on day one (in Supabase's policy editor):
+
+- `BOOKINGS`: clients can only read their own rows; barbers can only read bookings where `barber_id = auth.uid()`
+- `POSTS`: anyone can read; only the owning barber can insert/update/delete
+- `AVAILABILITY`: only the owning barber can modify
+- `PROFILES`: anyone can read; only the owner can update

@@ -1,0 +1,6 @@
+React + Vite + Subapase in Vercel
+The folder discipline matters. Keeping hooks/ completely separate from screens/ means every hook is independently testable and reusable. useAvailability doesn't know or care whether it's being called from a bottom sheet or a future barber dashboard.
+The slot generation is pure logic. generateSlots runs in milliseconds client-side and never hits the database — only the booked slots query goes to Supabase. Cross-referencing the two sets gives you the greyed-out unavailable chips in the UI with a single Set lookup per slot.
+supabase gen types is the most underrated command in this stack. Run it once after your schema is stable and every supabase.from('bookings').select(...) call becomes fully typed — the compiler will catch a misspelled column name before it ever reaches production.
+The RLS tab is non-negotiable. Paste those policies before you write a single screen. Testing with RLS active from day one means you'll never accidentally ship a screen that leaks another user's bookings.
+The stack is now fully defined: React + Vite + Supabase, deployed to Vercel with a single vercel --prod

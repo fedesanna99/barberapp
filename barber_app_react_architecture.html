@@ -1,0 +1,319 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:0}
+.tab{padding:10px 16px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);transition:color .15s}
+.tab.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+.panel{display:none;padding:16px}
+.panel.active{display:block}
+pre{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px;font-size:12px;line-height:1.6;overflow-x:auto;font-family:var(--font-mono);color:var(--color-text-primary);white-space:pre}
+.label{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:16px}
+.label:first-child{margin-top:0}
+.file-tree{font-size:12px;font-family:var(--font-mono);line-height:2;color:var(--color-text-secondary);background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px}
+.file-tree .dir{color:var(--color-text-primary);font-weight:500}
+.file-tree .hi{color:#1D9E75}
+.chip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;margin:2px 3px 2px 0;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary)}
+.chip.green{background:#E1F5EE;color:#085041;border-color:#5DCAA5}
+.chip.amber{background:#FAEEDA;color:#633806;border-color:#EF9F27}
+.chip.red{background:#FCEBEB;color:#791F1F;border-color:#F09595}
+.note{font-size:12px;color:var(--color-text-secondary);line-height:1.6;padding:10px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);border-left:2px solid var(--color-border-secondary);margin-top:12px;border-radius:0 var(--border-radius-md) var(--border-radius-md) 0}
+</style>
+
+<h2 class="sr-only">React architecture reference for the barber app: folder structure, Supabase setup, key hooks, and booking engine code</h2>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('structure')">Folder structure</button>
+  <button class="tab" onclick="showTab('supabase')">Supabase client</button>
+  <button class="tab" onclick="showTab('hooks')">Key hooks</button>
+  <button class="tab" onclick="showTab('booking')">Booking engine</button>
+  <button class="tab" onclick="showTab('rls')">RLS policies</button>
+</div>
+
+<div id="panel-structure" class="panel active">
+  <div class="label">Project layout</div>
+  <div class="file-tree">
+<span class="dir">src/</span>
+├── <span class="dir">lib/</span>
+│   └── <span class="hi">supabase.ts</span>         ← single client instance
+├── <span class="dir">hooks/</span>
+│   ├── <span class="hi">useAuth.ts</span>          ← session + profile
+│   ├── <span class="hi">useFeed.ts</span>          ← paginated posts from follows
+│   ├── <span class="hi">useBarbers.ts</span>       ← discover list + sorting
+│   ├── <span class="hi">useAvailability.ts</span>  ← slots for a barber + date
+│   └── <span class="hi">useBooking.ts</span>       ← create / cancel booking
+├── <span class="dir">screens/</span>
+│   ├── Feed.tsx
+│   ├── Discover.tsx
+│   ├── Profile.tsx
+│   ├── Menu.tsx
+│   └── <span class="hi">BookingSheet.tsx</span>    ← bottom sheet modal
+├── <span class="dir">components/</span>
+│   ├── PostCard.tsx
+│   ├── BarberCard.tsx
+│   ├── NavBar.tsx
+│   ├── DatePicker.tsx
+│   └── TimeGrid.tsx
+├── <span class="dir">types/</span>
+│   └── supabase.ts         ← generated from DB (supabase gen types)
+└── App.tsx
+  </div>
+  <div class="note">Run <code>npx supabase gen types typescript --project-id YOUR_ID &gt; src/types/supabase.ts</code> once your schema is live — gives you fully typed query results with zero manual work.</div>
+</div>
+
+<div id="panel-supabase" class="panel">
+  <div class="label">lib/supabase.ts</div>
+  <pre>import { createClient } from '@supabase/supabase-js'
+import type { Database } from '../types/supabase'
+
+export const supabase = createClient&lt;Database&gt;(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+)</pre>
+
+  <div class="label" style="margin-top:16px">hooks/useAuth.ts</div>
+  <pre>export function useAuth() {
+  const [session, setSession] = useState(null)
+  const [profile, setProfile] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      if (data.session) fetchProfile(data.session.user.id)
+    })
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session)
+        if (session) fetchProfile(session.user.id)
+      }
+    )
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
+  async function fetchProfile(userId: string) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*, barbers(*)')
+      .eq('id', userId)
+      .single()
+    setProfile(data)
+  }
+
+  const signInWithGoogle = () =>
+    supabase.auth.signInWithOAuth({ provider: 'google' })
+
+  const signOut = () => supabase.auth.signOut()
+
+  return { session, profile, signInWithGoogle, signOut }
+}</pre>
+  <div class="note">The <code>select('*, barbers(*)')</code> join means one query tells you both the user's profile AND whether they are a barber — no second round-trip needed.</div>
+</div>
+
+<div id="panel-hooks" class="panel">
+  <div class="label">hooks/useFeed.ts — paginated feed from followed barbers</div>
+  <pre>export function useFeed(userId: string) {
+  const [posts, setPosts] = useState([])
+  const [page, setPage] = useState(0)
+  const PAGE = 12
+
+  useEffect(() => {
+    supabase
+      .from('posts')
+      .select(`
+        *,
+        barbers ( id, profile:profiles(display_name, avatar_url) )
+      `)
+      .in(
+        'barber_id',
+        supabase
+          .from('follows')
+          .select('barber_id')
+          .eq('follower_id', userId)
+      )
+      .order('created_at', { ascending: false })
+      .range(page * PAGE, (page + 1) * PAGE - 1)
+      .then(({ data }) => setPosts(prev => [...prev, ...(data ?? [])]))
+  }, [userId, page])
+
+  return { posts, loadMore: () => setPage(p => p + 1) }
+}</pre>
+
+  <div class="label">hooks/useBarbers.ts — discover with sort + geo</div>
+  <pre>type Sort = 'nearby' | 'popular' | 'new'
+
+export function useBarbers(sort: Sort, userLat?: number, userLng?: number) {
+  const [barbers, setBarbers] = useState([])
+
+  useEffect(() => {
+    let q = supabase
+      .from('barbers')
+      .select('*, profile:profiles(display_name, avatar_url, lat, lng)')
+
+    if (sort === 'popular') q = q.order('rating', { ascending: false })
+    if (sort === 'new')     q = q.order('created_at', { ascending: false })
+
+    q.then(({ data }) => {
+      let result = data ?? []
+      if (sort === 'nearby' && userLat && userLng) {
+        result = result.sort((a, b) =>
+          distance(a.profile, userLat, userLng) -
+          distance(b.profile, userLat, userLng)
+        )
+      }
+      setBarbers(result)
+    })
+  }, [sort])
+
+  return { barbers }
+}
+
+function distance(p, lat, lng) {
+  const R = 6371
+  const dLat = (p.lat - lat) * Math.PI / 180
+  const dLng = (p.lng - lng) * Math.PI / 180
+  const a = Math.sin(dLat/2)**2 +
+    Math.cos(lat*Math.PI/180) * Math.cos(p.lat*Math.PI/180) *
+    Math.sin(dLng/2)**2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+}</pre>
+  <div class="note">For v1, the haversine distance sort runs client-side — fast enough for &lt;500 barbers. When you scale past that, move it to a Postgres function using the PostGIS extension Supabase ships with.</div>
+</div>
+
+<div id="panel-booking" class="panel">
+  <div class="label">hooks/useAvailability.ts — compute open slots</div>
+  <pre>export function useAvailability(barberId: string, date: Date) {
+  const [slots, setSlots] = useState&lt;string[]&gt;([])
+  const [booked, setBooked] = useState&lt;string[]&gt;([])
+
+  useEffect(() => {
+    const dow = date.getDay()           // 0 = Sun … 6 = Sat
+    const dateStr = date.toISOString().split('T')[0]
+
+    Promise.all([
+      supabase
+        .from('availability')
+        .select('start_time, end_time')
+        .eq('barber_id', barberId)
+        .eq('day_of_week', dow),
+      supabase
+        .from('bookings')
+        .select('time_slot')
+        .eq('barber_id', barberId)
+        .eq('date', dateStr)
+        .neq('status', 'cancelled')
+    ]).then(([avail, existing]) => {
+      const window = avail.data?.[0]
+      if (!window) return setSlots([])
+
+      const all = generateSlots(window.start_time, window.end_time)
+      const taken = new Set(existing.data?.map(b => b.time_slot))
+      setSlots(all)
+      setBooked(all.filter(s => taken.has(s)))
+    })
+  }, [barberId, date.toDateString()])
+
+  return { slots, booked }
+}
+
+function generateSlots(start: string, end: string, step = 30) {
+  const slots = []
+  let [h, m] = start.split(':').map(Number)
+  const [eh, em] = end.split(':').map(Number)
+  while (h * 60 + m &lt; eh * 60 + em) {
+    slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)
+    m += step
+    if (m >= 60) { h++; m -= 60 }
+  }
+  return slots
+}</pre>
+
+  <div class="label">hooks/useBooking.ts — create a booking</div>
+  <pre>export function useBooking() {
+  const [loading, setLoading] = useState(false)
+
+  async function createBooking({ clientId, barberId, date, timeSlot }) {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert({
+        client_id: clientId,
+        barber_id: barberId,
+        date: date.toISOString().split('T')[0],
+        time_slot: timeSlot,
+        status: 'pending'
+      })
+      .select()
+      .single()
+    setLoading(false)
+    return { data, error }
+  }
+
+  async function cancelBooking(bookingId: string) {
+    return supabase
+      .from('bookings')
+      .update({ status: 'cancelled' })
+      .eq('id', bookingId)
+  }
+
+  return { createBooking, cancelBooking, loading }
+}</pre>
+  <div class="note">Status flow: <span class="chip green">pending</span> → <span class="chip green">confirmed</span> (barber taps confirm) → <span class="chip">done</span> (auto after appointment) or <span class="chip red">cancelled</span>. The barber's dashboard listens to the <code>bookings</code> table via Supabase Realtime to get instant alerts.</div>
+</div>
+
+<div id="panel-rls" class="panel">
+  <div class="label">Row-Level Security — paste these into the Supabase SQL editor</div>
+  <pre>-- POSTS: anyone can read, only owning barber can write
+create policy "posts_select" on posts
+  for select using (true);
+
+create policy "posts_insert" on posts
+  for insert with check (
+    barber_id = (
+      select id from barbers where profile_id = auth.uid()
+    )
+  );
+
+-- BOOKINGS: clients see own rows, barbers see incoming
+create policy "bookings_client" on bookings
+  for select using (client_id = auth.uid());
+
+create policy "bookings_barber" on bookings
+  for select using (
+    barber_id = (
+      select id from barbers where profile_id = auth.uid()
+    )
+  );
+
+create policy "bookings_insert" on bookings
+  for insert with check (client_id = auth.uid());
+
+create policy "bookings_cancel" on bookings
+  for update using (
+    client_id = auth.uid() or
+    barber_id = (
+      select id from barbers where profile_id = auth.uid()
+    )
+  );
+
+-- AVAILABILITY: only the owning barber can manage
+create policy "availability_select" on availability
+  for select using (true);
+
+create policy "availability_write" on availability
+  for all using (
+    barber_id = (
+      select id from barbers where profile_id = auth.uid()
+    )
+  );</pre>
+  <div class="note">Enable RLS on every table first: <code>alter table bookings enable row level security;</code> — Supabase defaults to deny-all once RLS is on, so the policies above are additive grants, not overrides.</div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+  event.target.classList.add('active')
+  document.getElementById('panel-' + name).classList.add('active')
+}
+</script>

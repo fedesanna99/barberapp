@@ -1,0 +1,399 @@
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+::-webkit-scrollbar{display:none}
+@keyframes toastIn{from{opacity:0;transform:translateY(-10px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+</style>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script>
+const {useState,useEffect,useRef}=React;
+const C={
+  bg:"var(--color-background-primary)",
+  surface:"var(--color-background-secondary)",
+  text:"var(--color-text-primary)",
+  muted:"var(--color-text-secondary)",
+  hint:"var(--color-text-tertiary)",
+  border:"var(--color-border-tertiary)",
+  borderMed:"var(--color-border-secondary)",
+  accent:"#C9963A",accentLight:"rgba(201,150,58,0.12)",
+  green:"#1D9E75",red:"#E24B4A"
+};
+const BARBERS=[
+  {id:1,name:"Marco Barba",initials:"MB",city:"Cagliari centro",dist:0.4,rating:4.9,tags:["Skin fade","Beard"],followers:1240,accent:"#5DCAA5"},
+  {id:2,name:"Fadi Nour",initials:"FN",city:"Poetto",dist:1.2,rating:4.8,tags:["Arabic shave","Fade"],followers:892,accent:"#85B7EB"},
+  {id:3,name:"Nico Testa",initials:"NT",city:"Is Mirrionis",dist:2.1,rating:4.7,tags:["Classic","Texture"],followers:567,accent:"#EF9F27"},
+  {id:4,name:"Tariq Khalid",initials:"TK",city:"Villanova",dist:2.8,rating:4.9,tags:["Taper","Line up"],followers:2103,accent:"#AFA9EC"},
+  {id:5,name:"Luca Barbieri",initials:"LB",city:"Quartu",dist:4.5,rating:4.6,tags:["French crop","Beard"],followers:734,accent:"#F09595"},
+];
+const POSTS=[
+  {id:1,barberId:1,likes:312,caption:"Mid skin fade, hard part, beard sculpt. Book via link in bio ✂️",label:"Skin fade + line up",timeAgo:"2h ago",comments:18},
+  {id:2,barberId:2,likes:187,caption:"Arabic shave con razor fresco. Prenota dall'app.",label:"Arabic shave",timeAgo:"3h ago",comments:9},
+  {id:3,barberId:5,likes:245,caption:"French crop con texture. Prenota direttamente dall'app.",label:"French crop",timeAgo:"5h ago",comments:14},
+  {id:4,barberId:3,likes:198,caption:"Classic cut, clean lines. Old school meets modern.",label:"Classic cut",timeAgo:"8h ago",comments:11},
+];
+const CUT_LOG=[
+  {date:"May 12",barber:"Marco Barba"},{date:"Apr 28",barber:"Fadi Nour"},
+  {date:"Apr 10",barber:"Marco Barba"},{date:"Mar 22",barber:"Nico Testa"},
+  {date:"Mar 5",barber:"Marco Barba"},
+];
+const SLOTS=["09:00","09:30","10:00","10:30","11:00","11:30","14:00","14:30","15:00","15:30","16:00","17:00"];
+const TAKEN=new Set([1,4,7]);
+const DAY_NAMES=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function getDates(){
+  const t=new Date();
+  return Array.from({length:7},(_,i)=>{
+    const d=new Date(t);d.setDate(t.getDate()+i);
+    return{day:i===0?"Today":DAY_NAMES[d.getDay()],num:d.getDate(),month:MONTHS[d.getMonth()]};
+  });
+}
+function getB(id){return BARBERS.find(b=>b.id===id)}
+const s=(obj)=>({...obj});
+function Av({initials,size=40,accent,ring}){
+  return React.createElement("div",{style:{width:size,height:size,borderRadius:"50%",background:accent?accent+"22":C.surface,border:ring?`2px solid ${C.accent}`:`0.5px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.32,fontWeight:500,color:accent||C.muted,flexShrink:0}},initials);
+}
+function Star({v}){return React.createElement("span",{style:{display:"inline-flex",alignItems:"center",gap:3}},React.createElement("i",{className:"ti ti-star",style:{fontSize:11,color:"#EF9F27"}}),React.createElement("span",{style:{fontSize:12,color:C.muted,fontWeight:500}},v));}
+
+// FEED
+function FeedScreen({onBook}){
+  const [liked,setLiked]=useState({});
+  const [saved,setSaved]=useState({});
+  return React.createElement("div",{style:{flex:1,overflowY:"auto"}},
+    React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 8px"}},
+      React.createElement("span",{style:{fontSize:22,fontWeight:700,letterSpacing:-0.8,color:C.text,fontFamily:"Georgia,serif"}},"CutBook"),
+      React.createElement("div",{style:{display:"flex",gap:18}},
+        React.createElement("i",{className:"ti ti-heart",style:{fontSize:22,color:C.muted,cursor:"pointer"}}),
+        React.createElement("i",{className:"ti ti-send",style:{fontSize:22,color:C.muted,cursor:"pointer"}})
+      )
+    ),
+    React.createElement("div",{style:{display:"flex",gap:12,padding:"4px 16px 14px",overflowX:"auto"}},
+      BARBERS.map(b=>React.createElement("div",{key:b.id,style:{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",minWidth:58}},
+        React.createElement("div",{style:{padding:2.5,borderRadius:"50%",background:`linear-gradient(135deg,${C.accent},#E8B86D)`}},
+          React.createElement("div",{style:{width:46,height:46,borderRadius:"50%",background:b.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:500,color:b.accent,border:`2px solid ${C.bg}`}},b.initials)
+        ),
+        React.createElement("span",{style:{fontSize:10,color:C.muted,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:58,textAlign:"center"}},b.name.split(" ")[0])
+      ))
+    ),
+    POSTS.map((post,idx)=>{
+      const barber=getB(post.barberId);
+      const isLiked=liked[post.id],isSaved=saved[post.id];
+      return React.createElement("div",{key:post.id},
+        idx>0&&React.createElement("div",{style:{height:6,background:C.surface}}),
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10,padding:"10px 16px"}},
+          React.createElement(Av,{initials:barber.initials,size:36,accent:barber.accent}),
+          React.createElement("div",{style:{flex:1}},
+            React.createElement("div",{style:{fontSize:13,fontWeight:500,color:C.text}},barber.name),
+            React.createElement("div",{style:{fontSize:11,color:C.hint}},barber.city+" · "+post.timeAgo)
+          ),
+          React.createElement("button",{onClick:()=>onBook(barber),style:{padding:"6px 13px",borderRadius:8,background:C.text,color:C.bg,fontSize:12,border:"none",cursor:"pointer",fontWeight:500,fontFamily:"inherit"}},"Book")
+        ),
+        React.createElement("div",{style:{width:"100%",height:220,background:barber.accent+"18",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",borderTop:`0.5px solid ${C.border}`,borderBottom:`0.5px solid ${C.border}`}},
+          React.createElement("i",{className:"ti ti-scissors",style:{fontSize:52,color:barber.accent,opacity:0.35}}),
+          React.createElement("div",{style:{position:"absolute",bottom:10,left:12,background:"rgba(0,0,0,0.55)",color:"#fff",fontSize:11,padding:"3px 10px",borderRadius:20}},post.label)
+        ),
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:16,padding:"10px 16px 4px"}},
+          React.createElement("button",{onClick:()=>setLiked(l=>({...l,[post.id]:!l[post.id]})),style:{background:"none",border:"none",padding:0,cursor:"pointer",display:"flex"}},
+            React.createElement("i",{className:"ti ti-heart",style:{fontSize:22,color:isLiked?C.red:C.muted}})
+          ),
+          React.createElement("i",{className:"ti ti-message-circle",style:{fontSize:22,color:C.muted,cursor:"pointer"}}),
+          React.createElement("i",{className:"ti ti-send",style:{fontSize:22,color:C.muted,cursor:"pointer"}}),
+          React.createElement("div",{style:{flex:1}}),
+          React.createElement("button",{onClick:()=>setSaved(sv=>({...sv,[post.id]:!sv[post.id]})),style:{background:"none",border:"none",padding:0,cursor:"pointer",display:"flex"}},
+            React.createElement("i",{className:"ti ti-bookmark",style:{fontSize:22,color:isSaved?C.text:C.muted}})
+          )
+        ),
+        React.createElement("div",{style:{padding:"0 16px 2px",fontSize:13,fontWeight:500,color:C.text}},(post.likes+(isLiked?1:0))+" likes"),
+        React.createElement("div",{style:{padding:"0 16px 4px",fontSize:13,color:C.text}},
+          React.createElement("span",{style:{fontWeight:500}},barber.name)," ",post.caption
+        ),
+        React.createElement("div",{style:{padding:"0 16px 14px",fontSize:12,color:C.hint}},"View all "+post.comments+" comments")
+      );
+    })
+  );
+}
+
+// DISCOVER
+function DiscoverScreen({onBook}){
+  const [sort,setSort]=useState("nearby");
+  const [search,setSearch]=useState("");
+  const [showSearch,setShowSearch]=useState(false);
+  const SORTS=[{id:"nearby",label:"Nearby"},{id:"popular",label:"Popular"},{id:"new",label:"New"},{id:"toprated",label:"Top rated"}];
+  const sorted=[...BARBERS]
+    .filter(b=>!search||b.name.toLowerCase().includes(search.toLowerCase())||b.tags.some(t=>t.toLowerCase().includes(search.toLowerCase())))
+    .sort((a,b)=>{
+      if(sort==="nearby")return a.dist-b.dist;
+      if(sort==="popular")return b.followers-a.followers;
+      if(sort==="new")return b.id-a.id;
+      return b.rating-a.rating;
+    });
+  return React.createElement("div",{style:{flex:1,overflowY:"auto"}},
+    React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 8px"}},
+      React.createElement("span",{style:{fontSize:20,fontWeight:500,color:C.text}},"Discover"),
+      React.createElement("button",{onClick:()=>setShowSearch(s=>!s),style:{background:"none",border:"none",cursor:"pointer",display:"flex",padding:0}},
+        React.createElement("i",{className:"ti ti-search",style:{fontSize:22,color:showSearch?C.text:C.muted}})
+      )
+    ),
+    showSearch&&React.createElement("div",{style:{padding:"0 16px 10px"}},
+      React.createElement("input",{autoFocus:true,value:search,onChange:e=>setSearch(e.target.value),placeholder:"Search barbers or styles…",style:{width:"100%",padding:"9px 12px",borderRadius:10,border:`0.5px solid ${C.borderMed}`,fontSize:13,background:C.surface,color:C.text,outline:"none",fontFamily:"inherit"}})
+    ),
+    React.createElement("div",{style:{display:"flex",gap:8,padding:"0 16px 14px",overflowX:"auto"}},
+      SORTS.map(s=>React.createElement("button",{key:s.id,onClick:()=>setSort(s.id),style:{padding:"6px 14px",borderRadius:20,border:`0.5px solid ${sort===s.id?C.text:C.border}`,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",background:sort===s.id?C.text:C.bg,color:sort===s.id?C.bg:C.muted,transition:"all .15s",fontFamily:"inherit"}},s.label))
+    ),
+    sorted.length===0&&React.createElement("div",{style:{textAlign:"center",padding:"40px 16px",color:C.hint,fontSize:14}},"No barbers found"),
+    sorted.map((barber,idx)=>React.createElement("div",{key:barber.id},
+      idx>0&&React.createElement("div",{style:{height:0.5,background:C.border,margin:"0 16px"}}),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:12,padding:"12px 16px"}},
+        React.createElement(Av,{initials:barber.initials,size:50,accent:barber.accent}),
+        React.createElement("div",{style:{flex:1,minWidth:0}},
+          React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},
+            React.createElement("span",{style:{fontSize:14,fontWeight:500,color:C.text}},barber.name),
+            barber.rating>=4.9&&React.createElement("span",{style:{fontSize:9,background:C.accentLight,color:C.accent,padding:"2px 6px",borderRadius:20,fontWeight:500}},"TOP")
+          ),
+          React.createElement("div",{style:{fontSize:12,color:C.muted,marginTop:1}},barber.city+" · "+barber.dist+" km"),
+          React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6,marginTop:4}},
+            React.createElement(Star,{v:barber.rating}),
+            React.createElement("span",{style:{fontSize:11,color:C.hint}},"·"),
+            React.createElement("span",{style:{fontSize:11,color:C.hint}},barber.tags.join(" · "))
+          )
+        ),
+        React.createElement("button",{onClick:()=>onBook(barber),style:{padding:"8px 14px",borderRadius:8,background:C.text,color:C.bg,fontSize:12,border:"none",cursor:"pointer",fontWeight:500,whiteSpace:"nowrap",flexShrink:0,fontFamily:"inherit"}},"Book")
+      )
+    ))
+  );
+}
+
+// PROFILE
+function ProfileScreen(){
+  const upcoming=[{barber:"Marco Barba",date:"Sat 24 May",time:"10:00",tag:"Skin fade"},{barber:"Fadi Nour",date:"Mon 2 Jun",time:"11:30",tag:"Beard trim"}];
+  return React.createElement("div",{style:{flex:1,overflowY:"auto"}},
+    React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 8px"}},
+      React.createElement("span",{style:{fontSize:20,fontWeight:500,color:C.text}},"My cuts"),
+      React.createElement("i",{className:"ti ti-settings",style:{fontSize:22,color:C.muted,cursor:"pointer"}})
+    ),
+    React.createElement("div",{style:{padding:"16px 16px 12px",textAlign:"center"}},
+      React.createElement("div",{style:{width:80,height:80,borderRadius:"50%",background:C.accentLight,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:500,color:C.accent,margin:"0 auto 12px",border:`2px solid ${C.accent}`}},"AG"),
+      React.createElement("div",{style:{fontSize:18,fontWeight:500,color:C.text}},"Andrea G."),
+      React.createElement("div",{style:{fontSize:13,color:C.muted,marginTop:2}},"Following Marco, Fadi, Nico"),
+      React.createElement("div",{style:{marginTop:10,display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap"}},
+        ["Skin fade","Beard","Line up"].map(t=>React.createElement("span",{key:t,style:{fontSize:11,padding:"3px 10px",borderRadius:20,background:C.surface,color:C.muted,border:`0.5px solid ${C.border}`}},t))
+      )
+    ),
+    React.createElement("div",{style:{display:"flex",borderTop:`0.5px solid ${C.border}`,borderBottom:`0.5px solid ${C.border}`,marginBottom:16}},
+      [["14","Cuts logged"],["3","Barbers"],["2","Upcoming"]].map(([v,l],i)=>
+        React.createElement("div",{key:l,style:{flex:1,textAlign:"center",padding:"12px 0",borderLeft:i>0?`0.5px solid ${C.border}`:"none"}},
+          React.createElement("div",{style:{fontSize:20,fontWeight:500,color:C.text}},v),
+          React.createElement("div",{style:{fontSize:11,color:C.muted,marginTop:2}},l)
+        )
+      )
+    ),
+    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:2}},
+      CUT_LOG.map((cut,i)=>{
+        const b=BARBERS.find(br=>br.name===cut.barber);
+        return React.createElement("div",{key:i,style:{aspectRatio:"1",background:b?b.accent+"18":C.surface,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",cursor:"pointer",overflow:"hidden"}},
+          React.createElement("i",{className:"ti ti-scissors",style:{fontSize:30,color:b?b.accent:C.hint,opacity:0.4}}),
+          React.createElement("div",{style:{position:"absolute",bottom:0,left:0,right:0,padding:"16px 4px 5px",background:"linear-gradient(transparent,rgba(0,0,0,0.45))",textAlign:"center"}},
+            React.createElement("div",{style:{fontSize:9,color:"rgba(255,255,255,.9)",fontWeight:500}},cut.date)
+          )
+        );
+      }),
+      React.createElement("div",{style:{aspectRatio:"1",background:C.surface,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",gap:4,border:`0.5px dashed ${C.borderMed}`}},
+        React.createElement("i",{className:"ti ti-plus",style:{fontSize:24,color:C.hint}}),
+        React.createElement("span",{style:{fontSize:9,color:C.hint}},"Add cut")
+      )
+    ),
+    React.createElement("div",{style:{padding:"16px 16px 0"}},
+      React.createElement("div",{style:{padding:"0 0 8px",fontSize:13,fontWeight:500,color:C.text}},"Upcoming appointments"),
+      upcoming.map((appt,i)=>{
+        const b=BARBERS.find(br=>br.name===appt.barber);
+        return React.createElement("div",{key:i,style:{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:C.surface,borderRadius:12,marginBottom:8,border:`0.5px solid ${C.border}`}},
+          React.createElement(Av,{initials:b.initials,size:38,accent:b.accent}),
+          React.createElement("div",{style:{flex:1}},
+            React.createElement("div",{style:{fontSize:13,fontWeight:500,color:C.text}},appt.barber),
+            React.createElement("div",{style:{fontSize:12,color:C.muted}},appt.date+" · "+appt.time)
+          ),
+          React.createElement("span",{style:{fontSize:10,background:C.accentLight,color:C.accent,padding:"3px 8px",borderRadius:20}},appt.tag)
+        );
+      })
+    )
+  );
+}
+
+// MENU
+function MenuScreen(){
+  const secs=[
+    [{icon:"ti-calendar",label:"My appointments",badge:"2"},{icon:"ti-heart",label:"Saved barbers"},{icon:"ti-bell",label:"Notifications",badge:"3"},{icon:"ti-map-pin",label:"Location settings"}],
+    [{icon:"ti-star",label:"Rate the app"},{icon:"ti-share",label:"Refer a friend"}],
+    [{icon:"ti-help-circle",label:"Help & support"},{icon:"ti-shield",label:"Privacy policy"}],
+  ];
+  return React.createElement("div",{style:{flex:1,overflowY:"auto"}},
+    React.createElement("div",{style:{padding:"14px 16px 8px"}},
+      React.createElement("span",{style:{fontSize:20,fontWeight:500,color:C.text}},"Menu")
+    ),
+    React.createElement("div",{style:{padding:"12px 16px 16px",display:"flex",alignItems:"center",gap:14,borderBottom:`0.5px solid ${C.border}`}},
+      React.createElement("div",{style:{width:56,height:56,borderRadius:"50%",background:C.accentLight,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:500,color:C.accent,border:`2px solid ${C.accent}`}},"AG"),
+      React.createElement("div",{style:{flex:1}},
+        React.createElement("div",{style:{fontSize:15,fontWeight:500,color:C.text}},"Andrea G."),
+        React.createElement("div",{style:{fontSize:12,color:C.muted}},"andrea@email.com")
+      ),
+      React.createElement("button",{style:{padding:"6px 12px",borderRadius:8,border:`0.5px solid ${C.borderMed}`,background:"none",fontSize:12,color:C.muted,cursor:"pointer",fontFamily:"inherit"}},"Edit")
+    ),
+    secs.map((group,gi)=>React.createElement("div",{key:gi},
+      React.createElement("div",{style:{height:8,background:C.surface}}),
+      group.map(({icon,label,badge})=>React.createElement("div",{key:label,style:{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${C.border}`}},
+        React.createElement("i",{className:`ti ${icon}`,style:{fontSize:20,color:C.muted}}),
+        React.createElement("span",{style:{flex:1,fontSize:14,color:C.text}},label),
+        badge&&React.createElement("span",{style:{fontSize:11,background:C.text,color:C.bg,padding:"1px 7px",borderRadius:20,fontWeight:500}},badge),
+        React.createElement("i",{className:"ti ti-chevron-right",style:{fontSize:16,color:C.hint}})
+      ))
+    )),
+    React.createElement("div",{style:{height:8,background:C.surface}}),
+    React.createElement("div",{style:{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",cursor:"pointer"}},
+      React.createElement("i",{className:"ti ti-logout",style:{fontSize:20,color:C.red}}),
+      React.createElement("span",{style:{flex:1,fontSize:14,color:C.red}},"Sign out")
+    )
+  );
+}
+
+// BOOKING SHEET
+function BookingSheet({barber,onClose,onConfirm}){
+  const dates=getDates();
+  const [selDate,setSelDate]=useState(0);
+  const [selTime,setSelTime]=useState(null);
+  const [step,setStep]=useState("datetime");
+  function doConfirm(){onConfirm(barber,dates[selDate],SLOTS[selTime]);}
+  return React.createElement("div",{style:{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",zIndex:100},onClick:e=>{if(e.target===e.currentTarget)onClose();}},
+    React.createElement("div",{style:{background:C.bg,borderRadius:"20px 20px 0 0",width:"100%",paddingBottom:20,maxHeight:"92%",overflowY:"auto"}},
+      React.createElement("div",{style:{width:40,height:4,background:C.borderMed,borderRadius:2,margin:"12px auto 8px"}}),
+      step==="datetime"?React.createElement("div",null,
+        React.createElement("div",{style:{padding:"8px 16px 4px"}},
+          React.createElement("div",{style:{fontSize:18,fontWeight:500,color:C.text}},"Book with "+barber.name),
+          React.createElement("div",{style:{fontSize:13,color:C.muted,marginTop:2,display:"flex",alignItems:"center",gap:6}},barber.city+" · ",React.createElement(Star,{v:barber.rating}))
+        ),
+        React.createElement("div",{style:{margin:"10px 16px 14px",padding:"10px 14px",background:barber.accent+"15",borderRadius:12,border:`0.5px solid ${barber.accent}40`,display:"flex",alignItems:"center",gap:10}},
+          React.createElement(Av,{initials:barber.initials,size:40,accent:barber.accent}),
+          React.createElement("div",null,
+            React.createElement("div",{style:{fontSize:12,fontWeight:500,color:C.text}},barber.tags.join(" · ")),
+            React.createElement("div",{style:{fontSize:11,color:C.muted,marginTop:1}},"30 min session · ~€25")
+          )
+        ),
+        React.createElement("div",{style:{padding:"0 16px 8px",fontSize:12,fontWeight:500,color:C.text}},"Select date"),
+        React.createElement("div",{style:{display:"flex",gap:8,padding:"0 16px 16px",overflowX:"auto"}},
+          dates.map((d,i)=>React.createElement("button",{key:i,onClick:()=>{setSelDate(i);setSelTime(null);},style:{display:"flex",flexDirection:"column",alignItems:"center",padding:"8px 10px",borderRadius:12,border:`0.5px solid ${selDate===i?C.text:C.border}`,background:selDate===i?C.text:C.bg,cursor:"pointer",minWidth:50,transition:"all .15s",fontFamily:"inherit"}},
+            React.createElement("span",{style:{fontSize:10,color:selDate===i?C.bg:C.hint}},d.day),
+            React.createElement("span",{style:{fontSize:17,fontWeight:500,color:selDate===i?C.bg:C.text,marginTop:1}},d.num),
+            React.createElement("span",{style:{fontSize:9,color:selDate===i?"rgba(255,255,255,.7)":C.hint}},d.month)
+          ))
+        ),
+        React.createElement("div",{style:{padding:"0 16px 10px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+          React.createElement("span",{style:{fontSize:12,fontWeight:500,color:C.text}},"Available slots"),
+          React.createElement("span",{style:{fontSize:11,color:C.hint,display:"flex",alignItems:"center",gap:4}},
+            React.createElement("span",{style:{width:8,height:8,borderRadius:2,background:C.hint,opacity:.3,display:"inline-block"}}),"Taken"
+          )
+        ),
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,padding:"0 16px 16px"}},
+          SLOTS.map((t,i)=>{
+            const taken=TAKEN.has(i),sel=selTime===i;
+            return React.createElement("button",{key:i,onClick:()=>!taken&&setSelTime(i),style:{padding:"10px 0",border:`0.5px solid ${sel?C.text:C.border}`,borderRadius:10,textAlign:"center",fontSize:13,cursor:taken?"not-allowed":"pointer",color:sel?C.bg:taken?C.hint:C.text,background:sel?C.text:C.bg,opacity:taken?.3:1,transition:"all .15s",fontFamily:"inherit"}},t);
+          })
+        ),
+        React.createElement("div",{style:{padding:"0 16px"}},
+          React.createElement("button",{onClick:()=>{if(selTime!==null)setStep("confirm");},disabled:selTime===null,style:{width:"100%",padding:14,borderRadius:12,background:selTime!==null?C.text:C.surface,color:selTime!==null?C.bg:C.hint,fontSize:15,fontWeight:500,border:"none",cursor:selTime!==null?"pointer":"not-allowed",fontFamily:"inherit",transition:"all .2s"}},selTime!==null?"Continue → "+SLOTS[selTime]:"Select a time slot")
+        ),
+        React.createElement("div",{style:{textAlign:"center",marginTop:12}},
+          React.createElement("span",{onClick:onClose,style:{fontSize:12,color:C.hint,cursor:"pointer"}},"Cancel")
+        )
+      ):React.createElement("div",null,
+        React.createElement("div",{style:{padding:"16px 16px 8px"}},
+          React.createElement("button",{onClick:()=>setStep("datetime"),style:{background:"none",border:"none",cursor:"pointer",color:C.muted,fontSize:13,padding:0,display:"flex",alignItems:"center",gap:4,fontFamily:"inherit",marginBottom:12}},
+            React.createElement("i",{className:"ti ti-arrow-left",style:{fontSize:16}})," Back"
+          ),
+          React.createElement("div",{style:{fontSize:18,fontWeight:500,color:C.text}},"Confirm appointment")
+        ),
+        React.createElement("div",{style:{margin:"8px 16px 16px",padding:"14px 16px",background:C.surface,borderRadius:14,border:`0.5px solid ${C.border}`}},
+          [["Barber",barber.name],["Date",dates[selDate].day+", "+dates[selDate].num+" "+dates[selDate].month],["Time",SLOTS[selTime]],["Service",barber.tags[0]],["Duration","30 min"],["Price","~€25"]].map(([k,v])=>
+            React.createElement("div",{key:k,style:{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`0.5px solid ${C.border}`}},
+              React.createElement("span",{style:{fontSize:13,color:C.muted}},k),
+              React.createElement("span",{style:{fontSize:13,fontWeight:500,color:C.text}},v)
+            )
+          )
+        ),
+        React.createElement("div",{style:{padding:"0 16px 12px",fontSize:12,color:C.hint}},"Free cancellation up to 2h before the appointment."),
+        React.createElement("div",{style:{padding:"0 16px"}},
+          React.createElement("button",{onClick:doConfirm,style:{width:"100%",padding:15,borderRadius:12,background:C.green,color:"#fff",fontSize:15,fontWeight:500,border:"none",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8}},
+            React.createElement("i",{className:"ti ti-calendar-check",style:{fontSize:18}}),"Confirm appointment"
+          )
+        ),
+        React.createElement("div",{style:{textAlign:"center",marginTop:12}},
+          React.createElement("span",{onClick:onClose,style:{fontSize:12,color:C.hint,cursor:"pointer"}},"Cancel")
+        )
+      )
+    )
+  );
+}
+
+function Toast({msg,onClose}){
+  useEffect(()=>{const t=setTimeout(onClose,5000);return()=>clearTimeout(t);},[]);
+  return React.createElement("div",{style:{position:"absolute",top:10,left:10,right:10,background:C.green,borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:10,zIndex:200,animation:"toastIn .35s cubic-bezier(.34,1.56,.64,1)"}},
+    React.createElement("i",{className:"ti ti-calendar-check",style:{fontSize:20,color:"#fff",flexShrink:0}}),
+    React.createElement("div",{style:{flex:1}},
+      React.createElement("div",{style:{fontSize:13,fontWeight:500,color:"#fff"}},"Appointment confirmed!"),
+      React.createElement("div",{style:{fontSize:11,color:"rgba(255,255,255,.85)",marginTop:1}},msg)
+    ),
+    React.createElement("button",{onClick:onClose,style:{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex"}},
+      React.createElement("i",{className:"ti ti-x",style:{fontSize:16,color:"rgba(255,255,255,.7)"}})
+    )
+  );
+}
+
+const NAV=[
+  {id:"feed",icon:"ti-layout-grid",label:"Feed"},
+  {id:"discover",icon:"ti-map-search",label:"Discover"},
+  {id:"profile",icon:"ti-user",label:"Profile"},
+  {id:"menu",icon:"ti-menu-2",label:"Menu"},
+];
+
+function App(){
+  const [screen,setScreen]=useState("feed");
+  const [bookingBarber,setBookingBarber]=useState(null);
+  const [toast,setToast]=useState(null);
+  function handleConfirm(barber,date,time){
+    setBookingBarber(null);
+    setToast(barber.name+" · "+date.day+" "+date.num+" "+date.month+" at "+time);
+  }
+  return React.createElement("div",{style:{display:"flex",justifyContent:"center",padding:"12px 0 24px"}},
+    React.createElement("div",{style:{width:360,background:C.bg,borderRadius:44,border:`1.5px solid ${C.borderMed}`,overflow:"hidden",display:"flex",flexDirection:"column",height:700,position:"relative"}},
+      React.createElement("div",{style:{height:44,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",flexShrink:0,borderBottom:`0.5px solid ${C.border}`}},
+        React.createElement("span",{style:{fontSize:13,fontWeight:600,color:C.text}},"9:41"),
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:5}},
+          React.createElement("i",{className:"ti ti-wifi",style:{fontSize:14,color:C.text}}),
+          React.createElement("i",{className:"ti ti-battery",style:{fontSize:14,color:C.text}})
+        )
+      ),
+      React.createElement("div",{style:{flex:1,overflow:"hidden",display:"flex",flexDirection:"column",position:"relative"}},
+        screen==="feed"&&React.createElement(FeedScreen,{onBook:setBookingBarber}),
+        screen==="discover"&&React.createElement(DiscoverScreen,{onBook:setBookingBarber}),
+        screen==="profile"&&React.createElement(ProfileScreen,{onBook:setBookingBarber}),
+        screen==="menu"&&React.createElement(MenuScreen,null),
+        bookingBarber&&React.createElement(BookingSheet,{barber:bookingBarber,onClose:()=>setBookingBarber(null),onConfirm:handleConfirm}),
+        toast&&React.createElement(Toast,{msg:toast,onClose:()=>setToast(null)})
+      ),
+      React.createElement("div",{style:{height:64,borderTop:`0.5px solid ${C.border}`,display:"flex",flexShrink:0}},
+        NAV.map(({id,icon,label})=>{
+          const active=screen===id;
+          return React.createElement("button",{key:id,onClick:()=>setScreen(id),style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,cursor:"pointer",border:"none",background:"none",padding:"6px 0 0",fontFamily:"inherit"}},
+            React.createElement("i",{className:`ti ${icon}`,style:{fontSize:22,color:active?C.text:C.hint}}),
+            React.createElement("span",{style:{fontSize:9,color:active?C.text:C.hint,fontWeight:active?500:400}},label),
+            React.createElement("div",{style:{width:4,height:4,borderRadius:"50%",background:C.text,opacity:active?1:0,marginTop:1,transition:"opacity .2s"}})
+          );
+        })
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
