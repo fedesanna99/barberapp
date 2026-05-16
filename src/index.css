@@ -13,15 +13,22 @@
   --color-border-tertiary: #ebebeb;
 }
 
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--color-background-secondary);
-  min-height: 100vh;
+}
+
+#root {
+  height: 100%;
   display: flex;
-  align-items: flex-start;
   justify-content: center;
-  padding: 24px 0;
 }
 
 ::-webkit-scrollbar { display: none; }

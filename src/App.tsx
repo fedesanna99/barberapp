@@ -63,87 +63,87 @@ export default function App() {
   }
 
   return (
-    /* Center the phone frame on the page */
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 24px' }}>
-      <div style={{
-        width: 360, background: C.bg,
-        borderRadius: 44,
-        border: `1.5px solid ${C.borderMed}`,
-        overflow: 'hidden',
-        display: 'flex', flexDirection: 'column',
-        height: 700,
-        position: 'relative',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.12)',
-      }}>
+    <div style={{
+      width: '100%',
+      maxWidth: 430,
+      height: '100dvh',
+      background: C.bg,
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative',
+      /* Subtle separator from the gray body background on wide screens */
+      boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)',
+    }}>
 
-        {/* Status bar */}
-        <div style={{
-          height: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 24px', flexShrink: 0, borderBottom: `0.5px solid ${C.border}`,
-        }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>9:41</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <i className="ti ti-wifi"    style={{ fontSize: 14, color: C.text }} />
-            <i className="ti ti-battery" style={{ fontSize: 14, color: C.text }} />
-          </div>
-        </div>
+      {/* iOS safe-area top (Dynamic Island / notch) */}
+      <div style={{ height: 'env(safe-area-inset-top, 0px)', flexShrink: 0, background: C.bg }} />
 
-        {/* Screen area */}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          {!loggedIn ? (
-            authView === 'register'
-              ? <Register onRegister={asBarber => handleLogin(asBarber)} onGoToLogin={() => setAuthView('login')} />
-              : <Login    onLogin={handleLogin} onGoToRegister={() => setAuthView('register')} />
-          ) : profileBarber ? (
-            <BarberProfileSheet
-              barber={profileBarber}
-              onClose={() => setProfileBarber(null)}
-              onBook={setBookingBarber}
-            />
-          ) : (
-            <>
-              {screen === 'feed'      && <Feed     onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} />}
-              {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} />}
-              {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
-              {screen === 'dashboard' && <BarberDashboard barberId={barberId} />}
-              {screen === 'menu'      && <Menu onLogout={() => { setLoggedIn(false); setIsBarber(false); setScreen('feed'); setAuthView('login') }} onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }} />}
-            </>
-          )}
+      {/* Screen area */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        {!loggedIn ? (
+          authView === 'register'
+            ? <Register onRegister={asBarber => handleLogin(asBarber)} onGoToLogin={() => setAuthView('login')} />
+            : <Login    onLogin={handleLogin} onGoToRegister={() => setAuthView('register')} />
+        ) : profileBarber ? (
+          <BarberProfileSheet
+            barber={profileBarber}
+            onClose={() => setProfileBarber(null)}
+            onBook={setBookingBarber}
+          />
+        ) : (
+          <>
+            {screen === 'feed'      && <Feed     onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} />}
+            {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} />}
+            {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
+            {screen === 'dashboard' && <BarberDashboard barberId={barberId} />}
+            {screen === 'menu'      && <Menu onLogout={() => { setLoggedIn(false); setIsBarber(false); setScreen('feed'); setAuthView('login') }} onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }} />}
+          </>
+        )}
 
-          {bookingBarber && (
-            <BookingSheet
-              barber={bookingBarber}
-              onClose={() => setBookingBarber(null)}
-              onConfirm={handleConfirm}
-            />
-          )}
+        {bookingBarber && (
+          <BookingSheet
+            barber={bookingBarber}
+            onClose={() => setBookingBarber(null)}
+            onConfirm={handleConfirm}
+          />
+        )}
 
-          {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-        </div>
-
-        {/* Bottom navbar — hidden on login screen */}
-        <div style={{ height: loggedIn ? 64 : 0, borderTop: loggedIn ? `0.5px solid ${C.border}` : 'none', display: 'flex', flexShrink: 0, overflow: 'hidden', transition: 'height .25s' }}>
-          {(isBarber ? BARBER_NAV : CLIENT_NAV).map(({ id, icon, label }) => {
-            const active = screen === id
-            return (
-              <button
-                key={id}
-                onClick={() => { setScreen(id); setProfileBarber(null); setBookingBarber(null); setShowLikedFeed(false) }}
-                style={{
-                  flex: 1, display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center',
-                  gap: 2, cursor: 'pointer', border: 'none',
-                  background: 'none', padding: '6px 0 0', fontFamily: 'inherit',
-                }}
-              >
-                <i className={`ti ${icon}`} style={{ fontSize: 22, color: active ? C.text : C.hint }} />
-                <span style={{ fontSize: 9, color: active ? C.text : C.hint, fontWeight: active ? 500 : 400 }}>{label}</span>
-                <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.text, opacity: active ? 1 : 0, marginTop: 1, transition: 'opacity .2s' }} />
-              </button>
-            )
-          })}
-        </div>
+        {toast && <Toast message={toast} onClose={() => setToast(null)} />}
       </div>
+
+      {/* Bottom navbar */}
+      {loggedIn && (
+        <div style={{
+          borderTop: `0.5px solid ${C.border}`,
+          background: C.bg,
+          flexShrink: 0,
+        }}>
+          <div style={{ height: 64, display: 'flex' }}>
+            {(isBarber ? BARBER_NAV : CLIENT_NAV).map(({ id, icon, label }) => {
+              const active = screen === id
+              return (
+                <button
+                  key={id}
+                  onClick={() => { setScreen(id); setProfileBarber(null); setBookingBarber(null); setShowLikedFeed(false) }}
+                  style={{
+                    flex: 1, display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    gap: 2, cursor: 'pointer', border: 'none',
+                    background: 'none', padding: '6px 0 0', fontFamily: 'inherit',
+                  }}
+                >
+                  <i className={`ti ${icon}`} style={{ fontSize: 22, color: active ? C.text : C.hint }} />
+                  <span style={{ fontSize: 9, color: active ? C.text : C.hint, fontWeight: active ? 500 : 400 }}>{label}</span>
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.text, opacity: active ? 1 : 0, marginTop: 1, transition: 'opacity .2s' }} />
+                </button>
+              )
+            })}
+          </div>
+          {/* iOS home indicator safe area */}
+          <div style={{ height: 'env(safe-area-inset-bottom, 0px)', background: C.bg }} />
+        </div>
+      )}
     </div>
   )
 }
