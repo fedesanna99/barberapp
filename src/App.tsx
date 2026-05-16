@@ -42,6 +42,7 @@ export default function App() {
   const [screen, setScreen]               = useState<ScreenId>('feed')
   const [bookingBarber, setBookingBarber]   = useState<DemoBarber | null>(null)
   const [profileBarber, setProfileBarber]   = useState<DemoBarber | null>(null)
+  const [showLikedFeed, setShowLikedFeed]   = useState(false)
   const [toast, setToast]                 = useState<string | null>(null)
 
   const barberId = useBarberByProfile(isBarber ? userId : undefined)
@@ -101,11 +102,11 @@ export default function App() {
             />
           ) : (
             <>
-              {screen === 'feed'      && <Feed     onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} />}
+              {screen === 'feed'      && <Feed     onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} />}
               {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} />}
               {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
               {screen === 'dashboard' && <BarberDashboard barberId={barberId} />}
-              {screen === 'menu'      && <Menu onLogout={() => { setLoggedIn(false); setIsBarber(false); setScreen('feed'); setAuthView('login') }} />}
+              {screen === 'menu'      && <Menu onLogout={() => { setLoggedIn(false); setIsBarber(false); setScreen('feed'); setAuthView('login') }} onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }} />}
             </>
           )}
 
@@ -127,7 +128,7 @@ export default function App() {
             return (
               <button
                 key={id}
-                onClick={() => { setScreen(id); setProfileBarber(null); setBookingBarber(null) }}
+                onClick={() => { setScreen(id); setProfileBarber(null); setBookingBarber(null); setShowLikedFeed(false) }}
                 style={{
                   flex: 1, display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',

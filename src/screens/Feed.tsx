@@ -16,18 +16,19 @@ const SEED_COMMENTS: Comment[] = [
 ]
 
 interface FeedProps {
-  onBook:        (barber: DemoBarber) => void
-  onViewProfile: (barber: DemoBarber) => void
-  isBarber?:     boolean
+  onBook:              (barber: DemoBarber) => void
+  onViewProfile:       (barber: DemoBarber) => void
+  isBarber?:           boolean
+  showLiked?:          boolean
+  onShowLikedChange?:  (v: boolean) => void
 }
 
-export function Feed({ onBook, onViewProfile, isBarber }: FeedProps) {
+export function Feed({ onBook, onViewProfile, isBarber, showLiked = false, onShowLikedChange }: FeedProps) {
   const [posts,           setPosts]           = useState<DemoPost[]>(SEED_POSTS)
   const [liked,           setLiked]           = useState<Record<number, boolean>>({})
   const [saved,           setSaved]           = useState<Record<number, boolean>>({})
   const [comments,        setComments]        = useState<Comment[]>(SEED_COMMENTS)
   const [activePostId,    setActivePostId]    = useState<number | null>(null)
-  const [showLiked,       setShowLiked]       = useState(false)
   const [showNewPost,     setShowNewPost]     = useState(false)
 
   const toggleLike = (id: number) => setLiked(l => ({ ...l, [id]: !l[id] }))
@@ -67,7 +68,7 @@ export function Feed({ onBook, onViewProfile, isBarber }: FeedProps) {
         {showLiked ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 8px' }}>
             <button
-              onClick={() => setShowLiked(false)}
+              onClick={() => onShowLikedChange?.(false)}
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}
             >
               <i className="ti ti-arrow-left" style={{ fontSize: 22, color: C.text }} />
@@ -89,7 +90,7 @@ export function Feed({ onBook, onViewProfile, isBarber }: FeedProps) {
               )}
               <i
                 className="ti ti-heart"
-                onClick={() => setShowLiked(true)}
+                onClick={() => onShowLikedChange?.(true)}
                 style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }}
               />
               <i className="ti ti-send" style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }} />

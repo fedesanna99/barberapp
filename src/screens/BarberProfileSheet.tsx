@@ -1,6 +1,7 @@
+import { useState, useRef, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { POSTS } from '../lib/demoData'
-import type { DemoBarber } from '../lib/demoData'
+import type { DemoBarber, DemoPost } from '../lib/demoData'
 
 interface Props {
   barber: DemoBarber
@@ -11,9 +12,10 @@ interface Props {
 export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
   const barberPosts = POSTS.filter(p => p.barberId === barber.id)
   const totalCells  = Math.max(barberPosts.length, 6)
+  const [feedStartIdx, setFeedStartIdx] = useState<number | null>(null)
 
   return (
-    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 8px', flexShrink: 0 }}>
         <button
@@ -22,7 +24,7 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
         >
           <i className="ti ti-arrow-left" style={{ fontSize: 22, color: C.text }} />
         </button>
-        <span style={{ fontSize: 18, fontWeight: 600, color: C.text }}>{barber.name}</span>
+        <span style={{ fontSize: 16, fontWeight: 500, color: C.text }}>{barber.name}</span>
       </div>
 
       {/* Scrollable content */}
@@ -82,8 +84,9 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
             return (
               <div
                 key={i}
+                onClick={() => post && setFeedStartIdx(i)}
                 style={{
-                  aspectRatio: '1', cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                  aspectRatio: '1', cursor: post ? 'pointer' : 'default', position: 'relative', overflow: 'hidden',
                   background: barber.accent + '18',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
@@ -120,6 +123,81 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
           <i className="ti ti-calendar-plus" style={{ fontSize: 18 }} />
           Book with {barber.name.split(' ')[0]}
         </button>
+      </div>
+
+      {/* Post feed overlay */}
+      {feedStartIdx !== null && (
+        <PostsFeed
+          posts={barberPosts}
+          startIdx={feedStartIdx}
+          barber={barber}
+          onClose={() => setFeedStartIdx(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function PostsFeed({ posts, startIdx, barber, onClose }: {
+  posts: DemoPost[]
+  startIdx: number
+  barber: DemoBarber
+  onClose: () => void
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const itemRefs     = useRef<(HTMLDivElement | null)[]>([])
+
+  useEffect(() => {
+    const container = containerRef.current
+    const el        = itemRefs.current[startIdx]
+    if (container && el) container.scrollTop = el.offsetTop
+  }, [startIdx])
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 10, display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 8px', flexShrink: 0, borderBottom: `0.5px solid ${C.border}` }}>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+          <i className="ti ti-arrow-left" style={{ fontSize: 22, color: C.text }} />
+        </button>
+        <span style={{ fontSize: 16, fontWeight: 500, color: C.text }}>{barber.name}</span>
+      </div>
+
+      {/* Scrollable posts */}
+      <div ref={containerRef} style={{ flex: 1, overflowY: 'auto' }}>
+        {posts.map((post, i) => (
+          <div key={post.id} ref={el => { itemRefs.current[i] = el }}>
+            {/* Photo */}
+            <div style={{
+              width: '100%', height: 280,
+              background: barber.accent + '18',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative', overflow: 'hidden',
+            }}>
+              {post.imageUrl
+                ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <i className="ti ti-scissors" style={{ fontSize: 56, color: barber.accent, opacity: 0.35 }} />
+              }
+              <div style={{
+                position: 'absolute', bottom: 10, left: 12,
+                background: 'rgba(0,0,0,0.55)', color: '#fff',
+                fontSize: 11, padding: '3px 10px', borderRadius: 20,
+              }}>
+                {post.label}
+              </div>
+            </div>
+            {/* Caption */}
+            <div style={{ padding: '10px 16px 14px' }}>
+              <div style={{ fontSize: 13, color: C.text }}>
+                <span style={{ fontWeight: 500 }}>{barber.name}</span>{' '}{post.caption}
+              </div>
+              <div style={{ fontSize: 11, color: C.hint, marginTop: 4 }}>
+                {post.likes} likes · {post.timeAgo}
+              </div>
+            </div>
+            {i < posts.length - 1 && <div style={{ height: 6, background: C.surface }} />}
+          </div>
+        ))}
       </div>
     </div>
   )

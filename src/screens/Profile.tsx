@@ -130,7 +130,16 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
         <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>My cuts</span>
-        <i className="ti ti-settings" style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }} />
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          {!isBarber && (
+            <i
+              className="ti ti-camera-plus"
+              onClick={() => !uploading && postInputRef.current?.click()}
+              style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }}
+            />
+          )}
+          <i className="ti ti-settings" style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }} />
+        </div>
       </div>
 
       {/* Hero with tappable avatar */}
@@ -198,16 +207,16 @@ export function Profile({ userId, isBarber, barberId }: Props) {
         {showDemoPosts   && <DemoPostGrid />}
       </div>
 
-      {/* Upcoming appointments */}
-      <div style={{ padding: '16px 16px 0' }}>
-        <div style={{ padding: '0 0 8px', fontSize: 13, fontWeight: 500, color: C.text }}>Upcoming appointments</div>
-        {isDemo
-          ? <DemoUpcoming />
-          : upcoming.length === 0
-            ? <EmptyUpcoming />
-            : <RealUpcoming bookings={upcoming} />
-        }
-      </div>
+      {/* Your appointment */}
+      {(isDemo || upcoming.length > 0) && (
+        <div style={{ padding: '16px 16px 0' }}>
+          <div style={{ padding: '0 0 8px', fontSize: 13, fontWeight: 500, color: C.text }}>Your appointment</div>
+          {isDemo
+            ? <DemoUpcoming />
+            : <RealUpcoming bookings={upcoming.slice(0, 1)} />
+          }
+        </div>
+      )}
 
       <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
       <input ref={postInputRef}   type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePostChange} />
@@ -338,7 +347,7 @@ function DemoPostGrid() {
 function DemoUpcoming() {
   return (
     <>
-      {DEMO_UPCOMING.map((appt, i) => {
+      {DEMO_UPCOMING.slice(0, 1).map((appt, i) => {
         const b = BARBERS.find(br => br.name === appt.barber)!
         return (
           <div key={i} style={apptCard}>
@@ -352,15 +361,6 @@ function DemoUpcoming() {
         )
       })}
     </>
-  )
-}
-
-function EmptyUpcoming() {
-  return (
-    <div style={{ textAlign: 'center', padding: '16px 0', color: C.hint, fontSize: 13 }}>
-      <i className="ti ti-calendar-off" style={{ fontSize: 24, display: 'block', marginBottom: 4 }} />
-      No upcoming appointments
-    </div>
   )
 }
 
