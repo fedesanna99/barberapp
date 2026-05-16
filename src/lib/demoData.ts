@@ -18,6 +18,7 @@ export interface DemoPost {
   label: string
   timeAgo: string
   comments: number
+  imageUrl?: string
 }
 
 export interface DemoDate {

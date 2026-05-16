@@ -10,6 +10,7 @@ import { Profile } from './screens/Profile'
 import { Menu } from './screens/Menu'
 import { BarberDashboard } from './screens/BarberDashboard'
 import { BookingSheet } from './screens/BookingSheet'
+import { BarberProfileSheet } from './screens/BarberProfileSheet'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
 import type { DemoBarber, DemoDate } from './lib/demoData'
@@ -39,7 +40,8 @@ export default function App() {
   const [isBarber, setIsBarber]           = useState(false)
   const [authView, setAuthView]           = useState<AuthView>('login')
   const [screen, setScreen]               = useState<ScreenId>('feed')
-  const [bookingBarber, setBookingBarber] = useState<DemoBarber | null>(null)
+  const [bookingBarber, setBookingBarber]   = useState<DemoBarber | null>(null)
+  const [profileBarber, setProfileBarber]   = useState<DemoBarber | null>(null)
   const [toast, setToast]                 = useState<string | null>(null)
 
   const barberId = useBarberByProfile(isBarber ? userId : undefined)
@@ -55,6 +57,7 @@ export default function App() {
 
   function handleConfirm(barber: DemoBarber, date: DemoDate, time: string) {
     setBookingBarber(null)
+    setProfileBarber(null)
     setToast(`${barber.name} · ${date.day} ${date.num} ${date.month} at ${time}`)
   }
 
@@ -90,10 +93,16 @@ export default function App() {
             authView === 'register'
               ? <Register onRegister={asBarber => handleLogin(asBarber)} onGoToLogin={() => setAuthView('login')} />
               : <Login    onLogin={handleLogin} onGoToRegister={() => setAuthView('register')} />
+          ) : profileBarber ? (
+            <BarberProfileSheet
+              barber={profileBarber}
+              onClose={() => setProfileBarber(null)}
+              onBook={setBookingBarber}
+            />
           ) : (
             <>
-              {screen === 'feed'      && <Feed     onBook={setBookingBarber} />}
-              {screen === 'discover'  && <Discover onBook={setBookingBarber} />}
+              {screen === 'feed'      && <Feed     onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} />}
+              {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} />}
               {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
               {screen === 'dashboard' && <BarberDashboard barberId={barberId} />}
               {screen === 'menu'      && <Menu onLogout={() => { setLoggedIn(false); setIsBarber(false); setScreen('feed'); setAuthView('login') }} />}
@@ -118,7 +127,7 @@ export default function App() {
             return (
               <button
                 key={id}
-                onClick={() => setScreen(id)}
+                onClick={() => { setScreen(id); setProfileBarber(null); setBookingBarber(null) }}
                 style={{
                   flex: 1, display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',
