@@ -93,14 +93,16 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
       })
       return
     }
-    if (!barberId || !file) return
+    if (!barberId) throw new Error('Barber profile not found — make sure your account has a barbers row in the DB')
+    if (!file) throw new Error('No photo selected')
     const imageUrl = await uploadPostPhoto(file, barberId)
     const { data, error } = await supabase
       .from('posts')
       .insert({ barber_id: barberId, image_url: imageUrl, caption, label })
       .select('*, barbers ( id, city, profile:profiles ( display_name, avatar_url ) )')
       .single()
-    if (error || !data) return
+    if (error) throw new Error(`DB insert failed: ${error.message}`)
+    if (!data) throw new Error('No data returned from insert')
     const b = (data.barbers as any)
     feed.prependPost({
       id: data.id,
@@ -329,6 +331,7 @@ function NewPostSheet({
   const [file,     setFile]     = useState<File | null>(null)
   const [preview,  setPreview]  = useState<string | null>(null)
   const [loading,  setLoading]  = useState(false)
+  const [postError, setPostError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -343,8 +346,14 @@ function NewPostSheet({
   async function handlePost() {
     if (!canPost || loading) return
     setLoading(true)
-    await onAdd(caption.trim(), label.trim(), file ?? undefined)
-    setLoading(false)
+    setPostError(null)
+    try {
+      await onAdd(caption.trim(), label.trim(), file ?? undefined)
+    } catch (err) {
+      setPostError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -426,6 +435,11 @@ function NewPostSheet({
               background: C.surface, color: C.text, outline: 'none', fontFamily: 'inherit',
             }}
           />
+          {postError && (
+            <div style={{ fontSize: 12, color: '#e53935', padding: '6px 10px', background: '#ffebee', borderRadius: 8 }}>
+              {postError}
+            </div>
+          )}
           <button
             onClick={handlePost}
             disabled={!canPost || loading}
