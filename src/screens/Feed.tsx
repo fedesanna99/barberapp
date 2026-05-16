@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
 import { BARBERS, POSTS as SEED_POSTS, getBarberById } from '../lib/demoData'
@@ -172,8 +172,8 @@ export function Feed({ onBook, onViewProfile, isBarber }: FeedProps) {
 
               {/* Actions */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px 4px' }}>
-                <button onClick={() => toggleLike(post.id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-                  <i className={`ti ${isLiked ? 'ti-heart-filled' : 'ti-heart'}`} style={{ fontSize: 22, color: isLiked ? C.red : C.muted }} />
+                <button onClick={() => toggleLike(post.id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="ti ti-heart" style={{ fontSize: 22, color: isLiked ? C.red : C.muted }} />
                 </button>
                 <button onClick={() => setActivePostId(post.id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                   <i className="ti ti-message-circle" style={{ fontSize: 22, color: C.muted }} />
@@ -236,12 +236,8 @@ function NewPostSheet({ onAdd, onClose }: { onAdd: (caption: string, label: stri
   const [caption,  setCaption]  = useState('')
   const [label,    setLabel]    = useState('')
   const [preview,  setPreview]  = useState<string | null>(null)
-  const labelRef = useRef<HTMLInputElement>(null)
-  const fileRef  = useRef<HTMLInputElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    labelRef.current?.focus({ preventScroll: true })
-  }, [])
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -308,7 +304,6 @@ function NewPostSheet({ onAdd, onClose }: { onAdd: (caption: string, label: stri
         {/* Inputs */}
         <div style={{ padding: '14px 16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <input
-            ref={labelRef}
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="Style label (e.g. Skin fade + line up)"
