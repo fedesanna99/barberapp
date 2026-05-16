@@ -51,14 +51,21 @@ export function Register({ onRegister, onGoToLogin }: Props) {
       return
     }
 
-    const { error: e } = await supabase.auth.signUp({
+    const { data, error: e } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: name.trim(), role } },
+      options: { data: { full_name: name.trim(), role } },
     })
+    if (e) { setLoading(false); setError(e.message); return }
+
+    // If barber and session is available (email confirmation disabled), create the barbers row.
+    // The handle_new_barber trigger will flip the profile role to 'barber' automatically.
+    if (role === 'barber' && data.session) {
+      await supabase.from('barbers').insert({ profile_id: data.session.user.id })
+    }
+
     setLoading(false)
-    if (e) setError(e.message)
-    else   onRegister(role === 'barber')
+    onRegister(role === 'barber')
   }
 
   return (

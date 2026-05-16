@@ -43,10 +43,21 @@ export function Login({ onLogin, onGoToRegister }: Props) {
       return
     }
 
-    const { error: e } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error: e } = await supabase.auth.signInWithPassword({ email, password })
+    if (e) { setLoading(false); setError(e.message); return }
+
+    // Check actual role stored in the profiles table
+    let asBarber = false
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+      asBarber = profile?.role === 'barber'
+    }
     setLoading(false)
-    if (e) setError(e.message)
-    else   onLogin(false)
+    onLogin(asBarber)
   }
 
   function handleGoogle() {
