@@ -23,7 +23,7 @@ export function useBooking() {
         barber_id: params.barberId,
         date:      params.date.toISOString().split('T')[0],
         time_slot: params.timeSlot,
-        status:    'pending' as const,
+        status:    'confirmed' as const,
       })
       .select()
       .single()

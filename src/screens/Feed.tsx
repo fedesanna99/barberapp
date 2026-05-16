@@ -303,16 +303,6 @@ function NewPostSheet({ onAdd, onClose }: { onAdd: (caption: string, label: stri
 
         {/* Inputs */}
         <div style={{ padding: '14px 16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <input
-            value={label}
-            onChange={e => setLabel(e.target.value)}
-            placeholder="Style label (e.g. Skin fade + line up)"
-            style={{
-              padding: '9px 14px', borderRadius: 10,
-              border: `0.5px solid ${C.borderMed}`, fontSize: 13,
-              background: C.surface, color: C.text, outline: 'none', fontFamily: 'inherit',
-            }}
-          />
           <textarea
             value={caption}
             onChange={e => setCaption(e.target.value)}
@@ -323,6 +313,16 @@ function NewPostSheet({ onAdd, onClose }: { onAdd: (caption: string, label: stri
               border: `0.5px solid ${C.borderMed}`, fontSize: 13,
               background: C.surface, color: C.text, outline: 'none', fontFamily: 'inherit',
               resize: 'none',
+            }}
+          />
+          <input
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            placeholder="Style label (e.g. Skin fade + line up)"
+            style={{
+              padding: '9px 14px', borderRadius: 10,
+              border: `0.5px solid ${C.borderMed}`, fontSize: 13,
+              background: C.surface, color: C.text, outline: 'none', fontFamily: 'inherit',
             }}
           />
           <button

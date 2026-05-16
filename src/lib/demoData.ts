@@ -69,8 +69,8 @@ export interface DemoBarberBooking {
 }
 
 export const DEMO_BARBER_BOOKINGS: DemoBarberBooking[] = [
-  { id: 'b1', client: 'Andrea G.',  initials: 'AG', date: 'Mon 19 May', time: '10:00', service: 'Skin fade',   status: 'pending'   },
-  { id: 'b2', client: 'Luca R.',    initials: 'LR', date: 'Mon 19 May', time: '11:30', service: 'Beard trim',  status: 'pending'   },
+  { id: 'b1', client: 'Andrea G.',  initials: 'AG', date: 'Mon 19 May', time: '10:00', service: 'Skin fade',   status: 'confirmed' },
+  { id: 'b2', client: 'Luca R.',    initials: 'LR', date: 'Mon 19 May', time: '11:30', service: 'Beard trim',  status: 'confirmed' },
   { id: 'b3', client: 'Marco T.',   initials: 'MT', date: 'Tue 20 May', time: '09:00', service: 'Line up',     status: 'confirmed' },
   { id: 'b4', client: 'Davide M.',  initials: 'DM', date: 'Tue 20 May', time: '14:30', service: 'Classic cut', status: 'confirmed' },
   { id: 'b5', client: 'Simone P.',  initials: 'SP', date: 'Wed 21 May', time: '15:00', service: 'Taper fade',  status: 'confirmed' },
