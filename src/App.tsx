@@ -1,39 +1,56 @@
 import { useState } from 'react'
 import { C } from './lib/colors'
 import { useAuth } from './hooks/useAuth'
+import { useBarberByProfile } from './hooks/useBarbers'
+import { useBookingToast } from './hooks/useBookingToast'
 import { Toast } from './components/Toast'
 import { Feed } from './screens/Feed'
 import { Discover } from './screens/Discover'
 import { Profile } from './screens/Profile'
 import { Menu } from './screens/Menu'
+import { BarberDashboard } from './screens/BarberDashboard'
 import { BookingSheet } from './screens/BookingSheet'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
 import type { DemoBarber, DemoDate } from './lib/demoData'
 
-type ScreenId   = 'feed' | 'discover' | 'profile' | 'menu'
-type AuthView   = 'login' | 'register'
+type ScreenId = 'feed' | 'discover' | 'profile' | 'menu' | 'dashboard'
+type AuthView = 'login' | 'register'
 
-const NAV: { id: ScreenId; icon: string; label: string }[] = [
-  { id: 'feed',     icon: 'ti-layout-grid', label: 'Feed'     },
-  { id: 'discover', icon: 'ti-map-search',  label: 'Discover' },
-  { id: 'profile',  icon: 'ti-user',        label: 'Profile'  },
-  { id: 'menu',     icon: 'ti-menu-2',      label: 'Menu'     },
+const CLIENT_NAV: { id: ScreenId; icon: string; label: string }[] = [
+  { id: 'feed',     icon: 'ti-layout-grid',      label: 'Feed'      },
+  { id: 'discover', icon: 'ti-map-search',        label: 'Discover'  },
+  { id: 'profile',  icon: 'ti-user',              label: 'Profile'   },
+  { id: 'menu',     icon: 'ti-menu-2',            label: 'Menu'      },
+]
+
+const BARBER_NAV: { id: ScreenId; icon: string; label: string }[] = [
+  { id: 'feed',      icon: 'ti-layout-grid',       label: 'Feed'      },
+  { id: 'dashboard', icon: 'ti-layout-dashboard',  label: 'Dashboard' },
+  { id: 'profile',   icon: 'ti-user',              label: 'Profile'   },
+  { id: 'menu',      icon: 'ti-menu-2',            label: 'Menu'      },
 ]
 
 export default function App() {
   const { session } = useAuth()
-  const userId = session?.user.id
+  const userId  = session?.user.id
 
-  const [loggedIn, setLoggedIn]         = useState(false)
-  const [authView, setAuthView]         = useState<AuthView>('login')
-  const [screen, setScreen]             = useState<ScreenId>('feed')
+  const [loggedIn, setLoggedIn]           = useState(false)
+  const [isBarber, setIsBarber]           = useState(false)
+  const [authView, setAuthView]           = useState<AuthView>('login')
+  const [screen, setScreen]               = useState<ScreenId>('feed')
   const [bookingBarber, setBookingBarber] = useState<DemoBarber | null>(null)
-  const [toast, setToast]               = useState<string | null>(null)
+  const [toast, setToast]                 = useState<string | null>(null)
+
+  const barberId = useBarberByProfile(isBarber ? userId : undefined)
+
+  // Real-time toast for clients when a barber confirms or cancels their booking
+  useBookingToast(!isBarber ? userId : undefined, setToast)
 
   function handleLogin(asBarber = false) {
     setLoggedIn(true)
-    if (asBarber) setScreen('profile')
+    setIsBarber(asBarber)
+    if (asBarber) setScreen('dashboard')
   }
 
   function handleConfirm(barber: DemoBarber, date: DemoDate, time: string) {
@@ -75,10 +92,11 @@ export default function App() {
               : <Login    onLogin={handleLogin} onGoToRegister={() => setAuthView('register')} />
           ) : (
             <>
-              {screen === 'feed'     && <Feed     onBook={setBookingBarber} />}
-              {screen === 'discover' && <Discover onBook={setBookingBarber} />}
-              {screen === 'profile'  && <Profile userId={userId} />}
-              {screen === 'menu'     && <Menu onLogout={() => { setLoggedIn(false); setScreen('feed'); setAuthView('login') }} />}
+              {screen === 'feed'      && <Feed     onBook={setBookingBarber} />}
+              {screen === 'discover'  && <Discover onBook={setBookingBarber} />}
+              {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
+              {screen === 'dashboard' && <BarberDashboard barberId={barberId} />}
+              {screen === 'menu'      && <Menu onLogout={() => { setLoggedIn(false); setIsBarber(false); setScreen('feed'); setAuthView('login') }} />}
             </>
           )}
 
@@ -95,7 +113,7 @@ export default function App() {
 
         {/* Bottom navbar — hidden on login screen */}
         <div style={{ height: loggedIn ? 64 : 0, borderTop: loggedIn ? `0.5px solid ${C.border}` : 'none', display: 'flex', flexShrink: 0, overflow: 'hidden', transition: 'height .25s' }}>
-          {NAV.map(({ id, icon, label }) => {
+          {(isBarber ? BARBER_NAV : CLIENT_NAV).map(({ id, icon, label }) => {
             const active = screen === id
             return (
               <button

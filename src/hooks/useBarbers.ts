@@ -2,6 +2,20 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { BarberWithProfile } from '../types/supabase'
 
+export function useBarberByProfile(profileId: string | undefined): string | undefined {
+  const [barberId, setBarberId] = useState<string | undefined>()
+  useEffect(() => {
+    if (!profileId) return
+    supabase
+      .from('barbers')
+      .select('id')
+      .eq('profile_id', profileId)
+      .single()
+      .then(({ data }) => { if (data) setBarberId(data.id) })
+  }, [profileId])
+  return barberId
+}
+
 export type SortMode = 'nearby' | 'popular' | 'new'
 
 function haversineKm(

@@ -40,8 +40,9 @@ export function useBooking() {
 
   const cancelBooking  = (bookingId: string) => updateStatus(bookingId, 'cancelled')
   const confirmBooking = (bookingId: string) => updateStatus(bookingId, 'confirmed')
+  const markDone       = (bookingId: string) => updateStatus(bookingId, 'done')
 
-  return { createBooking, cancelBooking, confirmBooking, loading }
+  return { createBooking, cancelBooking, confirmBooking, markDone, loading }
 }
 
 // ── Queries ────────────────────────────────────────────────────────────────
@@ -109,8 +110,15 @@ export function useClientBookings(clientId: string | undefined) {
   return { bookings }
 }
 
+// Booking with joined client display data
+export type BookingWithClient = Booking & {
+  profiles: { display_name: string | null; avatar_url: string | null } | null
+}
+
+const BARBER_SELECT = '*, profiles!bookings_client_id_fkey(display_name, avatar_url)'
+
 export function useBarberBookings(barberId: string | undefined) {
-  const [bookings, setBookings] = useState<Booking[]>([])
+  const [bookings, setBookings] = useState<BookingWithClient[]>([])
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   useEffect(() => {
@@ -118,10 +126,10 @@ export function useBarberBookings(barberId: string | undefined) {
 
     supabase
       .from('bookings')
-      .select('*')
+      .select(BARBER_SELECT)
       .eq('barber_id', barberId)
       .order('date', { ascending: true })
-      .then(({ data }) => setBookings((data ?? []) as Booking[]))
+      .then(({ data }) => setBookings((data ?? []) as BookingWithClient[]))
 
     channelRef.current = supabase
       .channel(`barber_bookings_${barberId}`)
@@ -130,10 +138,21 @@ export function useBarberBookings(barberId: string | undefined) {
         { event: '*', schema: 'public', table: 'bookings', filter: `barber_id=eq.${barberId}` },
         payload => {
           if (payload.eventType === 'INSERT') {
-            setBookings(prev => [...prev, payload.new as Booking])
+            supabase
+              .from('bookings')
+              .select(BARBER_SELECT)
+              .eq('id', (payload.new as Booking).id)
+              .single()
+              .then(({ data }) => {
+                if (data) setBookings(prev => [...prev, data as BookingWithClient])
+              })
           } else if (payload.eventType === 'UPDATE') {
             setBookings(prev =>
-              prev.map(b => b.id === (payload.new as Booking).id ? payload.new as Booking : b),
+              prev.map(b =>
+                b.id === (payload.new as Booking).id
+                  ? { ...b, ...(payload.new as Booking) }
+                  : b,
+              ),
             )
           }
         },

@@ -1,13 +1,20 @@
+import { useRef, useState, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
 import { BARBERS, CUT_LOG, UPCOMING as DEMO_UPCOMING } from '../lib/demoData'
 import { useClientBookings } from '../hooks/useBooking'
 import { useFeed } from '../hooks/useFeed'
+import { useProfile } from '../hooks/useProfile'
+import { useFollows } from '../hooks/useFollows'
+import { uploadAvatar, uploadPostPhoto } from '../hooks/useUpload'
+import { supabase, IS_DEMO } from '../lib/supabase'
 import type { BookingWithBarber } from '../hooks/useBooking'
-import type { PostWithBarber } from '../types/supabase'
+import type { Post, PostWithBarber } from '../types/supabase'
 
 interface Props {
   userId?: string
+  isBarber?: boolean
+  barberId?: string
 }
 
 const TODAY = new Date().toISOString().split('T')[0]
@@ -22,19 +29,100 @@ function initials(name: string | null | undefined): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
-export function Profile({ userId }: Props) {
-  const { bookings } = useClientBookings(userId)
-  const { posts }    = useFeed(userId)
+export function Profile({ userId, isBarber, barberId }: Props) {
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const postInputRef   = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [ownPosts,  setOwnPosts]  = useState<Post[]>([])
+  const [localCuts, setLocalCuts] = useState<{ id: string; url: string }[]>([])
+
+  const { profile, updateAvatarUrl } = useProfile(userId)
+  const follows  = useFollows(userId)
+  const { bookings } = useClientBookings(isBarber ? undefined : userId)
+  const { posts: feedPosts } = useFeed(isBarber ? undefined : userId)
+
+  // Barber: load own posts on mount
+  useEffect(() => {
+    if (!isBarber || !barberId || IS_DEMO) return
+    supabase
+      .from('posts')
+      .select('*')
+      .eq('barber_id', barberId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setOwnPosts((data ?? []) as Post[]))
+  }, [isBarber, barberId])
 
   const upcoming = bookings.filter(b => b.date >= TODAY && b.status !== 'cancelled')
   const past     = bookings.filter(b => b.date <  TODAY && b.status === 'done')
 
-  // Fall back to demo data when no real data is available
-  const showDemoUpcoming = upcoming.length === 0
-  const showDemoPosts    = posts.length === 0
+  // In demo mode (no real session) fall back to demo counts
+  const isDemo = IS_DEMO || !userId
+  const cutsCount     = isDemo ? CUT_LOG.length        : past.length
+  const barbersCount  = isDemo ? 3                     : follows.length
+  const upcomingCount = isDemo ? DEMO_UPCOMING.length  : upcoming.length
 
-  const upcomingCount = showDemoUpcoming ? DEMO_UPCOMING.length : upcoming.length
-  const pastCount     = showDemoPosts    ? CUT_LOG.length       : past.length
+  const displayName = profile.display_name ?? 'User'
+  const avatarUrl   = profile.avatar_url
+  const ini         = initials(displayName)
+
+  // "Following" subtitle: real names in production, demo string otherwise
+  const followingLine = isDemo
+    ? 'Following Marco, Fadi, Nico'
+    : follows.length > 0
+      ? `Following ${follows.map(f => f.displayName?.split(' ')[0] ?? '?').join(', ')}`
+      : (profile.bio ?? '')
+
+  // Pill tags: followed barber names in production, style tags in demo
+  const pills: string[] = isDemo
+    ? ['Skin fade', 'Beard', 'Line up']
+    : follows.slice(0, 4).map(f => f.displayName?.split(' ')[0] ?? '?').filter(Boolean)
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
+    setUploading(true)
+    try {
+      const url = await uploadAvatar(file, userId)
+      await updateAvatarUrl(url)
+    } catch { /* silent */ }
+    setUploading(false)
+    e.target.value = ''
+  }
+
+  async function handlePostChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      if (isBarber && barberId) {
+        const url = await uploadPostPhoto(file, barberId)
+        if (!IS_DEMO) {
+          const { data } = await supabase
+            .from('posts')
+            .insert({ barber_id: barberId, image_url: url, caption: null })
+            .select()
+            .single()
+          if (data) setOwnPosts(prev => [data as Post, ...prev])
+        } else {
+          setOwnPosts(prev => [{
+            id: crypto.randomUUID(), barber_id: barberId,
+            image_url: url, caption: null, likes_count: 0,
+            created_at: new Date().toISOString(),
+          }, ...prev])
+        }
+      } else {
+        // Client: local-only cut preview
+        const url = URL.createObjectURL(file)
+        setLocalCuts(prev => [{ id: crypto.randomUUID(), url }, ...prev])
+      }
+    } catch { /* silent */ }
+    setUploading(false)
+    e.target.value = ''
+  }
+
+  const showBarberPosts = isBarber
+  const showClientPosts = !isBarber && (feedPosts.length > 0 || localCuts.length > 0)
+  const showDemoPosts   = !isBarber && feedPosts.length === 0 && localCuts.length === 0
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -44,35 +132,56 @@ export function Profile({ userId }: Props) {
         <i className="ti ti-settings" style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }} />
       </div>
 
-      {/* Hero */}
+      {/* Hero with tappable avatar */}
       <div style={{ padding: '16px 16px 12px', textAlign: 'center' }}>
-        <div style={{
-          width: 80, height: 80, borderRadius: '50%',
-          background: C.accentLight,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 26, fontWeight: 500, color: C.accent,
-          margin: '0 auto 12px', border: `2px solid ${C.accent}`,
-        }}>
-          AG
+        <div
+          style={{ position: 'relative', width: 80, margin: '0 auto 12px', cursor: 'pointer' }}
+          onClick={() => !uploading && avatarInputRef.current?.click()}
+        >
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            background: avatarUrl ? 'transparent' : C.accentLight,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 26, fontWeight: 500, color: C.accent,
+            border: `2px solid ${C.accent}`, overflow: 'hidden',
+          }}>
+            {avatarUrl
+              ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span>{ini}</span>
+            }
+          </div>
+          <div style={{
+            position: 'absolute', bottom: 0, right: 0,
+            width: 22, height: 22, borderRadius: '50%',
+            background: C.accent, border: `2px solid ${C.bg}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <i className="ti ti-camera" style={{ fontSize: 11, color: '#fff' }} />
+          </div>
         </div>
-        <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>Andrea G.</div>
-        <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>Following Marco, Fadi, Nico</div>
-        <div style={{ marginTop: 10, display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-          {['Skin fade', 'Beard', 'Line up'].map(t => (
-            <span key={t} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: C.surface, color: C.muted, border: `0.5px solid ${C.border}` }}>
-              {t}
-            </span>
-          ))}
-        </div>
+
+        <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>{displayName}</div>
+        {followingLine !== '' && (
+          <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{followingLine}</div>
+        )}
+        {pills.length > 0 && (
+          <div style={{ marginTop: 10, display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {pills.map(p => (
+              <span key={p} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: C.surface, color: C.muted, border: `0.5px solid ${C.border}` }}>
+                {p}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Stats */}
       <div style={{ display: 'flex', borderTop: `0.5px solid ${C.border}`, borderBottom: `0.5px solid ${C.border}`, marginBottom: 16 }}>
-        {[
-          [String(pastCount),     'Cuts logged'],
-          ['3',                   'Barbers'],
+        {([
+          [String(cutsCount),     'Cuts logged'],
+          [String(barbersCount),  'Barbers'],
           [String(upcomingCount), 'Upcoming'],
-        ].map(([val, label], i) => (
+        ] as [string, string][]).map(([val, label], i) => (
           <div key={label} style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderLeft: i > 0 ? `0.5px solid ${C.border}` : 'none' }}>
             <div style={{ fontSize: 20, fontWeight: 500, color: C.text }}>{val}</div>
             <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{label}</div>
@@ -80,36 +189,106 @@ export function Profile({ userId }: Props) {
         ))}
       </div>
 
-      {/* Cut photo grid */}
+      {/* Cut / post photo grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
-        {showDemoPosts
-          ? <DemoPostGrid />
-          : <RealPostGrid posts={posts} />
-        }
-        {/* Add cell */}
-        <div style={{
-          aspectRatio: '1', background: C.surface,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', gap: 4, border: `0.5px dashed ${C.borderMed}`,
-        }}>
-          <i className="ti ti-plus" style={{ fontSize: 24, color: C.hint }} />
-          <span style={{ fontSize: 9, color: C.hint }}>Add cut</span>
+        {showBarberPosts && <OwnPostGrid posts={ownPosts} />}
+        {showClientPosts && <ClientGrid localCuts={localCuts} posts={feedPosts} />}
+        {showDemoPosts   && <DemoPostGrid />}
+        <div
+          onClick={() => !uploading && postInputRef.current?.click()}
+          style={{
+            aspectRatio: '1', background: C.surface,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', gap: 4, border: `0.5px dashed ${C.borderMed}`,
+          }}
+        >
+          <i className={`ti ${uploading ? 'ti-loader-2' : 'ti-plus'}`} style={{ fontSize: 24, color: C.hint }} />
+          <span style={{ fontSize: 9, color: C.hint }}>{isBarber ? 'New post' : 'Add cut'}</span>
         </div>
       </div>
 
       {/* Upcoming appointments */}
       <div style={{ padding: '16px 16px 0' }}>
         <div style={{ padding: '0 0 8px', fontSize: 13, fontWeight: 500, color: C.text }}>Upcoming appointments</div>
-        {showDemoUpcoming
+        {isDemo
           ? <DemoUpcoming />
-          : <RealUpcoming bookings={upcoming} />
+          : upcoming.length === 0
+            ? <EmptyUpcoming />
+            : <RealUpcoming bookings={upcoming} />
         }
       </div>
+
+      <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+      <input ref={postInputRef}   type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePostChange} />
     </div>
   )
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
+
+function OwnPostGrid({ posts }: { posts: Post[] }) {
+  return (
+    <>
+      {posts.slice(0, 8).map(post => (
+        <div
+          key={post.id}
+          style={{
+            aspectRatio: '1', cursor: 'pointer', overflow: 'hidden',
+            position: 'relative', background: C.surface,
+            ...(post.image_url
+              ? { backgroundImage: `url(${post.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+              : { display: 'flex', alignItems: 'center', justifyContent: 'center' }),
+          }}
+        >
+          {!post.image_url && <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />}
+        </div>
+      ))}
+    </>
+  )
+}
+
+function ClientGrid({ localCuts, posts }: { localCuts: { id: string; url: string }[]; posts: PostWithBarber[] }) {
+  return (
+    <>
+      {localCuts.map(cut => (
+        <div
+          key={cut.id}
+          style={{
+            aspectRatio: '1', overflow: 'hidden', position: 'relative', cursor: 'pointer',
+            backgroundImage: `url(${cut.url})`, backgroundSize: 'cover', backgroundPosition: 'center',
+          }}
+        />
+      ))}
+      {posts.slice(0, Math.max(0, 8 - localCuts.length)).map(post => {
+        const name = post.barbers?.profile?.display_name ?? null
+        return (
+          <div
+            key={post.id}
+            style={{
+              aspectRatio: '1', cursor: 'pointer', overflow: 'hidden',
+              position: 'relative', background: C.surface,
+              ...(post.image_url
+                ? { backgroundImage: `url(${post.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                : { display: 'flex', alignItems: 'center', justifyContent: 'center' }),
+            }}
+          >
+            {!post.image_url && <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />}
+            {name && (
+              <div style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                padding: '16px 4px 5px',
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.5))',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{name}</div>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </>
+  )
+}
 
 function DemoPostGrid() {
   return (
@@ -138,37 +317,6 @@ function DemoPostGrid() {
   )
 }
 
-function RealPostGrid({ posts }: { posts: PostWithBarber[] }) {
-  return (
-    <>
-      {posts.slice(0, 8).map(post => {
-        const name = post.barbers?.profile?.display_name ?? null
-        return (
-          <div key={post.id} style={{
-            aspectRatio: '1', cursor: 'pointer', overflow: 'hidden',
-            position: 'relative', background: C.surface,
-            ...(post.image_url
-              ? { backgroundImage: `url(${post.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-              : { display: 'flex', alignItems: 'center', justifyContent: 'center' }),
-          }}>
-            {!post.image_url && (
-              <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />
-            )}
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              padding: '16px 4px 5px',
-              background: 'linear-gradient(transparent, rgba(0,0,0,0.5))',
-              textAlign: 'center',
-            }}>
-              {name && <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{name}</div>}
-            </div>
-          </div>
-        )
-      })}
-    </>
-  )
-}
-
 function DemoUpcoming() {
   return (
     <>
@@ -189,23 +337,23 @@ function DemoUpcoming() {
   )
 }
 
+function EmptyUpcoming() {
+  return (
+    <div style={{ textAlign: 'center', padding: '16px 0', color: C.hint, fontSize: 13 }}>
+      <i className="ti ti-calendar-off" style={{ fontSize: 24, display: 'block', marginBottom: 4 }} />
+      No upcoming appointments
+    </div>
+  )
+}
+
 function RealUpcoming({ bookings }: { bookings: BookingWithBarber[] }) {
-  if (bookings.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', padding: '16px 0', color: C.hint, fontSize: 13 }}>
-        <i className="ti ti-calendar-off" style={{ fontSize: 24, display: 'block', marginBottom: 4 }} />
-        No upcoming appointments
-      </div>
-    )
-  }
   return (
     <>
       {bookings.map(b => {
         const name = b.barbers?.profile?.display_name ?? 'Barber'
-        const ini  = initials(name)
         return (
           <div key={b.id} style={apptCard}>
-            <Avatar initials={ini} size={38} accent={C.accent} />
+            <Avatar initials={initials(name)} size={38} accent={C.accent} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{name}</div>
               <div style={{ fontSize: 12, color: C.muted }}>{fmtDate(b.date)} · {b.time_slot}</div>
@@ -220,12 +368,10 @@ function RealUpcoming({ bookings }: { bookings: BookingWithBarber[] }) {
 
 function StatusPill({ status, tag }: { status: string; tag?: string }) {
   const label = tag ?? status.charAt(0).toUpperCase() + status.slice(1)
-  const bg    = status === 'confirmed' ? C.accentLight  : status === 'pending' ? 'rgba(29,158,117,0.1)' : C.surface
-  const color = status === 'confirmed' ? C.accent       : status === 'pending' ? C.green                : C.hint
+  const bg    = status === 'confirmed' ? C.accentLight : status === 'pending' ? 'rgba(29,158,117,0.1)' : C.surface
+  const color = status === 'confirmed' ? C.accent      : status === 'pending' ? C.green               : C.hint
   return (
-    <span style={{ fontSize: 10, background: bg, color, padding: '3px 8px', borderRadius: 20 }}>
-      {label}
-    </span>
+    <span style={{ fontSize: 10, background: bg, color, padding: '3px 8px', borderRadius: 20 }}>{label}</span>
   )
 }
 

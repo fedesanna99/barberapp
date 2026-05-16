@@ -55,6 +55,40 @@ export const UPCOMING = [
   { barber: 'Fadi Nour',   date: 'Mon 2 Jun',   time: '11:30', tag: 'Beard trim' },
 ]
 
+// ── Barber dashboard demo data ─────────────────────────────────────────────
+
+export interface DemoBarberBooking {
+  id: string
+  client: string
+  initials: string
+  date: string
+  time: string
+  service: string
+  status: 'pending' | 'confirmed' | 'done'
+}
+
+export const DEMO_BARBER_BOOKINGS: DemoBarberBooking[] = [
+  { id: 'b1', client: 'Andrea G.',  initials: 'AG', date: 'Mon 19 May', time: '10:00', service: 'Skin fade',   status: 'pending'   },
+  { id: 'b2', client: 'Luca R.',    initials: 'LR', date: 'Mon 19 May', time: '11:30', service: 'Beard trim',  status: 'pending'   },
+  { id: 'b3', client: 'Marco T.',   initials: 'MT', date: 'Tue 20 May', time: '09:00', service: 'Line up',     status: 'confirmed' },
+  { id: 'b4', client: 'Davide M.',  initials: 'DM', date: 'Tue 20 May', time: '14:30', service: 'Classic cut', status: 'confirmed' },
+  { id: 'b5', client: 'Simone P.',  initials: 'SP', date: 'Wed 21 May', time: '15:00', service: 'Taper fade',  status: 'confirmed' },
+]
+
+export interface DemoAvailRow {
+  day_of_week: number
+  start_time: string
+  end_time: string
+}
+
+export const DEMO_AVAIL: DemoAvailRow[] = [
+  { day_of_week: 1, start_time: '09:00', end_time: '18:00' },
+  { day_of_week: 2, start_time: '09:00', end_time: '18:00' },
+  { day_of_week: 3, start_time: '09:00', end_time: '18:00' },
+  { day_of_week: 4, start_time: '09:00', end_time: '18:00' },
+  { day_of_week: 5, start_time: '09:00', end_time: '17:00' },
+]
+
 export const SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','17:00']
 export const TAKEN_INDICES = new Set([1, 4, 7])
 
