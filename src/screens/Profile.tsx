@@ -280,13 +280,16 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       {/* Stats */}
       <div style={{ display: 'flex', borderTop: `0.5px solid ${C.border}`, borderBottom: `0.5px solid ${C.border}`, marginBottom: 16 }}>
         {([
-          [String(cutsCount),     'Fresh cuts'],
-          [String(barbersCount),  'Barbers'],
-          [String(upcomingCount), 'Followers'],
-        ] as [string, string][]).map(([val, label], i) => (
-          <div key={label} style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderLeft: i > 0 ? `0.5px solid ${C.border}` : 'none' }}>
-            <div style={{ fontSize: 20, fontWeight: 500, color: C.text }}>{val}</div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{label}</div>
+          [String(cutsCount),     'Fresh cuts', 'ti-scissors'],
+          [String(upcomingCount), 'Follower',   'ti-heart'],
+          [String(barbersCount),  'Stelle',     'ti-star'],
+        ] as [string, string, string][]).map(([val, label, icon], i) => (
+          <div key={label} style={{ flex: 1, textAlign: 'center', padding: '14px 0 12px', borderLeft: i > 0 ? `0.5px solid ${C.border}` : 'none' }}>
+            <div style={{ fontSize: 20, fontWeight: 600, color: C.text }}>{val}</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, marginTop: 4 }}>
+              <i className={`ti ${icon}`} style={{ fontSize: 10, color: C.muted }} />
+              <div style={{ fontSize: 11, color: C.muted }}>{label}</div>
+            </div>
           </div>
         ))}
       </div>
