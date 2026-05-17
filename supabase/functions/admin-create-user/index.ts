@@ -24,14 +24,13 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) return json({ error: 'Unauthorized' }, 401)
 
-    // Verify caller identity with their JWT
+    // Verify caller identity with their JWT (anon key — no browser restriction)
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     })
     const { data: { user: caller } } = await callerClient.auth.getUser()
     if (!caller) return json({ error: 'Unauthorized' }, 401)
 
-    // Verify caller is admin
     const { data: profile } = await callerClient
       .from('profiles')
       .select('role')
@@ -41,27 +40,38 @@ Deno.serve(async (req) => {
 
     const { email, password, displayName, role } = await req.json()
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-
-    const { data, error } = await adminClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name: displayName },
-    })
-
-    if (error) return json({ error: error.message }, 400)
-
-    if (data.user && role !== 'client') {
-      await adminClient
-        .from('profiles')
-        .update({ role, display_name: displayName })
-        .eq('id', data.user.id)
+    // Use fetch directly to avoid supabase-js browser-key check in Deno
+    const adminHeaders = {
+      'Authorization': `Bearer ${serviceRoleKey}`,
+      'apikey': serviceRoleKey,
+      'Content-Type': 'application/json',
     }
 
-    return json({ user: data.user })
+    const createRes = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+      method: 'POST',
+      headers: adminHeaders,
+      body: JSON.stringify({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: displayName },
+      }),
+    })
+
+    const createData = await createRes.json()
+    if (!createRes.ok) {
+      return json({ error: createData.msg ?? createData.error_description ?? 'Errore creazione utente' }, 400)
+    }
+
+    if (createData.id && role !== 'client') {
+      await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${createData.id}`, {
+        method: 'PATCH',
+        headers: { ...adminHeaders, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ role, display_name: displayName }),
+      })
+    }
+
+    return json({ user: createData })
   } catch (err) {
     return json({ error: String(err) }, 500)
   }
