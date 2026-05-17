@@ -18,6 +18,7 @@ import { BarberProfileSheet } from './screens/BarberProfileSheet'
 import { SupportChat } from './screens/SupportChat'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
+import { ResetPassword } from './screens/ResetPassword'
 import type { DemoBarber, DemoDate } from './lib/demoData'
 
 type ScreenId = 'feed' | 'discover' | 'profile' | 'menu' | 'dashboard' | 'admin'
@@ -46,7 +47,7 @@ const ADMIN_NAV: { id: ScreenId; icon: string; label: string }[] = [
 ]
 
 export default function App() {
-  const { session, isBarber: roleIsBarber, isAdmin: roleIsAdmin, loading, signOut } = useAuth()
+  const { session, isBarber: roleIsBarber, isAdmin: roleIsAdmin, loading, recoveryMode, clearRecoveryMode, signOut } = useAuth()
   const userId = session?.user.id
 
   const [loggedIn, setLoggedIn]         = useState(false)
@@ -137,6 +138,8 @@ export default function App() {
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <i className="ti ti-loader-2" style={{ fontSize: 36, color: C.muted, animation: 'spin 0.8s linear infinite' }} />
           </div>
+        ) : recoveryMode ? (
+          <ResetPassword onDone={clearRecoveryMode} />
         ) : !loggedIn ? (
           authView === 'register'
             ? <Register onRegister={asBarber => handleLogin(asBarber)} onGoToLogin={() => setAuthView('login')} />
@@ -198,7 +201,7 @@ export default function App() {
       </div>
 
       {/* Bottom navbar */}
-      {loggedIn && (
+      {loggedIn && !recoveryMode && (
         <div style={{
           borderTop: `0.5px solid ${C.border}`,
           background: C.bg,

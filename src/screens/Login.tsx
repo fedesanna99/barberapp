@@ -26,6 +26,8 @@ export function Login({ onLogin, onGoToRegister }: Props) {
   const [error, setError]         = useState<string | null>(null)
   const [focused, setFocused]     = useState<string | null>(null)
   const [googleRole, setGoogleRole] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
+  const [forgotLoading, setForgotLoading] = useState(false)
 
   function border(field: string) {
     return focused === field ? C.accent : C.borderMed
@@ -74,6 +76,33 @@ export function Login({ onLogin, onGoToRegister }: Props) {
   function handleGoogle() {
     if (IS_DEMO) { setGoogleRole(true); return }
     supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
+  }
+
+  async function handleForgotPassword() {
+    setError(null)
+    setForgotSent(false)
+    if (!isValidEmail(email)) {
+      setError('Inserisci la tua email per recuperare la password')
+      return
+    }
+    setForgotLoading(true)
+    if (IS_DEMO) {
+      await new Promise(r => setTimeout(r, 500))
+      setForgotLoading(false)
+      setForgotSent(true)
+      return
+    }
+    const { error: e } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin,
+    })
+    setForgotLoading(false)
+    if (e) {
+      writeLog('auth.reset.failed', `Reset password fallito: ${e.message}`, 'warning', { userEmail: email })
+      setError(e.message)
+      return
+    }
+    writeLog('auth.reset.requested', 'Email di reset password inviata', 'info', { userEmail: email })
+    setForgotSent(true)
   }
 
   if (googleRole) {
@@ -200,10 +229,23 @@ export function Login({ onLogin, onGoToRegister }: Props) {
 
         {/* Forgot */}
         <div style={{ textAlign: 'right', marginTop: -6 }}>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.accent, fontFamily: 'inherit', padding: 0 }}>
-            Password dimenticata?
+          <button
+            onClick={handleForgotPassword}
+            disabled={forgotLoading}
+            style={{ background: 'none', border: 'none', cursor: forgotLoading ? 'default' : 'pointer', fontSize: 12, color: C.accent, fontFamily: 'inherit', padding: 0, opacity: forgotLoading ? 0.6 : 1 }}
+          >
+            {forgotLoading ? 'Invio…' : 'Password dimenticata?'}
           </button>
         </div>
+
+        {forgotSent && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 12px', borderRadius: 10, background: 'rgba(29,158,117,0.08)' }}>
+            <i className="ti ti-mail-check" style={{ color: C.green, fontSize: 16, flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: C.green }}>
+              Email di recupero inviata. Controlla la posta (anche lo spam).
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Divider */}

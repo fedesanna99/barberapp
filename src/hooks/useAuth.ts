@@ -9,6 +9,7 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<ProfileWithBarber | null>(null)
   const [loading, setLoading] = useState(true)
+  const [recoveryMode, setRecoveryMode] = useState(false)
   // Prevents onAuthStateChange from resolving loading before getSession() completes.
   // Without this, INITIAL_SESSION fires with null before the stored session is read,
   // causing a login-screen flash on every page reload or tab switch.
@@ -30,6 +31,7 @@ export function useAuth() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
+      if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true)
       if (session) {
         // Skip refetch on token refresh unless a preceding transient SIGNED_OUT
         // already cleared profileRef — in that case we must restore the profile.
@@ -43,6 +45,8 @@ export function useAuth() {
 
     return () => listener.subscription.unsubscribe()
   }, [])
+
+  function clearRecoveryMode() { setRecoveryMode(false) }
 
   async function fetchProfile(userId: string, retries = 0) {
     const { data } = await supabase
@@ -79,5 +83,5 @@ export function useAuth() {
   const isBarber = profile?.role === 'barber'
   const isAdmin  = profile?.role === 'admin'
 
-  return { session, profile, isBarber, isAdmin, loading, signInWithGoogle, signOut }
+  return { session, profile, isBarber, isAdmin, loading, recoveryMode, clearRecoveryMode, signInWithGoogle, signOut }
 }
