@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase, supabaseAdmin, IS_DEMO } from '../lib/supabase'
+import { supabase, IS_DEMO } from '../lib/supabase'
 import { DEMO_ADMIN_USERS } from '../lib/demoData'
 import type { UserRole } from '../types/supabase'
 
@@ -49,23 +49,11 @@ export function useAdminUsers() {
       return { error: null }
     }
 
-    if (!supabaseAdmin) {
-      return { error: 'Aggiungi VITE_SUPABASE_SERVICE_ROLE_KEY nel .env per creare utenti.' }
-    }
-
-    const { data, error: e } = await supabaseAdmin.auth.admin.createUser({
-      email, password,
-      email_confirm: true,
-      user_metadata: { full_name: displayName },
+    const { data, error: e } = await supabase.functions.invoke('admin-create-user', {
+      body: { email, password, displayName, role },
     })
     if (e) return { error: e.message }
-
-    if (data.user && role !== 'client') {
-      await supabase
-        .from('profiles')
-        .update({ role, display_name: displayName })
-        .eq('id', data.user.id)
-    }
+    if (data?.error) return { error: data.error }
 
     await load()
     return { error: null }

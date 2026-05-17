@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase, supabaseAdmin, IS_DEMO } from '../lib/supabase'
+import { supabase, IS_DEMO } from '../lib/supabase'
 import type { AppLog } from '../types/supabase'
 
 export type { AppLog }
@@ -21,7 +21,7 @@ export function useAdminLogs() {
   const [error, setError]     = useState<string | null>(null)
 
   useEffect(() => {
-    if (IS_DEMO || !supabaseAdmin) {
+    if (IS_DEMO) {
       setLogs([...demoStore])
       setLoading(false)
       demoSubs.add(setLogs)
@@ -35,7 +35,7 @@ export function useAdminLogs() {
     setLoading(true)
     setError(null)
 
-    const { data, error: e } = await supabaseAdmin!
+    const { data, error: e } = await supabase
       .from('app_logs')
       .select('*')
       .order('created_at', { ascending: false })
@@ -50,13 +50,13 @@ export function useAdminLogs() {
   }
 
   async function clearLogs() {
-    if (IS_DEMO || !supabaseAdmin) {
+    if (IS_DEMO) {
       demoStore = []
       demoNotify()
       return { error: null }
     }
 
-    const { error: e } = await supabaseAdmin.from('app_logs').delete().neq('id', '')
+    const { error: e } = await supabase.from('app_logs').delete().neq('id', '')
     if (e) return { error: e.message }
 
     setLogs([])
