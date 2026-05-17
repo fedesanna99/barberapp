@@ -5,25 +5,40 @@ import type { AppLog } from '../types/supabase'
 
 export type { AppLog }
 
+// ── Demo in-memory log store ───────────────────────────────────────────────
+
+let demoStore: AppLog[] = [...(DEMO_LOGS as unknown as AppLog[])].sort(
+  (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+)
+const demoSubs = new Set<(logs: AppLog[]) => void>()
+
+function demoNotify() {
+  demoSubs.forEach(fn => fn([...demoStore]))
+}
+
+// ── Hook ──────────────────────────────────────────────────────────────────
+
 export function useAdminLogs() {
   const [logs, setLogs]       = useState<AppLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    if (IS_DEMO || !supabaseAdmin) {
+      setLogs([...demoStore])
+      setLoading(false)
+      demoSubs.add(setLogs)
+      return () => { demoSubs.delete(setLogs) }
+    }
+    load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function load() {
     setLoading(true)
     setError(null)
 
-    if (IS_DEMO || !supabaseAdmin) {
-      await new Promise(r => setTimeout(r, 300))
-      setLogs(DEMO_LOGS as unknown as AppLog[])
-      setLoading(false)
-      return
-    }
-
-    const { data, error: e } = await supabaseAdmin
+    const { data, error: e } = await supabaseAdmin!
       .from('app_logs')
       .select('*')
       .order('created_at', { ascending: false })
@@ -39,7 +54,8 @@ export function useAdminLogs() {
 
   async function clearLogs() {
     if (IS_DEMO || !supabaseAdmin) {
-      setLogs([])
+      demoStore = []
+      demoNotify()
       return { error: null }
     }
 
@@ -53,14 +69,30 @@ export function useAdminLogs() {
   return { logs, loading, error, clearLogs, reload: load }
 }
 
-// Utility: write a log entry (fire-and-forget, safe to call anywhere)
+// ── Utility: write a log entry (fire-and-forget) ──────────────────────────
+
 export async function writeLog(
   action: string,
   message: string,
   level: 'info' | 'warning' | 'error' = 'info',
   extra?: { userId?: string; userEmail?: string; metadata?: Record<string, unknown> },
 ) {
-  if (IS_DEMO) return
+  if (IS_DEMO) {
+    const entry: AppLog = {
+      id:         crypto.randomUUID(),
+      level,
+      action,
+      message,
+      user_id:    extra?.userId    ?? null,
+      user_email: extra?.userEmail ?? null,
+      metadata:   extra?.metadata  ?? null,
+      created_at: new Date().toISOString(),
+    }
+    demoStore = [entry, ...demoStore]
+    demoNotify()
+    return
+  }
+
   await supabase.from('app_logs').insert({
     action, message, level,
     user_id:    extra?.userId    ?? null,

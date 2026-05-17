@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { writeLog } from '../hooks/useAdminLogs'
 
 const GoogleLogo = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
@@ -39,12 +40,18 @@ export function Login({ onLogin, onGoToRegister }: Props) {
     if (IS_DEMO) {
       await new Promise(r => setTimeout(r, 750))
       setLoading(false)
+      writeLog('auth.login', `Accesso riuscito (demo)`, 'info', { userEmail: email || 'demo@cutbook.it' })
       onLogin(false)
       return
     }
 
     const { data, error: e } = await supabase.auth.signInWithPassword({ email, password })
-    if (e) { setLoading(false); setError(e.message); return }
+    if (e) {
+      writeLog('auth.failed', `Tentativo di accesso fallito: ${e.message}`, 'warning', { userEmail: email })
+      setLoading(false)
+      setError(e.message)
+      return
+    }
 
     // Check actual role stored in the profiles table
     let asBarber = false
@@ -58,6 +65,7 @@ export function Login({ onLogin, onGoToRegister }: Props) {
       asBarber = profile?.role === 'barber'
       asAdmin  = profile?.role === 'admin'
     }
+    writeLog('auth.login', 'Accesso riuscito', 'info', { userId: data.user?.id, userEmail: email })
     setLoading(false)
     onLogin(asBarber, asAdmin)
   }
@@ -79,13 +87,13 @@ export function Login({ onLogin, onGoToRegister }: Props) {
         </div>
         <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: C.text }}>Chi sei?</p>
         <p style={{ margin: '-8px 0 8px', fontSize: 13, color: C.muted }}>Scegli il tuo ruolo per continuare</p>
-        <button onClick={() => onLogin(false, false)} style={roleBtn('client')}>
+        <button onClick={() => { writeLog('auth.login', 'Accesso Google come cliente (demo)', 'info'); onLogin(false, false) }} style={roleBtn('client')}>
           <i className="ti ti-user" style={{ fontSize: 22 }} /> Cliente
         </button>
-        <button onClick={() => onLogin(true, false)} style={roleBtn('barber')}>
+        <button onClick={() => { writeLog('auth.login', 'Accesso Google come barbiere (demo)', 'info'); onLogin(true, false) }} style={roleBtn('barber')}>
           <i className="ti ti-scissors" style={{ fontSize: 22 }} /> Barbiere
         </button>
-        <button onClick={() => onLogin(false, true)} style={roleBtn('admin')}>
+        <button onClick={() => { writeLog('auth.login', 'Accesso Google come admin (demo)', 'info'); onLogin(false, true) }} style={roleBtn('admin')}>
           <i className="ti ti-shield-lock" style={{ fontSize: 22 }} /> Admin
         </button>
         <button onClick={() => setGoogleRole(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.hint, fontFamily: 'inherit', padding: 4 }}>

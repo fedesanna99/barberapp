@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
 import { IS_DEMO } from '../lib/supabase'
+import { writeLog } from '../hooks/useAdminLogs'
 import {
   DEMO_BARBER_BOOKINGS, DEMO_AVAIL,
   type DemoBarberBooking, type DemoAvailRow,
@@ -121,21 +122,29 @@ function BookingsTab({ barberId }: { barberId?: string }) {
   }, [real])
 
   function demoAction(id: string, action: 'done' | 'cancel' | 'confirm') {
+    const booking = demoList.find(b => b.id === id)
+    const clientName = booking?.client ?? 'cliente'
     if (action === 'cancel') {
       setDemoList(prev => prev.filter(b => b.id !== id))
+      writeLog('booking.cancelled', `Prenotazione di ${clientName} annullata dal barbiere`, 'info', { metadata: { booking_id: id } })
     } else if (action === 'confirm') {
       setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'confirmed' as const } : b))
+      writeLog('booking.confirmed', `Prenotazione di ${clientName} confermata`, 'info', { metadata: { booking_id: id } })
     } else {
       setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'done' as const } : b))
+      writeLog('booking.done', `Prenotazione di ${clientName} completata`, 'info', { metadata: { booking_id: id } })
     }
   }
 
   function act(id: string, action: 'confirm' | 'cancel' | 'done') {
     if (isDemo) { demoAction(id, action); return }
     const call = action === 'confirm' ? confirmBooking : action === 'cancel' ? cancelBooking : markDone
+    const actionLabel = action === 'confirm' ? 'booking.confirmed' : action === 'cancel' ? 'booking.cancelled' : 'booking.done'
+    const actionMsg   = action === 'confirm' ? 'Prenotazione confermata' : action === 'cancel' ? 'Prenotazione annullata' : 'Prenotazione completata'
     setActionError(null)
     call(id).then(({ error }) => {
       if (error) { setActionError(error.message); return }
+      writeLog(actionLabel, actionMsg, 'info', { metadata: { booking_id: id } })
       refetch()
     })
   }

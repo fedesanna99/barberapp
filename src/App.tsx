@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { C } from './lib/colors'
 import { IS_DEMO } from './lib/supabase'
 import { useAuth } from './hooks/useAuth'
+import { writeLog } from './hooks/useAdminLogs'
 import { useBarberByProfile } from './hooks/useBarbers'
 import { useBookingToast } from './hooks/useBookingToast'
 import { useBooking } from './hooks/useBooking'
@@ -71,6 +72,10 @@ export default function App() {
       setIsBarber(roleIsBarber)
       setIsAdmin(roleIsAdmin)
       if (roleIsAdmin) setScreen('admin')
+    } else {
+      setLoggedIn(false)
+      setIsBarber(false)
+      setIsAdmin(false)
     }
   }, [session, roleIsBarber, roleIsAdmin, loading])
 
@@ -95,9 +100,13 @@ export default function App() {
         const msg = error.message.includes('bookings_no_double')
           ? 'That slot was just taken — please pick another time.'
           : `Booking failed: ${error.message}`
+        writeLog('booking.conflict', `Prenotazione fallita: ${error.message}`, 'warning', { userId, metadata: { barber_id: barber.id, time_slot: time } })
         setToast(msg)
         return
       }
+      writeLog('booking.created', `Nuova prenotazione da ${barber.name} alle ${time}`, 'info', { userId, metadata: { barber_id: barber.id, date: date.date, time_slot: time } })
+    } else {
+      writeLog('booking.created', `Nuova prenotazione da ${barber.name} alle ${time} (demo)`, 'info', { metadata: { barber: barber.name, time_slot: time } })
     }
     setBookingBarber(null)
     setProfileBarber(null)

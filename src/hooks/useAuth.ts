@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Profile, Barber } from '../types/supabase'
@@ -9,9 +9,14 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<ProfileWithBarber | null>(null)
   const [loading, setLoading] = useState(true)
+  // Prevents onAuthStateChange from resolving loading before getSession() completes.
+  // Without this, INITIAL_SESSION fires with null before the stored session is read,
+  // causing a login-screen flash on every page reload or tab switch.
+  const sessionResolved = useRef(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
+      sessionResolved.current = true
       setSession(data.session)
       if (data.session) {
         fetchProfile(data.session.user.id)
@@ -26,7 +31,7 @@ export function useAuth() {
         fetchProfile(session.user.id)
       } else {
         setProfile(null)
-        setLoading(false)
+        if (sessionResolved.current) setLoading(false)
       }
     })
 
