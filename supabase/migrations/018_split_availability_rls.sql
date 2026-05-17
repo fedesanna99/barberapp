@@ -8,7 +8,10 @@
 -- Explicit per-op policies + WITH CHECK make the intent obvious.
 -- =============================================================
 
-drop policy if exists "availability_write" on availability;
+drop policy if exists "availability_write"  on availability;
+drop policy if exists "availability_insert" on availability;
+drop policy if exists "availability_update" on availability;
+drop policy if exists "availability_delete" on availability;
 
 create policy "availability_insert" on availability
   for insert
