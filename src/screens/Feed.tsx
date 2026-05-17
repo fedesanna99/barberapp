@@ -95,28 +95,27 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
     if (!barberId) throw new Error('Barber profile not found — make sure your account has a barbers row in the DB')
     if (!file) throw new Error('No photo selected')
     const imageUrl = await uploadPostPhoto(file, barberId)
-    const { data, error } = await supabase
-      .from('posts')
-      .insert({ barber_id: barberId, image_url: imageUrl, caption, label })
-      .select('*, barbers ( id, city, profile:profiles!barbers_profile_id_fkey ( display_name, avatar_url ) )')
-      .single()
+    const [{ data: post, error }, { data: barberRow }, { data: profileRow }] = await Promise.all([
+      supabase.from('posts').insert({ barber_id: barberId, image_url: imageUrl, caption, label }).select('id, created_at, caption, label, image_url').single(),
+      supabase.from('barbers').select('id, city').eq('id', barberId).single(),
+      supabase.from('profiles').select('display_name, avatar_url').eq('id', userId!).single(),
+    ])
     if (error) throw new Error(`DB insert failed: ${error.message}`)
-    if (!data) throw new Error('No data returned from insert')
-    const b = (data.barbers as any)
+    if (!post) throw new Error('No data returned from insert')
     feed.prependPost({
-      id: data.id,
-      barberId: b.id,
-      barberName: b.profile.display_name ?? 'Barber',
-      barberInitials: initialsFromName(b.profile.display_name),
-      barberCity: b.city ?? '',
-      barberAccent: accentFromId(b.id),
-      barberAvatarUrl: b.profile.avatar_url ?? undefined,
+      id: post.id,
+      barberId: barberId,
+      barberName: profileRow?.display_name ?? 'Barber',
+      barberInitials: initialsFromName(profileRow?.display_name ?? null),
+      barberCity: barberRow?.city ?? '',
+      barberAccent: accentFromId(barberId),
+      barberAvatarUrl: profileRow?.avatar_url ?? undefined,
       likesCount: 0,
-      caption: data.caption ?? '',
-      label: data.label ?? '',
-      createdAt: data.created_at,
+      caption: post.caption ?? '',
+      label: (post as any).label ?? '',
+      createdAt: post.created_at,
       timeAgo: 'Just now',
-      imageUrl: data.image_url,
+      imageUrl: post.image_url ?? undefined,
     })
   }
 

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { BARBERS, POSTS } from '../lib/demoData'
-import type { PostWithBarber } from '../types/supabase'
 
 export interface FeedPost {
   id: string
@@ -80,7 +79,6 @@ export function useFeed(userId: string | undefined) {
     })
   }, [])
 
-  // Reset state (and load liked IDs) when the logged-in user changes
   useEffect(() => {
     if (IS_DEMO) {
       setPosts(DEMO_FEED)
@@ -101,7 +99,6 @@ export function useFeed(userId: string | undefined) {
       })
   }, [userId])
 
-  // Fetch one page of posts from followed barbers
   useEffect(() => {
     if (IS_DEMO || !userId || !hasMore) return
     setLoading(true)
@@ -110,7 +107,7 @@ export function useFeed(userId: string | undefined) {
       .from('follows')
       .select('barber_id')
       .eq('follower_id', userId)
-      .then(({ data: followRows }) => {
+      .then(async ({ data: followRows }) => {
         const ids = (followRows ?? []).map(r => r.barber_id)
         if (ids.length === 0) {
           setHasMore(false)
@@ -118,43 +115,48 @@ export function useFeed(userId: string | undefined) {
           return
         }
 
-        supabase
+        // Fetch posts + barbers (no nested profile embed to avoid ambiguous FK)
+        const { data: postsData, error } = await supabase
           .from('posts')
-          .select(`
-            *,
-            barbers (
-              id,
-              city,
-              profile:profiles!barbers_profile_id_fkey ( display_name, avatar_url )
-            )
-          `)
+          .select('*, barbers ( id, city, profile_id )')
           .in('barber_id', ids)
           .order('created_at', { ascending: false })
           .range(page * PAGE, (page + 1) * PAGE - 1)
-          .then(({ data, error }) => {
-            if (error) { setLoading(false); return }
-            const batch = (data ?? [] as PostWithBarber[]).map(p => {
-              const raw = p as PostWithBarber
-              return {
-                id: raw.id,
-                barberId: raw.barbers.id,
-                barberName: raw.barbers.profile.display_name ?? 'Barber',
-                barberInitials: initialsFromName(raw.barbers.profile.display_name),
-                barberCity: raw.barbers.city ?? '',
-                barberAccent: accentFromId(raw.barbers.id),
-                barberAvatarUrl: raw.barbers.profile.avatar_url ?? undefined,
-                likesCount: raw.likes_count,
-                caption: raw.caption ?? '',
-                label: raw.label ?? '',
-                createdAt: raw.created_at,
-                timeAgo: timeAgo(raw.created_at),
-                imageUrl: raw.image_url,
-              } satisfies FeedPost
-            })
-            setPosts(prev => page === 0 ? batch : [...prev, ...batch])
-            if (batch.length < PAGE) setHasMore(false)
-            setLoading(false)
-          })
+
+        if (error) { setLoading(false); return }
+
+        // Collect unique profile IDs and fetch profiles separately
+        const profileIds = [...new Set((postsData ?? []).map(p => (p.barbers as any).profile_id as string))]
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, display_name, avatar_url')
+          .in('id', profileIds)
+
+        const profileMap = Object.fromEntries((profilesData ?? []).map(p => [p.id, p]))
+
+        const batch: FeedPost[] = (postsData ?? []).map(p => {
+          const b = p.barbers as any
+          const prof = profileMap[b.profile_id] ?? {}
+          return {
+            id: p.id,
+            barberId: b.id,
+            barberName: prof.display_name ?? 'Barber',
+            barberInitials: initialsFromName(prof.display_name ?? null),
+            barberCity: b.city ?? '',
+            barberAccent: accentFromId(b.id),
+            barberAvatarUrl: prof.avatar_url ?? undefined,
+            likesCount: p.likes_count,
+            caption: p.caption ?? '',
+            label: (p as any).label ?? '',
+            createdAt: p.created_at,
+            timeAgo: timeAgo(p.created_at),
+            imageUrl: p.image_url ?? undefined,
+          }
+        })
+
+        setPosts(prev => page === 0 ? batch : [...prev, ...batch])
+        if (batch.length < PAGE) setHasMore(false)
+        setLoading(false)
       })
   }, [userId, page])
 
