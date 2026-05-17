@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { BarberWithProfile } from '../types/supabase'
+import type { Barber, BarberWithProfile } from '../types/supabase'
 
 export function useBarberByProfile(profileId: string | undefined): string | undefined {
   const [barberId, setBarberId] = useState<string | undefined>()
@@ -44,16 +44,29 @@ export function useBarbers(
   useEffect(() => {
     setLoading(true)
 
-    let query = supabase
-      .from('barbers')
-      .select('*, profile:profiles ( display_name, avatar_url, lat, lng )')
+    // Fetch barbers without nested profile embed to avoid ambiguous FK issues
+    let query = supabase.from('barbers').select('*')
 
     if (sort === 'popular') query = query.order('followers_count', { ascending: false })
     if (sort === 'new')     query = query.order('created_at',     { ascending: false })
 
-    query.then(({ data, error }) => {
-      if (error) { setLoading(false); return }
-      let result = (data ?? []) as BarberWithProfile[]
+    query.then(async ({ data: barbersData, error }) => {
+      if (error) { console.error('[useBarbers]', error); setLoading(false); return }
+
+      const rows = (barbersData ?? []) as Barber[]
+
+      // Fetch profiles separately (same pattern as useFeed)
+      const profileIds = [...new Set(rows.map(b => b.profile_id))]
+      const { data: profilesData } = profileIds.length > 0
+        ? await supabase.from('profiles').select('id, display_name, avatar_url, lat, lng').in('id', profileIds)
+        : { data: [] }
+
+      const profileMap = Object.fromEntries((profilesData ?? []).map(p => [p.id, p]))
+
+      let result: BarberWithProfile[] = rows.map(b => ({
+        ...b,
+        profile: profileMap[b.profile_id] ?? { display_name: null, avatar_url: null, lat: null, lng: null },
+      }))
 
       if (sort === 'nearby' && userLat != null && userLng != null) {
         result = result
