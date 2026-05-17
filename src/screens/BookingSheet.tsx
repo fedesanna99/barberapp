@@ -51,7 +51,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
           <>
             {/* Header */}
             <div style={{ padding: '8px 16px 4px' }}>
-              <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>Book with {barber.name}</div>
+              <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>Prenota con {barber.name}</div>
               <div style={{ fontSize: 13, color: C.muted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {barber.city} ·{' '}
                 <i className="ti ti-star-filled" style={{ fontSize: 11, color: '#EF9F27' }} />
@@ -64,12 +64,12 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
               <Avatar initials={barber.initials} size={40} accent={barber.accent} />
               <div>
                 <div style={{ fontSize: 12, fontWeight: 500, color: C.text }}>{barber.tags.join(' · ')}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>30 min session · ~€25</div>
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>Sessione 30 min · ~€25</div>
               </div>
             </div>
 
             {/* Date picker */}
-            <div style={{ padding: '0 16px 8px', fontSize: 12, fontWeight: 500, color: C.text }}>Select date</div>
+            <div style={{ padding: '0 16px 8px', fontSize: 12, fontWeight: 500, color: C.text }}>Scegli la data</div>
             <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px', overflowX: 'auto' }}>
               {dates.map((d, i) => (
                 <button
@@ -92,10 +92,10 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
 
             {/* Slot header */}
             <div style={{ padding: '0 16px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 500, color: C.text }}>Available slots</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: C.text }}>Slot disponibili</span>
               <span style={{ fontSize: 11, color: C.hint, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 2, background: C.hint, opacity: .3, display: 'inline-block' }} />
-                Taken
+                Occupato
               </span>
             </div>
 
@@ -111,7 +111,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
               ) : effectiveSlots.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '20px 0', color: C.hint, fontSize: 13 }}>
                   <i className="ti ti-calendar-off" style={{ fontSize: 28, display: 'block', marginBottom: 6 }} />
-                  No availability for this day
+                  Nessuna disponibilità per questo giorno
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -158,11 +158,11 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                   fontFamily:  'inherit', transition: 'all .2s',
                 }}
               >
-                {selTime !== null ? `Continue → ${selTime}` : 'Select a time slot'}
+                {selTime !== null ? `Continua → ${selTime}` : 'Scegli un orario'}
               </button>
             </div>
             <div style={{ textAlign: 'center', marginTop: 12 }}>
-              <span onClick={onClose} style={{ fontSize: 12, color: C.hint, cursor: 'pointer' }}>Cancel</span>
+              <span onClick={onClose} style={{ fontSize: 12, color: C.hint, cursor: 'pointer' }}>Annulla</span>
             </div>
           </>
         ) : (
@@ -173,20 +173,20 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                 onClick={() => setStep('datetime')}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, fontSize: 13, padding: 0, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', marginBottom: 12 }}
               >
-                <i className="ti ti-arrow-left" style={{ fontSize: 16 }} /> Back
+                <i className="ti ti-arrow-left" style={{ fontSize: 16 }} /> Indietro
               </button>
-              <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>Confirm appointment</div>
+              <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>Conferma appuntamento</div>
             </div>
 
             {/* Details card */}
             <div style={{ margin: '8px 16px 16px', padding: '14px 16px', background: C.surface, borderRadius: 14, border: `0.5px solid ${C.border}` }}>
               {[
-                ['Barber',    barber.name],
-                ['Date',      `${dates[selDate].day}, ${dates[selDate].num} ${dates[selDate].month}`],
-                ['Time',      selTime!],
-                ['Service',   barber.tags[0]],
-                ['Duration',  '30 min'],
-                ['Price',     '~€25'],
+                ['Barbiere', barber.name],
+                ['Data',     `${dates[selDate].day}, ${dates[selDate].num} ${dates[selDate].month}`],
+                ['Ora',      selTime!],
+                ['Servizio', barber.tags[0]],
+                ['Durata',   '30 min'],
+                ['Prezzo',   '~€25'],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: `0.5px solid ${C.border}` }}>
                   <span style={{ fontSize: 13, color: C.muted }}>{k}</span>
@@ -196,7 +196,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
             </div>
 
             <div style={{ padding: '0 16px 12px', fontSize: 12, color: C.hint }}>
-              Free cancellation up to 2h before the appointment.
+              Cancellazione gratuita fino a 2h prima dell'appuntamento.
             </div>
 
             <div style={{ padding: '0 16px' }}>
@@ -210,11 +210,11 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                 }}
               >
                 <i className="ti ti-calendar-check" style={{ fontSize: 18 }} />
-                Confirm appointment
+                Conferma appuntamento
               </button>
             </div>
             <div style={{ textAlign: 'center', marginTop: 12 }}>
-              <span onClick={onClose} style={{ fontSize: 12, color: C.hint, cursor: 'pointer' }}>Cancel</span>
+              <span onClick={onClose} style={{ fontSize: 12, color: C.hint, cursor: 'pointer' }}>Annulla</span>
             </div>
           </>
         )}

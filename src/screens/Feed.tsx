@@ -88,25 +88,25 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
         caption,
         label,
         createdAt: new Date().toISOString(),
-        timeAgo:   'Just now',
+        timeAgo:   'Adesso',
         imageUrl:  file ? URL.createObjectURL(file) : undefined,
       })
       return
     }
-    if (!barberId) throw new Error('Barber profile not found — make sure your account has a barbers row in the DB')
-    if (!file) throw new Error('No photo selected')
+    if (!barberId) throw new Error('Profilo barbiere non trovato — verifica che il tuo account abbia una riga in barbers')
+    if (!file) throw new Error('Nessuna foto selezionata')
     const imageUrl = await uploadPostPhoto(file, barberId)
     const [{ data: post, error }, { data: barberRow }, { data: profileRow }] = await Promise.all([
       supabase.from('posts').insert({ barber_id: barberId, image_url: imageUrl, caption, label }).select('id, created_at, caption, label, image_url').single(),
       supabase.from('barbers').select('id, city').eq('id', barberId).single(),
       supabase.from('profiles').select('display_name, avatar_url').eq('id', userId!).single(),
     ])
-    if (error) throw new Error(`DB insert failed: ${error.message}`)
-    if (!post) throw new Error('No data returned from insert')
+    if (error) throw new Error(`Salvataggio fallito: ${error.message}`)
+    if (!post) throw new Error('Nessun dato restituito dal salvataggio')
     feed.prependPost({
       id: post.id,
       barberId: barberId,
-      barberName: profileRow?.display_name ?? 'Barber',
+      barberName: profileRow?.display_name ?? 'Barbiere',
       barberInitials: initialsFromName(profileRow?.display_name ?? null),
       barberCity: barberRow?.city ?? '',
       barberAccent: accentFromId(barberId),
@@ -115,7 +115,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
       caption: post.caption ?? '',
       label: (post as any).label ?? '',
       createdAt: post.created_at,
-      timeAgo: 'Just now',
+      timeAgo: 'Adesso',
       imageUrl: post.image_url ?? undefined,
     })
   }
@@ -136,7 +136,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
             >
               <i className="ti ti-arrow-left" style={{ fontSize: 22, color: C.text }} />
             </button>
-            <span style={{ fontSize: 18, fontWeight: 600, color: C.text }}>Liked posts</span>
+            <span style={{ fontSize: 18, fontWeight: 600, color: C.text }}>Post che ti piacciono</span>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
@@ -189,7 +189,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
         {showLiked && visiblePosts.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px 16px', color: C.hint, fontSize: 13 }}>
             <i className="ti ti-heart" style={{ fontSize: 32, display: 'block', marginBottom: 8 }} />
-            No liked posts yet
+            Nessun post che ti piace, ancora
           </div>
         )}
 
@@ -219,7 +219,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                   onClick={() => onBook(postToBarber(post))}
                   style={{ padding: '6px 13px', borderRadius: 8, background: C.text, color: C.bg, fontSize: 12, border: 'none', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit' }}
                 >
-                  Book
+                  Prenota
                 </button>
               </div>
 
@@ -258,7 +258,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
               </div>
 
               <div style={{ padding: '0 16px 2px', fontSize: 13, fontWeight: 500, color: C.text }}>
-                {post.likesCount} likes
+                {post.likesCount === 1 ? '1 mi piace' : `${post.likesCount} mi piace`}
               </div>
               <div style={{ padding: '0 16px 4px', fontSize: 13, color: C.text }}>
                 <span style={{ fontWeight: 500 }}>{post.barberName}</span>{' '}{post.caption}
@@ -267,7 +267,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                 onClick={() => setActivePostId(post.id)}
                 style={{ padding: '0 16px 14px', fontSize: 12, color: C.hint, cursor: 'pointer' }}
               >
-                {count > 0 ? `View all ${count} comment${count !== 1 ? 's' : ''}` : 'Add a comment…'}
+                {count > 0 ? (count === 1 ? 'Vedi 1 commento' : `Vedi tutti i ${count} commenti`) : 'Aggiungi un commento…'}
               </div>
             </div>
           )
@@ -284,7 +284,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
             onClick={feed.loadMore}
             style={{ textAlign: 'center', padding: '16px 0', color: C.accent, fontSize: 13, cursor: 'pointer' }}
           >
-            Load more
+            Carica altri
           </div>
         )}
       </div>
@@ -339,7 +339,7 @@ function NewPostSheet({
     try {
       validateImageType(f)
     } catch (err) {
-      setPostError(err instanceof Error ? err.message : 'Invalid file')
+      setPostError(err instanceof Error ? err.message : 'File non valido')
       e.target.value = ''
       return
     }
@@ -356,7 +356,7 @@ function NewPostSheet({
     try {
       await onAdd(caption.trim(), label.trim(), file ?? undefined)
     } catch (err) {
-      setPostError(err instanceof Error ? err.message : 'Upload failed')
+      setPostError(err instanceof Error ? err.message : 'Caricamento fallito')
     } finally {
       setLoading(false)
     }
@@ -373,7 +373,7 @@ function NewPostSheet({
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px 10px', borderBottom: `0.5px solid ${C.border}`, flexShrink: 0 }}>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>New post</span>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>Nuovo post</span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
             <i className="ti ti-x" style={{ fontSize: 18, color: C.muted }} />
           </button>
@@ -404,14 +404,14 @@ function NewPostSheet({
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
               }}>
                 <i className="ti ti-camera" style={{ fontSize: 22, color: '#fff' }} />
-                <span style={{ fontSize: 11, color: '#fff' }}>Tap to change</span>
+                <span style={{ fontSize: 11, color: '#fff' }}>Tocca per cambiare</span>
               </div>
             </>
           ) : (
             <>
               <i className="ti ti-camera-plus" style={{ fontSize: 30, color: C.hint }} />
               <span style={{ fontSize: 12, color: C.hint }}>
-                {requirePhoto ? 'Tap to add a photo (required)' : 'Tap to add a photo'}
+                {requirePhoto ? 'Tocca per aggiungere una foto (richiesta)' : 'Tocca per aggiungere una foto'}
               </span>
             </>
           )}
@@ -422,7 +422,7 @@ function NewPostSheet({
           <textarea
             value={caption}
             onChange={e => setCaption(e.target.value)}
-            placeholder="Caption…"
+            placeholder="Didascalia…"
             rows={3}
             style={{
               padding: '9px 14px', borderRadius: 10,
@@ -434,7 +434,7 @@ function NewPostSheet({
           <input
             value={label}
             onChange={e => setLabel(e.target.value)}
-            placeholder="Style label (e.g. Skin fade + line up)"
+            placeholder="Etichetta stile (es. Skin fade + line up)"
             style={{
               padding: '9px 14px', borderRadius: 10,
               border: `0.5px solid ${C.borderMed}`, fontSize: 13,
@@ -459,8 +459,8 @@ function NewPostSheet({
             }}
           >
             {loading
-              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Uploading…</>
-              : 'Post'
+              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Caricamento…</>
+              : 'Pubblica'
             }
           </button>
         </div>

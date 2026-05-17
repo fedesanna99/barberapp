@@ -72,7 +72,7 @@ export function BarberDashboard({ barberId }: { barberId?: string }) {
               transition: 'background .15s, color .15s',
             }}
           >
-            {t === 'bookings' ? 'Bookings' : 'Availability'}
+            {t === 'bookings' ? 'Prenotazioni' : 'Disponibilità'}
           </button>
         ))}
       </div>
@@ -164,14 +164,14 @@ function BookingsTab({ barberId }: { barberId?: string }) {
       )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 14px' }}>
         <div>
-          <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Auto-accept</span>
-          <span style={{ fontSize: 11, color: C.hint, display: 'block', marginTop: 1 }}>New bookings confirm instantly</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Auto-accetta</span>
+          <span style={{ fontSize: 11, color: C.hint, display: 'block', marginTop: 1 }}>Le nuove prenotazioni vengono confermate subito</span>
         </div>
         <Toggle on={autoAccept} onChange={() => setAutoAccept(!autoAccept)} />
       </div>
-      <Section label="Pending" count={pending.length}>
+      <Section label="In attesa" count={pending.length}>
         {pending.length === 0
-          ? <EmptyState icon="ti-clock" text="No pending requests" />
+          ? <EmptyState icon="ti-clock" text="Nessuna richiesta in attesa" />
           : pending.map(r => (
               <BookingCard key={r.id} row={r}
                 onConfirm={() => act(r.id, 'confirm')}
@@ -180,9 +180,9 @@ function BookingsTab({ barberId }: { barberId?: string }) {
             ))
         }
       </Section>
-      <Section label="Upcoming" count={upcoming.length}>
+      <Section label="In arrivo" count={upcoming.length}>
         {upcoming.length === 0
-          ? <EmptyState icon="ti-calendar-off" text="No upcoming appointments" />
+          ? <EmptyState icon="ti-calendar-off" text="Nessun appuntamento in arrivo" />
           : upcoming.map(r => (
               <BookingCard key={r.id} row={r}
                 onMarkDone={r.status === 'confirmed' ? () => act(r.id, 'done') : undefined}
@@ -232,7 +232,7 @@ function AvailabilityTab({ barberId }: { barberId?: string }) {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 20px' }}>
       <p style={{ fontSize: 12, color: C.hint, margin: '10px 0 8px' }}>
-        Your weekly schedule — clients can only book within active windows.
+        Il tuo orario settimanale — i clienti possono prenotare solo nelle fasce attive.
       </p>
       {DOW_ORDER.map(dow => {
         const row = getRow(dow)
@@ -318,7 +318,7 @@ function BookingCard({
         ) : (
           <>
             <Btn icon="ti-trash" color={C.hint}  ghost onClick={onCancel} />
-            {onMarkDone && <Btn label="Done" color={C.green} ghost onClick={onMarkDone} />}
+            {onMarkDone && <Btn label="Fatto" color={C.green} ghost onClick={onMarkDone} />}
           </>
         )}
       </div>
@@ -412,11 +412,11 @@ function DayRow({
 
   let validationError: string | null = null
   if (sMin >= eMin) {
-    validationError = 'End must be after start'
+    validationError = 'La fine deve essere dopo l\'inizio'
   } else if (hasBreak) {
-    if (bsMin <= sMin)  validationError = 'Break must start after opening'
-    else if (beMin >= eMin) validationError = 'Break must end before closing'
-    else if (bsMin >= beMin) validationError = 'Break end must be after start'
+    if (bsMin <= sMin)  validationError = 'La pausa deve iniziare dopo l\'apertura'
+    else if (beMin >= eMin) validationError = 'La pausa deve finire prima della chiusura'
+    else if (bsMin >= beMin) validationError = 'La fine della pausa deve essere dopo l\'inizio'
   }
 
   const canSave = dirty && !validationError
@@ -436,7 +436,7 @@ function DayRow({
             {!hasBreak && (
               <button
                 onClick={() => setHasBreak(true)}
-                title="Add break"
+                title="Aggiungi pausa"
                 style={{
                   width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
                   border: `1px solid ${C.borderMed}`, background: 'transparent',
@@ -463,24 +463,24 @@ function DayRow({
                   opacity: canSave ? 1 : 0.6,
                 }}
               >
-                Save
+                Salva
               </button>
             )}
           </>
         ) : (
-          <span style={{ fontSize: 12, color: C.hint }}>Off</span>
+          <span style={{ fontSize: 12, color: C.hint }}>Chiuso</span>
         )}
       </div>
 
       {active && hasBreak && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 80 }}>
-          <span style={{ fontSize: 11, color: C.hint, flexShrink: 0 }}>break</span>
+          <span style={{ fontSize: 11, color: C.hint, flexShrink: 0 }}>pausa</span>
           <input type="time" value={bStart} onChange={e => setBStart(e.target.value)} style={timeInputStyle} />
           <span style={{ fontSize: 12, color: C.hint }}>–</span>
           <input type="time" value={bEnd}   onChange={e => setBEnd(e.target.value)}   style={timeInputStyle} />
           <button
             onClick={() => setHasBreak(false)}
-            title="Remove break"
+            title="Rimuovi pausa"
             style={{
               width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
               border: `1px solid ${C.borderMed}`, background: 'transparent',

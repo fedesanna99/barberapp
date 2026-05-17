@@ -7,17 +7,17 @@ type MenuItem = { icon: string; label: string; badge?: string; action?: 'liked' 
 
 const SECTIONS: MenuItem[][] = [
   [
-    { icon: 'ti-calendar', label: 'My appointments', badge: '2' },
-    { icon: 'ti-heart',    label: 'Liked posts',     action: 'liked' as const },
-    { icon: 'ti-bell',     label: 'Notifications',   badge: '3' },
-    { icon: 'ti-map-pin',  label: 'Location settings' },
+    { icon: 'ti-calendar', label: 'I miei appuntamenti', badge: '2' },
+    { icon: 'ti-heart',    label: 'Post che ti piacciono', action: 'liked' as const },
+    { icon: 'ti-bell',     label: 'Notifiche',           badge: '3' },
+    { icon: 'ti-map-pin',  label: 'Impostazioni posizione' },
   ],
   [
-    { icon: 'ti-star',  label: 'Rate the app'   },
-    { icon: 'ti-share', label: 'Refer a friend' },
+    { icon: 'ti-star',  label: 'Valuta l\'app'      },
+    { icon: 'ti-share', label: 'Invita un amico'    },
   ],
   [
-    { icon: 'ti-headset', label: 'Help & support',  action: 'support' as const },
+    { icon: 'ti-headset', label: 'Aiuto e supporto', action: 'support' as const },
     { icon: 'ti-shield',  label: 'Privacy policy'   },
   ],
 ]
@@ -70,7 +70,7 @@ export function Menu({ onLogout, onLikedPosts, onSupport, isBarber, barberId, us
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
-            Edit
+            Modifica
           </button>
         )}
       </div>
@@ -104,7 +104,7 @@ export function Menu({ onLogout, onLikedPosts, onSupport, isBarber, barberId, us
         style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer' }}
       >
         <i className="ti ti-logout" style={{ fontSize: 20, color: C.red }} />
-        <span style={{ flex: 1, fontSize: 14, color: C.red }}>Sign out</span>
+        <span style={{ flex: 1, fontSize: 14, color: C.red }}>Esci</span>
       </div>
 
       {showEdit && (

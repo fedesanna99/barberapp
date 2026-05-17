@@ -22,9 +22,9 @@ type PostLike = {
 
 function timeAgoStr(iso: string): string {
   const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000)
-  if (h < 1) return 'Just now'
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
+  if (h < 1) return 'Adesso'
+  if (h < 24) return `${h}h fa`
+  return `${Math.floor(h / 24)}g fa`
 }
 
 interface Props {
@@ -91,15 +91,15 @@ export function Profile({ userId, isBarber, barberId }: Props) {
   const barbersCount  = isDemo ? 3                     : follows.length
   const upcomingCount = isDemo ? DEMO_UPCOMING.length  : upcoming.length
 
-  const displayName = profile.display_name ?? 'User'
+  const displayName = profile.display_name ?? 'Utente'
   const avatarUrl   = profile.avatar_url
   const ini         = initials(displayName)
 
   // "Following" subtitle: real names in production, demo string otherwise
   const followingLine = isDemo
-    ? 'Following Marco, Fadi, Nico'
+    ? 'Stai seguendo Marco, Fadi, Nico'
     : follows.length > 0
-      ? `Following ${follows.map(f => f.displayName?.split(' ')[0] ?? '?').join(', ')}`
+      ? `Stai seguendo ${follows.map(f => f.displayName?.split(' ')[0] ?? '?').join(', ')}`
       : (profile.bio ?? '')
 
   // Pill tags: followed barber names in production, style tags in demo
@@ -116,7 +116,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       const url = await uploadAvatar(file, userId)
       await updateAvatarUrl(url)
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+      setUploadError(err instanceof Error ? err.message : 'Caricamento fallito')
     }
     setUploading(false)
     e.target.value = ''
@@ -144,14 +144,14 @@ export function Profile({ userId, isBarber, barberId }: Props) {
         }, ...prev])
       }
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+      setUploadError(err instanceof Error ? err.message : 'Caricamento fallito')
     }
     setUploading(false)
     e.target.value = ''
   }
 
   async function addUserPost(caption: string, label: string, file?: File): Promise<void> {
-    if (!userId) throw new Error('Not logged in')
+    if (!userId) throw new Error('Non sei autenticato')
     if (IS_DEMO) {
       setUserPosts(prev => [{
         id: crypto.randomUUID(), user_id: userId,
@@ -161,14 +161,14 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       }, ...prev])
       return
     }
-    if (!file) throw new Error('No photo selected')
+    if (!file) throw new Error('Nessuna foto selezionata')
     const imageUrl = await uploadUserPostPhoto(file, userId)
     const { data, error } = await supabase
       .from('user_posts')
       .insert({ user_id: userId, image_url: imageUrl, caption, label })
       .select()
       .single()
-    if (error) throw new Error(`Upload failed: ${error.message}`)
+    if (error) throw new Error(`Caricamento fallito: ${error.message}`)
     if (data) setUserPosts(prev => [data as UserPost, ...prev])
   }
 
@@ -182,7 +182,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
     <div style={{ flex: 1, overflowY: 'auto' }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
-        <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>My cuts</span>
+        <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>I miei tagli</span>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           {!isBarber && (
             <i
@@ -280,9 +280,9 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       {/* Stats */}
       <div style={{ display: 'flex', borderTop: `0.5px solid ${C.border}`, borderBottom: `0.5px solid ${C.border}`, marginBottom: 16 }}>
         {([
-          [String(cutsCount),     'Fresh cuts', 'ti-scissors'],
-          [String(upcomingCount), 'Follower',   'ti-heart'],
-          [String(barbersCount),  'Stelle',     'ti-star'],
+          [String(cutsCount),     'Tagli',    'ti-scissors'],
+          [String(upcomingCount), 'Follower', 'ti-heart'],
+          [String(barbersCount),  'Stelle',   'ti-star'],
         ] as [string, string, string][]).map(([val, label, icon], i) => (
           <div key={label} style={{ flex: 1, textAlign: 'center', padding: '14px 0 12px', borderLeft: i > 0 ? `0.5px solid ${C.border}` : 'none' }}>
             <div style={{ fontSize: 20, fontWeight: 600, color: C.text }}>{val}</div>
@@ -305,7 +305,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       {/* Your appointment */}
       {(isDemo || upcoming.length > 0) && (
         <div style={{ padding: '16px 16px 0' }}>
-          <div style={{ padding: '0 0 8px', fontSize: 13, fontWeight: 500, color: C.text }}>Your appointment</div>
+          <div style={{ padding: '0 0 8px', fontSize: 13, fontWeight: 500, color: C.text }}>Il tuo appuntamento</div>
           {isDemo
             ? <DemoUpcoming />
             : <RealUpcoming bookings={upcoming.slice(0, 1)} />
@@ -397,7 +397,7 @@ function UserPostGrid({ posts, onPostClick }: { posts: UserPost[]; onPostClick: 
     return (
       <div style={{ gridColumn: '1 / -1', padding: '48px 16px', textAlign: 'center' }}>
         <i className="ti ti-camera-plus" style={{ fontSize: 38, color: C.hint, opacity: 0.35 }} />
-        <div style={{ fontSize: 13, color: C.muted, marginTop: 10 }}>No posts yet — tap the camera to add your first cut</div>
+        <div style={{ fontSize: 13, color: C.muted, marginTop: 10 }}>Nessun post — tocca la fotocamera per aggiungere il primo taglio</div>
       </div>
     )
   }
@@ -514,7 +514,7 @@ function RealUpcoming({ bookings }: { bookings: BookingWithBarber[] }) {
   return (
     <>
       {bookings.map(b => {
-        const name = b.barbers?.profile?.display_name ?? 'Barber'
+        const name = b.barbers?.profile?.display_name ?? 'Barbiere'
         return (
           <div key={b.id} style={apptCard}>
             <Avatar initials={initials(name)} size={38} accent={C.accent} />
@@ -530,8 +530,15 @@ function RealUpcoming({ bookings }: { bookings: BookingWithBarber[] }) {
   )
 }
 
+const STATUS_LABEL_IT: Record<string, string> = {
+  pending:   'In attesa',
+  confirmed: 'Confermata',
+  done:      'Completata',
+  cancelled: 'Annullata',
+}
+
 function StatusPill({ status, tag }: { status: string; tag?: string }) {
-  const label = tag ?? status.charAt(0).toUpperCase() + status.slice(1)
+  const label = tag ?? STATUS_LABEL_IT[status] ?? status
   const bg    = status === 'confirmed' ? C.accentLight : status === 'pending' ? 'rgba(29,158,117,0.1)' : C.surface
   const color = status === 'confirmed' ? C.accent      : status === 'pending' ? C.green               : C.hint
   return (
@@ -541,7 +548,7 @@ function StatusPill({ status, tag }: { status: string; tag?: string }) {
 
 // ── Post feed overlay (barbers) ────────────────────────────────────────────
 
-function ProfilePostsFeed({ posts, startIdx, authorName, accent, title = 'My posts', onClose }: {
+function ProfilePostsFeed({ posts, startIdx, authorName, accent, title = 'I miei post', onClose }: {
   posts: PostLike[]
   startIdx: number
   authorName: string
@@ -628,7 +635,7 @@ function NewUserPostSheet({
     try {
       validateImageType(f)
     } catch (err) {
-      setPostError(err instanceof Error ? err.message : 'Invalid file')
+      setPostError(err instanceof Error ? err.message : 'File non valido')
       e.target.value = ''
       return
     }
@@ -645,7 +652,7 @@ function NewUserPostSheet({
     try {
       await onAdd(caption.trim(), label.trim(), file ?? undefined)
     } catch (err) {
-      setPostError(err instanceof Error ? err.message : 'Upload failed')
+      setPostError(err instanceof Error ? err.message : 'Caricamento fallito')
     } finally {
       setLoading(false)
     }
@@ -659,7 +666,7 @@ function NewUserPostSheet({
       <div style={{ background: C.bg, borderRadius: '20px 20px 0 0', width: '100%', display: 'flex', flexDirection: 'column', animation: 'sheetUp .3s ease-out' }}>
         <div style={{ width: 40, height: 4, background: C.borderMed, borderRadius: 2, margin: '12px auto 0', flexShrink: 0 }} />
         <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px 10px', borderBottom: `0.5px solid ${C.border}`, flexShrink: 0 }}>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>New cut</span>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>Nuovo taglio</span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
             <i className="ti ti-x" style={{ fontSize: 18, color: C.muted }} />
           </button>
@@ -678,13 +685,13 @@ function NewUserPostSheet({
               <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                 <i className="ti ti-camera" style={{ fontSize: 22, color: '#fff' }} />
-                <span style={{ fontSize: 11, color: '#fff' }}>Tap to change</span>
+                <span style={{ fontSize: 11, color: '#fff' }}>Tocca per cambiare</span>
               </div>
             </>
           ) : (
             <>
               <i className="ti ti-camera-plus" style={{ fontSize: 30, color: C.hint }} />
-              <span style={{ fontSize: 12, color: C.hint }}>{IS_DEMO ? 'Tap to add a photo' : 'Tap to add a photo (required)'}</span>
+              <span style={{ fontSize: 12, color: C.hint }}>{IS_DEMO ? 'Tocca per aggiungere una foto' : 'Tocca per aggiungere una foto (richiesta)'}</span>
             </>
           )}
         </div>
@@ -692,14 +699,14 @@ function NewUserPostSheet({
           <textarea
             value={caption}
             onChange={e => setCaption(e.target.value)}
-            placeholder="Caption…"
+            placeholder="Didascalia…"
             rows={3}
             style={{ padding: '9px 14px', borderRadius: 10, border: `0.5px solid ${C.borderMed}`, fontSize: 13, background: C.surface, color: C.text, outline: 'none', fontFamily: 'inherit', resize: 'none' }}
           />
           <input
             value={label}
             onChange={e => setLabel(e.target.value)}
-            placeholder="Style label (e.g. Skin fade + line up)"
+            placeholder="Etichetta stile (es. Skin fade + line up)"
             style={{ padding: '9px 14px', borderRadius: 10, border: `0.5px solid ${C.borderMed}`, fontSize: 13, background: C.surface, color: C.text, outline: 'none', fontFamily: 'inherit' }}
           />
           {postError && (
@@ -718,8 +725,8 @@ function NewUserPostSheet({
             }}
           >
             {loading
-              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Uploading…</>
-              : 'Post'
+              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Caricamento…</>
+              : 'Pubblica'
             }
           </button>
         </div>

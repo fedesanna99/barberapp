@@ -26,24 +26,24 @@ type AuthView = 'login' | 'register'
 
 const CLIENT_NAV: { id: ScreenId; icon: string; label: string }[] = [
   { id: 'feed',     icon: 'ti-layout-grid',      label: 'Feed'      },
-  { id: 'discover', icon: 'ti-map-search',        label: 'Discover'  },
-  { id: 'profile',  icon: 'ti-user',              label: 'Profile'   },
+  { id: 'discover', icon: 'ti-map-search',        label: 'Esplora'   },
+  { id: 'profile',  icon: 'ti-user',              label: 'Profilo'   },
   { id: 'menu',     icon: 'ti-menu-2',            label: 'Menu'      },
 ]
 
 const BARBER_NAV: { id: ScreenId; icon: string; label: string }[] = [
   { id: 'feed',      icon: 'ti-layout-grid',       label: 'Feed'      },
-  { id: 'discover',  icon: 'ti-map-search',         label: 'Discover'  },
+  { id: 'discover',  icon: 'ti-map-search',         label: 'Esplora'   },
   { id: 'dashboard', icon: 'ti-layout-dashboard',  label: 'Dashboard' },
-  { id: 'profile',   icon: 'ti-user',              label: 'Profile'   },
+  { id: 'profile',   icon: 'ti-user',              label: 'Profilo'   },
   { id: 'menu',      icon: 'ti-menu-2',            label: 'Menu'      },
 ]
 
 const ADMIN_NAV: { id: ScreenId; icon: string; label: string }[] = [
-  { id: 'feed',    icon: 'ti-layout-grid',   label: 'Feed'    },
-  { id: 'discover', icon: 'ti-map-search',   label: 'Discover' },
-  { id: 'admin',   icon: 'ti-shield-lock',   label: 'Admin'   },
-  { id: 'menu',    icon: 'ti-menu-2',        label: 'Menu'    },
+  { id: 'feed',    icon: 'ti-layout-grid',   label: 'Feed'     },
+  { id: 'discover', icon: 'ti-map-search',   label: 'Esplora'  },
+  { id: 'admin',   icon: 'ti-shield-lock',   label: 'Admin'    },
+  { id: 'menu',    icon: 'ti-menu-2',        label: 'Menu'     },
 ]
 
 export default function App() {
@@ -99,8 +99,8 @@ export default function App() {
       })
       if (error) {
         const msg = error.message.includes('bookings_no_double')
-          ? 'That slot was just taken — please pick another time.'
-          : `Booking failed: ${error.message}`
+          ? 'Quello slot è stato appena occupato — scegli un altro orario.'
+          : `Prenotazione fallita: ${error.message}`
         writeLog('booking.conflict', `Prenotazione fallita: ${error.message}`, 'warning', { userId, metadata: { barber_id: barber.id, time_slot: time } })
         setToast(msg)
         return
@@ -111,7 +111,7 @@ export default function App() {
     }
     setBookingBarber(null)
     setProfileBarber(null)
-    setToast(`${barber.name} · ${date.day} ${date.num} ${date.month} at ${time}`)
+    setToast(`${barber.name} · ${date.day} ${date.num} ${date.month} alle ${time}`)
   }
 
   const showLoading = !IS_DEMO && loading

@@ -129,7 +129,7 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber }
               }}
             >
               <i className={`ti ${isFollowing ? 'ti-user-check' : 'ti-user-plus'}`} style={{ fontSize: 14 }} />
-              {isFollowing ? 'Following' : 'Follow'}
+              {isFollowing ? 'Stai seguendo' : 'Segui'}
             </button>
           )}
 
@@ -170,9 +170,9 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber }
         {/* Stats */}
         <div style={{ display: 'flex', borderTop: `0.5px solid ${C.border}`, borderBottom: `0.5px solid ${C.border}`, marginBottom: 2 }}>
           {([
-            [followersCount !== null ? String(followersCount) : String(barber.followers), 'Followers'],
-            [barber.rating.toFixed(1), 'Rating'],
-            [String(posts.length),     'Posts'],
+            [followersCount !== null ? String(followersCount) : String(barber.followers), 'Follower'],
+            [barber.rating.toFixed(1), 'Voto'],
+            [String(posts.length),     'Post'],
           ] as [string, string][]).map(([val, label], i) => (
             <div key={label} style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderLeft: i > 0 ? `0.5px solid ${C.border}` : 'none' }}>
               <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>{val}</div>
@@ -228,7 +228,7 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber }
           }}
         >
           <i className="ti ti-calendar-plus" style={{ fontSize: 18 }} />
-          Book with {barber.name.split(' ')[0]}
+          Prenota con {barber.name.split(' ')[0]}
         </button>
       </div>
 

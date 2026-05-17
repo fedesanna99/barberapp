@@ -44,7 +44,7 @@ export function CommentsSheet({ postLabel, comments, isBarber, onAdd, onDelete, 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px 10px', flexShrink: 0, borderBottom: `0.5px solid ${C.border}` }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 500, color: C.text }}>Comments</div>
+            <div style={{ fontSize: 15, fontWeight: 500, color: C.text }}>Commenti</div>
             <div style={{ fontSize: 11, color: C.hint, marginTop: 1 }}>{postLabel}</div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
@@ -57,7 +57,7 @@ export function CommentsSheet({ postLabel, comments, isBarber, onAdd, onDelete, 
           {comments.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '28px 0', color: C.hint, fontSize: 13 }}>
               <i className="ti ti-message-circle-off" style={{ fontSize: 26, display: 'block', marginBottom: 6 }} />
-              No comments yet. Be the first!
+              Nessun commento. Sii il primo!
             </div>
           ) : (
             comments.map(c => (
@@ -86,7 +86,7 @@ export function CommentsSheet({ postLabel, comments, isBarber, onAdd, onDelete, 
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') submit() }}
-            placeholder="Add a comment…"
+            placeholder="Aggiungi un commento…"
             style={{
               flex: 1, padding: '9px 14px', borderRadius: 20,
               border: `0.5px solid ${C.borderMed}`, fontSize: 13,

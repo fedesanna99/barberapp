@@ -10,9 +10,9 @@ import { IS_DEMO } from '../lib/supabase'
 import type { BarberWithProfile } from '../types/supabase'
 
 const SORTS: { id: SortMode; label: string }[] = [
-  { id: 'nearby',  label: 'Nearby'  },
-  { id: 'popular', label: 'Popular' },
-  { id: 'new',     label: 'New'     },
+  { id: 'nearby',  label: 'Vicini'   },
+  { id: 'popular', label: 'Popolari' },
+  { id: 'new',     label: 'Nuovi'    },
 ]
 
 interface DiscoverProps {
@@ -77,7 +77,7 @@ export function Discover({ onBook, onViewProfile }: DiscoverProps) {
     <div style={{ flex: 1, overflowY: 'auto' }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
-        <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>Discover</span>
+        <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>Esplora</span>
         <button
           onClick={() => setShowSearch(s => { if (s) setSearch(''); return !s })}
           style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}
@@ -93,7 +93,7 @@ export function Discover({ onBook, onViewProfile }: DiscoverProps) {
             autoFocus
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search barbers or styles…"
+            placeholder="Cerca barbieri, città o stili…"
             style={{
               width: '100%', padding: '9px 12px', borderRadius: 10,
               border: `0.5px solid ${C.borderMed}`, fontSize: 13,
@@ -133,7 +133,7 @@ export function Discover({ onBook, onViewProfile }: DiscoverProps) {
       {/* Barber list */}
       {!loading && sorted.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 16px', color: C.hint, fontSize: 14 }}>
-          No barbers found
+          Nessun barbiere trovato
         </div>
       )}
       {sorted.map((barber, idx) => (
@@ -168,7 +168,7 @@ export function Discover({ onBook, onViewProfile }: DiscoverProps) {
               onClick={() => onBook(barber)}
               style={{ padding: '8px 14px', borderRadius: 8, background: C.text, color: C.bg, fontSize: 12, border: 'none', cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'inherit' }}
             >
-              Book
+              Prenota
             </button>
           </div>
         </div>
