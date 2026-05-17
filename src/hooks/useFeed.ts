@@ -41,7 +41,8 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`
 }
 
-const DEMO_FEED: FeedPost[] = POSTS.map(p => {
+// Module-level mutable store so barber posts survive screen switches in demo mode
+let demoPosts: FeedPost[] = POSTS.map(p => {
   const b = BARBERS.find(b => b.id === p.barberId)!
   return {
     id: String(p.id),
@@ -69,7 +70,10 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
 
-  const prependPost = useCallback((p: FeedPost) => setPosts(prev => [p, ...prev]), [])
+  const prependPost = useCallback((p: FeedPost) => {
+    if (IS_DEMO) demoPosts = [p, ...demoPosts]
+    setPosts(prev => [p, ...prev])
+  }, [])
 
   const setLiked = useCallback((postId: string, on: boolean) => {
     setLikedIds(prev => {
@@ -81,7 +85,7 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
 
   useEffect(() => {
     if (IS_DEMO) {
-      setPosts(DEMO_FEED)
+      setPosts(demoPosts)
       setHasMore(false)
       return
     }
