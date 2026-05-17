@@ -100,13 +100,16 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
     setPage(0)
     setHasMore(true)
     setLikedIds(new Set())
+    let cancelled = false
     supabase
       .from('likes')
       .select('post_id')
       .eq('user_id', userId)
       .then(({ data }) => {
+        if (cancelled) return
         if (data) setLikedIds(new Set(data.map(r => r.post_id)))
       })
+    return () => { cancelled = true }
   }, [userId, ownBarberId])
 
   useEffect(() => {
@@ -116,11 +119,14 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
     if (page > 0 && !hasMore) return
     setLoading(true)
 
+    let cancelled = false
+
     supabase
       .from('follows')
       .select('barber_id')
       .eq('follower_id', userId)
       .then(async ({ data: followRows }) => {
+        if (cancelled) return
         const ids = (followRows ?? []).map(r => r.barber_id)
         if (ownBarberId && !ids.includes(ownBarberId)) ids.push(ownBarberId)
         if (ids.length === 0) {
@@ -137,6 +143,7 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
           .order('created_at', { ascending: false })
           .range(page * PAGE, (page + 1) * PAGE - 1)
 
+        if (cancelled) return
         if (error) { setLoading(false); return }
 
         // Collect unique profile IDs and fetch profiles separately
@@ -145,6 +152,8 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
           .from('profiles')
           .select('id, display_name, avatar_url')
           .in('id', profileIds)
+
+        if (cancelled) return
 
         const profileMap = Object.fromEntries((profilesData ?? []).map(p => [p.id, p]))
 
@@ -172,6 +181,8 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
         if (batch.length < PAGE) setHasMore(false)
         setLoading(false)
       })
+
+    return () => { cancelled = true }
   }, [userId, page, ownBarberId])
 
   return {
