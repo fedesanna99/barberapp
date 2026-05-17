@@ -63,7 +63,8 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
 
   async function toggleLike(post: FeedPost) {
     const isLiked = feed.likedIds.has(post.id)
-    feed.setLiked(post.id, !isLiked)  // optimistic update
+    feed.setLiked(post.id, !isLiked)
+    feed.updatePostLikesCount(post.id, isLiked ? -1 : 1)
     if (IS_DEMO || !userId) return
     if (isLiked) {
       await supabase.from('likes').delete().eq('user_id', userId).eq('post_id', post.id)
@@ -257,7 +258,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
               </div>
 
               <div style={{ padding: '0 16px 2px', fontSize: 13, fontWeight: 500, color: C.text }}>
-                {post.likesCount + (isLiked ? 1 : 0)} likes
+                {post.likesCount} likes
               </div>
               <div style={{ padding: '0 16px 4px', fontSize: 13, color: C.text }}>
                 <span style={{ fontWeight: 500 }}>{post.barberName}</span>{' '}{post.caption}

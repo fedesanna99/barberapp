@@ -83,6 +83,11 @@ export function useFeed(userId: string | undefined, _ownBarberId?: string) {
     })
   }, [])
 
+  const updatePostLikesCount = useCallback((postId: string, delta: number) => {
+    if (IS_DEMO) demoPosts = demoPosts.map(p => p.id === postId ? { ...p, likesCount: p.likesCount + delta } : p)
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likesCount: p.likesCount + delta } : p))
+  }, [])
+
   useEffect(() => {
     if (IS_DEMO) {
       setPosts(demoPosts)
@@ -174,5 +179,6 @@ export function useFeed(userId: string | undefined, _ownBarberId?: string) {
     loadMore: () => { if (hasMore && !loading) setPage(p => p + 1) },
     prependPost,
     setLiked,
+    updatePostLikesCount,
   }
 }

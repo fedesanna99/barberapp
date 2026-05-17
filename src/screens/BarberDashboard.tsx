@@ -363,6 +363,11 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   )
 }
 
+function timeToMin(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
 function DayRow({
   dayName, active, startTime, endTime, breakStart, breakEnd, onToggle, onSave,
 }: {
@@ -394,6 +399,22 @@ function DayRow({
     (hasBreak && (bStart !== (breakStart ?? '12:00') || bEnd !== (breakEnd ?? '13:00')))
   )
 
+  const sMin = timeToMin(start)
+  const eMin = timeToMin(end)
+  const bsMin = timeToMin(bStart)
+  const beMin = timeToMin(bEnd)
+
+  let validationError: string | null = null
+  if (sMin >= eMin) {
+    validationError = 'End must be after start'
+  } else if (hasBreak) {
+    if (bsMin <= sMin)  validationError = 'Break must start after opening'
+    else if (beMin >= eMin) validationError = 'Break must end before closing'
+    else if (bsMin >= beMin) validationError = 'Break end must be after start'
+  }
+
+  const canSave = dirty && !validationError
+
   return (
     <div style={{ padding: '11px 0', borderBottom: `0.5px solid ${C.border}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -422,12 +443,18 @@ function DayRow({
             )}
             {dirty && (
               <button
-                onClick={() => onSave(start, end, hasBreak ? bStart : undefined, hasBreak ? bEnd : undefined)}
+                onClick={() => canSave && onSave(start, end, hasBreak ? bStart : undefined, hasBreak ? bEnd : undefined)}
+                disabled={!canSave}
                 style={{
                   height: 26, padding: '0 10px', borderRadius: 7,
-                  border: 'none', background: C.accent, color: '#fff',
-                  fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  border: 'none',
+                  background: canSave ? C.accent : C.borderMed,
+                  color: '#fff',
+                  fontSize: 11, fontWeight: 600,
+                  cursor: canSave ? 'pointer' : 'not-allowed',
+                  fontFamily: 'inherit',
                   marginLeft: 'auto', flexShrink: 0,
+                  opacity: canSave ? 1 : 0.6,
                 }}
               >
                 Save
@@ -457,6 +484,12 @@ function DayRow({
           >
             <i className="ti ti-x" style={{ fontSize: 12 }} />
           </button>
+        </div>
+      )}
+
+      {active && dirty && validationError && (
+        <div style={{ fontSize: 10, color: C.red, marginTop: 4, paddingLeft: 80 }}>
+          {validationError}
         </div>
       )}
     </div>
