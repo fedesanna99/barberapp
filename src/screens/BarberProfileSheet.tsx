@@ -3,6 +3,7 @@ import { C } from '../lib/colors'
 import { POSTS } from '../lib/demoData'
 import type { DemoBarber } from '../lib/demoData'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { useBarberInfo } from '../hooks/useBarberInfo'
 
 interface BarberPost {
   id: string
@@ -29,6 +30,7 @@ interface Props {
 export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
   const [posts, setPosts]             = useState<BarberPost[]>([])
   const [feedStartIdx, setFeedStartIdx] = useState<number | null>(null)
+  const { info } = useBarberInfo(IS_DEMO ? undefined : String(barber.id), undefined)
 
   useEffect(() => {
     if (IS_DEMO) {
@@ -112,6 +114,39 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
               </span>
             ))}
           </div>
+
+          {(info.shop_name || info.address || info.phone || info.social_link) && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              {info.shop_name && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: C.muted }}>
+                  <i className="ti ti-building-store" style={{ fontSize: 13 }} />
+                  <span>{info.shop_name}</span>
+                </div>
+              )}
+              {info.address && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: C.hint }}>
+                  <i className="ti ti-map-pin" style={{ fontSize: 12 }} />
+                  <span>{info.address}</span>
+                </div>
+              )}
+              {(info.phone || info.social_link) && (
+                <div style={{ display: 'flex', gap: 14, marginTop: 2 }}>
+                  {info.phone && (
+                    <a href={`tel:${info.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: barber.accent, textDecoration: 'none' }}>
+                      <i className="ti ti-phone" style={{ fontSize: 13 }} />
+                      <span>{info.phone}</span>
+                    </a>
+                  )}
+                  {info.social_link && (
+                    <a href={info.social_link} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: barber.accent, textDecoration: 'none' }}>
+                      <i className={`ti ${info.social_link.includes('instagram') ? 'ti-brand-instagram' : info.social_link.includes('tiktok') ? 'ti-brand-tiktok' : 'ti-world'}`} style={{ fontSize: 13 }} />
+                      <span>Social</span>
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Stats */}
