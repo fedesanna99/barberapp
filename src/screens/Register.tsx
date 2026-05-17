@@ -51,7 +51,7 @@ export function Register({ onRegister, onGoToLogin }: Props) {
       return
     }
 
-    const { data, error: e } = await supabase.auth.signUp({
+    const { error: e } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: name.trim(), role } },
