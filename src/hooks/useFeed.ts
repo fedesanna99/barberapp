@@ -89,7 +89,13 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
       setHasMore(false)
       return
     }
-    if (!userId) return
+    if (!userId) {
+      setPosts([])
+      setLikedIds(new Set())
+      setPage(0)
+      setHasMore(true)
+      return
+    }
     setPosts([])
     setPage(0)
     setHasMore(true)
