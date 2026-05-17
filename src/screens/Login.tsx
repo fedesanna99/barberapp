@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { C } from '../lib/colors'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { writeLog } from '../hooks/useAdminLogs'
+import { isValidEmail } from '../lib/validation'
 
 const GoogleLogo = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
@@ -32,8 +33,8 @@ export function Login({ onLogin, onGoToRegister }: Props) {
 
   async function handleSignIn() {
     setError(null)
-    if (!email.trim())  { setError('Inserisci la tua email'); return }
-    if (!password)      { setError('Inserisci la password'); return }
+    if (!isValidEmail(email)) { setError('Inserisci una email valida'); return }
+    if (!password)            { setError('Inserisci la password'); return }
 
     setLoading(true)
 

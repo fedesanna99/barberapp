@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { isValidEmail } from '../lib/validation'
 
 interface Props {
   onRegister: (asBarber: boolean) => void
@@ -37,10 +38,10 @@ export function Register({ onRegister, onGoToLogin }: Props) {
 
   async function handleRegister() {
     setError(null)
-    if (!name.trim())        { setError('Inserisci il tuo nome'); return }
-    if (!email.trim())       { setError('Inserisci la tua email'); return }
-    if (password.length < 6) { setError('La password deve essere di almeno 6 caratteri'); return }
-    if (password !== confirm) { setError('Le password non coincidono'); return }
+    if (!name.trim())          { setError('Inserisci il tuo nome'); return }
+    if (!isValidEmail(email))  { setError('Inserisci una email valida'); return }
+    if (password.length < 6)   { setError('La password deve essere di almeno 6 caratteri'); return }
+    if (password !== confirm)  { setError('Le password non coincidono'); return }
 
     setLoading(true)
 
@@ -58,8 +59,9 @@ export function Register({ onRegister, onGoToLogin }: Props) {
     })
     if (e) { setLoading(false); setError(e.message); return }
 
-    // If barber and session is available (email confirmation disabled), create the barbers row.
-    // The handle_new_barber trigger will flip the profile role to 'barber' automatically.
+    // The handle_new_user trigger (migration 017) reads role from raw_user_meta_data
+    // and inserts a barbers row when role='barber'; handle_new_barber then flips
+    // profiles.role. Nothing else to do client-side.
     setLoading(false)
     onRegister(role === 'barber')
   }

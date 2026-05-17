@@ -44,7 +44,7 @@ export function useAuth() {
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  async function fetchProfile(userId: string) {
+  async function fetchProfile(userId: string, retries = 0) {
     const { data } = await supabase
       .from('profiles')
       .select('*, barbers(*)')
@@ -56,6 +56,14 @@ export function useAuth() {
       const p = data as unknown as ProfileWithBarber
       profileRef.current = p
       setProfile(p)
+      setLoading(false)
+      return
+    }
+    // Just-signed-up users may hit a tiny window before handle_new_user has
+    // inserted the profile row. Retry a few times with backoff.
+    if (retries < 3) {
+      await new Promise(r => setTimeout(r, 200 * (retries + 1)))
+      return fetchProfile(userId, retries + 1)
     }
     setLoading(false)
   }
