@@ -127,7 +127,11 @@ export default function App() {
             {screen === 'feed'      && <Feed     userId={userId} barberId={barberId} onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} />}
             {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} />}
             {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
-            {screen === 'dashboard' && <BarberDashboard barberId={barberId} />}
+            {isBarber && (
+              <div style={{ display: screen === 'dashboard' ? 'flex' : 'none', position: 'absolute', inset: 0, flexDirection: 'column', background: C.bg }}>
+                <BarberDashboard barberId={barberId} />
+              </div>
+            )}
             {screen === 'menu'      && <Menu onLogout={async () => {
               await signOut()
               setLoggedIn(false)
