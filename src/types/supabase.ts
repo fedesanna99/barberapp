@@ -49,6 +49,7 @@ export type Database = {
           specialties: string | null
           rating: number
           followers_count: number
+          auto_accept: boolean
           created_at: string
         }
         Insert: {
@@ -59,6 +60,7 @@ export type Database = {
           specialties?: string | null
           rating?: number
           followers_count?: number
+          auto_accept?: boolean
           created_at?: string
         }
         Update: {
@@ -67,6 +69,7 @@ export type Database = {
           specialties?: string | null
           rating?: number
           followers_count?: number
+          auto_accept?: boolean
         }
         Relationships: [
           {

@@ -8,6 +8,7 @@ import {
 } from '../lib/demoData'
 import { useBarberBookings, useBooking, type BookingWithClient } from '../hooks/useBooking'
 import { useAvailabilitySettings } from '../hooks/useAvailabilitySettings'
+import { useAutoAccept } from '../hooks/useAutoAccept'
 
 type DashTab = 'bookings' | 'availability'
 
@@ -91,7 +92,7 @@ function BookingsTab({ barberId }: { barberId?: string }) {
   const { bookings: real, refetch } = useBarberBookings(barberId)
   const { cancelBooking, confirmBooking, markDone } = useBooking()
   const [demoList, setDemoList] = useState<DemoBarberBooking[]>([DEMO_PENDING, ...DEMO_BARBER_BOOKINGS])
-  const [autoAccept, setAutoAccept] = useState(false)
+  const { autoAccept, setAutoAccept } = useAutoAccept(isDemo ? undefined : barberId)
 
   const pending = isDemo
     ? demoList.filter(b => b.status === 'pending').map(demoToRow)
@@ -140,7 +141,7 @@ function BookingsTab({ barberId }: { barberId?: string }) {
           <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Auto-accept</span>
           <span style={{ fontSize: 11, color: C.hint, display: 'block', marginTop: 1 }}>New bookings confirm instantly</span>
         </div>
-        <Toggle on={autoAccept} onChange={() => setAutoAccept(v => !v)} />
+        <Toggle on={autoAccept} onChange={() => setAutoAccept(!autoAccept)} />
       </div>
       <Section label="Pending" count={pending.length}>
         {pending.length === 0
