@@ -5,6 +5,7 @@ import { BARBERS, POSTS, CUT_LOG, UPCOMING as DEMO_UPCOMING } from '../lib/demoD
 import { useClientBookings } from '../hooks/useBooking'
 import { useProfile } from '../hooks/useProfile'
 import { useFollows } from '../hooks/useFollows'
+import { useBarberInfo } from '../hooks/useBarberInfo'
 import { uploadAvatar, uploadPostPhoto, uploadUserPostPhoto } from '../hooks/useUpload'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import type { BookingWithBarber } from '../hooks/useBooking'
@@ -56,6 +57,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
   const { profile, updateAvatarUrl } = useProfile(userId)
   const follows  = useFollows(userId)
   const { bookings } = useClientBookings(isBarber ? undefined : userId)
+  const { info: barberInfo } = useBarberInfo(isBarber ? barberId : undefined, isBarber ? userId : undefined)
 
   // Barber: load own posts on mount
   useEffect(() => {
@@ -225,6 +227,39 @@ export function Profile({ userId, isBarber, barberId }: Props) {
                 {p}
               </span>
             ))}
+          </div>
+        )}
+
+        {isBarber && (
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            {barberInfo.shop_name && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: C.muted }}>
+                <i className="ti ti-building-store" style={{ fontSize: 13 }} />
+                <span>{barberInfo.shop_name}</span>
+              </div>
+            )}
+            {barberInfo.address && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: C.hint }}>
+                <i className="ti ti-map-pin" style={{ fontSize: 12 }} />
+                <span>{barberInfo.address}</span>
+              </div>
+            )}
+            {(barberInfo.phone || barberInfo.social_link) && (
+              <div style={{ display: 'flex', gap: 14, marginTop: 2 }}>
+                {barberInfo.phone && (
+                  <a href={`tel:${barberInfo.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.accent, textDecoration: 'none' }}>
+                    <i className="ti ti-phone" style={{ fontSize: 13 }} />
+                    <span>{barberInfo.phone}</span>
+                  </a>
+                )}
+                {barberInfo.social_link && (
+                  <a href={barberInfo.social_link} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.accent, textDecoration: 'none' }}>
+                    <i className={`ti ${barberInfo.social_link.includes('instagram') ? 'ti-brand-instagram' : barberInfo.social_link.includes('tiktok') ? 'ti-brand-tiktok' : 'ti-world'}`} style={{ fontSize: 13 }} />
+                    <span>Social</span>
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

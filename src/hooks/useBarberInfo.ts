@@ -9,10 +9,10 @@ export interface BarberInfo {
 }
 
 const DEMO_INFO: BarberInfo = {
-  shop_name: 'Barber & Co.',
-  address: 'Via Roma 1, Milano',
-  phone: '+39 02 1234567',
-  social_link: 'https://instagram.com/barberco',
+  shop_name:   '',
+  address:     '',
+  phone:       '',
+  social_link: '',
 }
 
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
