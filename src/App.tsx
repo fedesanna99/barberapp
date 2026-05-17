@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { C } from './lib/colors'
+import { IS_DEMO } from './lib/supabase'
 import { useAuth } from './hooks/useAuth'
 import { useBarberByProfile } from './hooks/useBarbers'
 import { useBookingToast } from './hooks/useBookingToast'
+import { useBooking } from './hooks/useBooking'
 import { Toast } from './components/Toast'
 import { Feed } from './screens/Feed'
 import { Discover } from './screens/Discover'
@@ -27,28 +29,39 @@ const CLIENT_NAV: { id: ScreenId; icon: string; label: string }[] = [
 
 const BARBER_NAV: { id: ScreenId; icon: string; label: string }[] = [
   { id: 'feed',      icon: 'ti-layout-grid',       label: 'Feed'      },
+  { id: 'discover',  icon: 'ti-map-search',         label: 'Discover'  },
   { id: 'dashboard', icon: 'ti-layout-dashboard',  label: 'Dashboard' },
   { id: 'profile',   icon: 'ti-user',              label: 'Profile'   },
   { id: 'menu',      icon: 'ti-menu-2',            label: 'Menu'      },
 ]
 
 export default function App() {
-  const { session } = useAuth()
-  const userId  = session?.user.id
+  const { session, isBarber: roleIsBarber, loading, signOut } = useAuth()
+  const userId = session?.user.id
 
-  const [loggedIn, setLoggedIn]           = useState(false)
-  const [isBarber, setIsBarber]           = useState(false)
-  const [authView, setAuthView]           = useState<AuthView>('login')
-  const [screen, setScreen]               = useState<ScreenId>('feed')
-  const [bookingBarber, setBookingBarber]   = useState<DemoBarber | null>(null)
-  const [profileBarber, setProfileBarber]   = useState<DemoBarber | null>(null)
-  const [showLikedFeed, setShowLikedFeed]   = useState(false)
-  const [toast, setToast]                 = useState<string | null>(null)
+  const [loggedIn, setLoggedIn]         = useState(false)
+  const [isBarber, setIsBarber]         = useState(false)
+  const [authView, setAuthView]         = useState<AuthView>('login')
+  const [screen, setScreen]             = useState<ScreenId>('feed')
+  const [bookingBarber, setBookingBarber] = useState<DemoBarber | null>(null)
+  const [profileBarber, setProfileBarber] = useState<DemoBarber | null>(null)
+  const [showLikedFeed, setShowLikedFeed] = useState(false)
+  const [toast, setToast]               = useState<string | null>(null)
 
   const barberId = useBarberByProfile(isBarber ? userId : undefined)
+  const { createBooking } = useBooking()
 
   // Real-time toast for clients when a barber confirms or cancels their booking
   useBookingToast(!isBarber ? userId : undefined, setToast)
+
+  // C1: sync Supabase session → loggedIn (handles Google OAuth redirect)
+  useEffect(() => {
+    if (IS_DEMO || loading) return
+    if (session) {
+      setLoggedIn(true)
+      setIsBarber(roleIsBarber)
+    }
+  }, [session, roleIsBarber, loading])
 
   function handleLogin(asBarber = false) {
     setLoggedIn(true)
@@ -56,11 +69,26 @@ export default function App() {
     if (asBarber) setScreen('dashboard')
   }
 
-  function handleConfirm(barber: DemoBarber, date: DemoDate, time: string) {
+  // C2: actually write the booking to the DB on confirm
+  async function handleConfirm(barber: DemoBarber, date: DemoDate, time: string) {
+    if (!IS_DEMO && userId) {
+      const { error } = await createBooking({
+        clientId: userId,
+        barberId: barber.id,
+        date:     date.date,
+        timeSlot: time,
+      })
+      if (error) {
+        setToast(`Booking failed: ${error.message}`)
+        return
+      }
+    }
     setBookingBarber(null)
     setProfileBarber(null)
     setToast(`${barber.name} · ${date.day} ${date.num} ${date.month} at ${time}`)
   }
+
+  const showLoading = !IS_DEMO && loading
 
   return (
     <div style={{
@@ -72,7 +100,6 @@ export default function App() {
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
-      /* Subtle separator from the gray body background on wide screens */
       boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)',
     }}>
 
@@ -81,7 +108,11 @@ export default function App() {
 
       {/* Screen area */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        {!loggedIn ? (
+        {showLoading ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="ti ti-loader-2" style={{ fontSize: 36, color: C.muted, animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        ) : !loggedIn ? (
           authView === 'register'
             ? <Register onRegister={asBarber => handleLogin(asBarber)} onGoToLogin={() => setAuthView('login')} />
             : <Login    onLogin={handleLogin} onGoToRegister={() => setAuthView('register')} />
@@ -97,7 +128,13 @@ export default function App() {
             {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} />}
             {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
             {screen === 'dashboard' && <BarberDashboard barberId={barberId} />}
-            {screen === 'menu'      && <Menu onLogout={() => { setLoggedIn(false); setIsBarber(false); setScreen('feed'); setAuthView('login') }} onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }} />}
+            {screen === 'menu'      && <Menu onLogout={async () => {
+              await signOut()
+              setLoggedIn(false)
+              setIsBarber(false)
+              setScreen('feed')
+              setAuthView('login')
+            }} onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }} />}
           </>
         )}
 

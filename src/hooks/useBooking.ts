@@ -16,14 +16,17 @@ export function useBooking() {
     timeSlot: string
   }) {
     setLoading(true)
+    const d = params.date
+    // H1: format in local time so the date string matches day-of-week used for availability
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const { data, error } = await supabase
       .from('bookings')
       .insert({
         client_id: params.clientId,
         barber_id: params.barberId,
-        date:      params.date.toISOString().split('T')[0],
+        date:      dateStr,
         time_slot: params.timeSlot,
-        status:    'confirmed' as const,
+        // M1: insert as 'pending' so the barber can confirm/decline
       })
       .select()
       .single()

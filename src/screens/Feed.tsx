@@ -30,18 +30,16 @@ interface FeedProps {
 }
 
 function postToBarber(p: FeedPost): DemoBarber {
-  let numId = 0
-  for (const c of p.barberId) numId = (numId * 31 + c.charCodeAt(0)) & 0x7fffffff
   return {
-    id: numId,
-    name: p.barberName,
-    initials: p.barberInitials,
-    city: p.barberCity,
-    dist: 0,
-    rating: 4.8,
-    tags: [],
+    id:        p.barberId,
+    name:      p.barberName,
+    initials:  p.barberInitials,
+    city:      p.barberCity,
+    dist:      0,
+    rating:    4.8,
+    tags:      [],
     followers: 0,
-    accent: p.barberAccent,
+    accent:    p.barberAccent,
   }
 }
 
@@ -76,20 +74,21 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
 
   async function addPost(caption: string, label: string, file?: File): Promise<void> {
     if (IS_DEMO) {
+      const demoId = barberId ?? '1'
       feed.prependPost({
-        id: String(Date.now()),
-        barberId: '1',
-        barberName: 'You',
-        barberInitials: 'YO',
-        barberCity: '',
-        barberAccent: C.accent,
+        id:              crypto.randomUUID(),
+        barberId:        demoId,
+        barberName:      'You',
+        barberInitials:  'YO',
+        barberCity:      '',
+        barberAccent:    C.accent,
         barberAvatarUrl: undefined,
-        likesCount: 0,
+        likesCount:      0,
         caption,
         label,
         createdAt: new Date().toISOString(),
-        timeAgo: 'Just now',
-        imageUrl: file ? URL.createObjectURL(file) : undefined,
+        timeAgo:   'Just now',
+        imageUrl:  file ? URL.createObjectURL(file) : undefined,
       })
       return
     }

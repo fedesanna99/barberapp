@@ -87,23 +87,40 @@ export function BarberDashboard({ barberId }: { barberId?: string }) {
 function BookingsTab({ barberId }: { barberId?: string }) {
   const isDemo = IS_DEMO || !barberId
   const { bookings: real } = useBarberBookings(barberId)
-  const { cancelBooking, markDone } = useBooking()
+  const { cancelBooking, confirmBooking, markDone } = useBooking()
   const [demoList, setDemoList] = useState<DemoBarberBooking[]>(DEMO_BARBER_BOOKINGS)
+
+  const pending = isDemo
+    ? demoList.filter(b => b.status === 'pending').map(demoToRow)
+    : real.filter(b => b.status === 'pending').map(toRow)
 
   const upcoming = isDemo
     ? demoList.filter(b => b.status === 'confirmed').map(demoToRow)
     : real.filter(b => b.status === 'confirmed' && b.date >= TODAY).map(toRow)
 
-  function demoAction(id: string, action: 'done' | 'cancel') {
+  function demoAction(id: string, action: 'done' | 'cancel' | 'confirm') {
     if (action === 'cancel') {
       setDemoList(prev => prev.filter(b => b.id !== id))
+    } else if (action === 'confirm') {
+      setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'confirmed' as const } : b))
     } else {
-      setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'done' } : b))
+      setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'done' as const } : b))
     }
   }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 20px' }}>
+      <Section label="Pending" count={pending.length}>
+        {pending.length === 0
+          ? <EmptyState icon="ti-clock" text="No pending requests" />
+          : pending.map(r => (
+              <BookingCard key={r.id} row={r}
+                onConfirm={() => isDemo ? demoAction(r.id, 'confirm') : confirmBooking(r.id)}
+                onDecline={() => isDemo ? demoAction(r.id, 'cancel')  : cancelBooking(r.id)}
+              />
+            ))
+        }
+      </Section>
       <Section label="Upcoming" count={upcoming.length}>
         {upcoming.length === 0
           ? <EmptyState icon="ti-calendar-off" text="No upcoming appointments" />

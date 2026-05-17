@@ -3,14 +3,12 @@ import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
 import { BARBERS, POSTS, CUT_LOG, UPCOMING as DEMO_UPCOMING } from '../lib/demoData'
 import { useClientBookings } from '../hooks/useBooking'
-import { useFeed } from '../hooks/useFeed'
 import { useProfile } from '../hooks/useProfile'
 import { useFollows } from '../hooks/useFollows'
 import { uploadAvatar, uploadPostPhoto } from '../hooks/useUpload'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import type { BookingWithBarber } from '../hooks/useBooking'
 import type { Post } from '../types/supabase'
-import type { FeedPost } from '../hooks/useFeed'
 
 interface Props {
   userId?: string
@@ -40,7 +38,6 @@ export function Profile({ userId, isBarber, barberId }: Props) {
   const { profile, updateAvatarUrl } = useProfile(userId)
   const follows  = useFollows(userId)
   const { bookings } = useClientBookings(isBarber ? undefined : userId)
-  const { posts: feedPosts } = useFeed(isBarber ? undefined : userId)
 
   // Barber: load own posts on mount
   useEffect(() => {
@@ -123,8 +120,8 @@ export function Profile({ userId, isBarber, barberId }: Props) {
 
   const showBarberPosts     = isBarber && !isDemo
   const showDemoBarberPosts = isBarber && isDemo
-  const showClientPosts     = !isBarber && (feedPosts.length > 0 || localCuts.length > 0)
-  const showDemoPosts       = !isBarber && feedPosts.length === 0 && localCuts.length === 0
+  const showClientPosts     = !isBarber && localCuts.length > 0
+  const showDemoPosts       = !isBarber && localCuts.length === 0
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -204,7 +201,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
         {showBarberPosts     && <OwnPostGrid posts={ownPosts} />}
         {showDemoBarberPosts && <DemoBarberPostGrid />}
-        {showClientPosts && <ClientGrid localCuts={localCuts} posts={feedPosts} />}
+        {showClientPosts && <ClientGrid localCuts={localCuts} />}
         {showDemoPosts   && <DemoPostGrid />}
       </div>
 
@@ -248,7 +245,7 @@ function OwnPostGrid({ posts }: { posts: Post[] }) {
   )
 }
 
-function ClientGrid({ localCuts, posts }: { localCuts: { id: string; url: string }[]; posts: FeedPost[] }) {
+function ClientGrid({ localCuts }: { localCuts: { id: string; url: string }[] }) {
   return (
     <>
       {localCuts.map(cut => (
@@ -259,28 +256,6 @@ function ClientGrid({ localCuts, posts }: { localCuts: { id: string; url: string
             backgroundImage: `url(${cut.url})`, backgroundSize: 'cover', backgroundPosition: 'center',
           }}
         />
-      ))}
-      {posts.slice(0, Math.max(0, 8 - localCuts.length)).map(post => (
-        <div
-          key={post.id}
-          style={{
-            aspectRatio: '1', cursor: 'pointer', overflow: 'hidden',
-            position: 'relative', background: C.surface,
-            ...(post.imageUrl
-              ? { backgroundImage: `url(${post.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-              : { display: 'flex', alignItems: 'center', justifyContent: 'center' }),
-          }}
-        >
-          {!post.imageUrl && <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />}
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            padding: '16px 4px 5px',
-            background: 'linear-gradient(transparent, rgba(0,0,0,0.5))',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{post.barberName}</div>
-          </div>
-        </div>
       ))}
     </>
   )

@@ -1,5 +1,5 @@
 export interface DemoBarber {
-  id: number
+  id: string
   name: string
   initials: string
   city: string
@@ -12,7 +12,7 @@ export interface DemoBarber {
 
 export interface DemoPost {
   id: number
-  barberId: number
+  barberId: string
   likes: number
   caption: string
   label: string
@@ -29,18 +29,18 @@ export interface DemoDate {
 }
 
 export const BARBERS: DemoBarber[] = [
-  { id: 1, name: 'Marco Barba',   initials: 'MB', city: 'Cagliari centro', dist: 0.4, rating: 4.9, tags: ['Skin fade', 'Beard'],        followers: 1240, accent: '#5DCAA5' },
-  { id: 2, name: 'Fadi Nour',     initials: 'FN', city: 'Poetto',          dist: 1.2, rating: 4.8, tags: ['Arabic shave', 'Fade'],       followers: 892,  accent: '#85B7EB' },
-  { id: 3, name: 'Nico Testa',    initials: 'NT', city: 'Is Mirrionis',    dist: 2.1, rating: 4.7, tags: ['Classic', 'Texture'],         followers: 567,  accent: '#EF9F27' },
-  { id: 4, name: 'Tariq Khalid',  initials: 'TK', city: 'Villanova',       dist: 2.8, rating: 4.9, tags: ['Taper', 'Line up'],           followers: 2103, accent: '#AFA9EC' },
-  { id: 5, name: 'Luca Barbieri', initials: 'LB', city: 'Quartu',          dist: 4.5, rating: 4.6, tags: ['French crop', 'Beard'],       followers: 734,  accent: '#F09595' },
+  { id: '1', name: 'Marco Barba',   initials: 'MB', city: 'Cagliari centro', dist: 0.4, rating: 4.9, tags: ['Skin fade', 'Beard'],        followers: 1240, accent: '#5DCAA5' },
+  { id: '2', name: 'Fadi Nour',     initials: 'FN', city: 'Poetto',          dist: 1.2, rating: 4.8, tags: ['Arabic shave', 'Fade'],       followers: 892,  accent: '#85B7EB' },
+  { id: '3', name: 'Nico Testa',    initials: 'NT', city: 'Is Mirrionis',    dist: 2.1, rating: 4.7, tags: ['Classic', 'Texture'],         followers: 567,  accent: '#EF9F27' },
+  { id: '4', name: 'Tariq Khalid',  initials: 'TK', city: 'Villanova',       dist: 2.8, rating: 4.9, tags: ['Taper', 'Line up'],           followers: 2103, accent: '#AFA9EC' },
+  { id: '5', name: 'Luca Barbieri', initials: 'LB', city: 'Quartu',          dist: 4.5, rating: 4.6, tags: ['French crop', 'Beard'],       followers: 734,  accent: '#F09595' },
 ]
 
 export const POSTS: DemoPost[] = [
-  { id: 1, barberId: 1, likes: 312, caption: 'Mid skin fade, hard part, beard sculpt. Book via link in bio ✂️',       label: 'Skin fade + line up', timeAgo: '2h ago', comments: 18 },
-  { id: 2, barberId: 2, likes: 187, caption: 'Arabic shave con razor fresco. Prenota dall\'app.',                     label: 'Arabic shave',        timeAgo: '3h ago', comments: 9  },
-  { id: 3, barberId: 5, likes: 245, caption: 'French crop con texture. Prenota direttamente dall\'app.',              label: 'French crop',         timeAgo: '5h ago', comments: 14 },
-  { id: 4, barberId: 3, likes: 198, caption: 'Classic cut, clean lines. Old school meets modern.',                    label: 'Classic cut',         timeAgo: '8h ago', comments: 11 },
+  { id: 1, barberId: '1', likes: 312, caption: 'Mid skin fade, hard part, beard sculpt. Book via link in bio ✂️',       label: 'Skin fade + line up', timeAgo: '2h ago', comments: 18 },
+  { id: 2, barberId: '2', likes: 187, caption: 'Arabic shave con razor fresco. Prenota dall\'app.',                     label: 'Arabic shave',        timeAgo: '3h ago', comments: 9  },
+  { id: 3, barberId: '5', likes: 245, caption: 'French crop con texture. Prenota direttamente dall\'app.',              label: 'French crop',         timeAgo: '5h ago', comments: 14 },
+  { id: 4, barberId: '3', likes: 198, caption: 'Classic cut, clean lines. Old school meets modern.',                    label: 'Classic cut',         timeAgo: '8h ago', comments: 11 },
 ]
 
 export const CUT_LOG = [
@@ -110,6 +110,6 @@ export function getNext7Days(): DemoDate[] {
   })
 }
 
-export function getBarberById(id: number): DemoBarber | undefined {
+export function getBarberById(id: string): DemoBarber | undefined {
   return BARBERS.find(b => b.id === id)
 }

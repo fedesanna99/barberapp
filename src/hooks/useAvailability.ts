@@ -29,7 +29,8 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
     }
 
     const dow     = date.getDay()
-    const dateStr = date.toISOString().split('T')[0]
+    // H1: format in local time so the date string matches the day-of-week
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     setLoading(true)
 
     type AvailRow = { start_time: string; end_time: string }
@@ -57,7 +58,8 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
       }
 
       const all   = generateSlots(win.start_time, win.end_time)
-      const taken = new Set((existing.data as BookingRow[] | null ?? []).map(b => b.time_slot))
+      // C4: PostgREST returns time as "HH:MM:SS"; slice to "HH:MM" to match generated slots
+      const taken = new Set((existing.data as BookingRow[] | null ?? []).map(b => b.time_slot.slice(0, 5)))
       setSlots(all)
       setBooked(taken)
       setLoading(false)
