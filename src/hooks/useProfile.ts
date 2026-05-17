@@ -37,5 +37,20 @@ export function useProfile(userId: string | undefined) {
     }
   }
 
-  return { profile, updateAvatarUrl }
+  // Generic editable fields. RLS only allows the owner to update their own row,
+  // so we don't need to filter the keys server-side — but we whitelist here to
+  // avoid accidentally trying to overwrite id/role/created_at.
+  type EditableFields = Pick<Profile, 'display_name' | 'bio'>
+  async function updateProfile(updates: Partial<EditableFields>) {
+    const prev = profile
+    setProfile(p => ({ ...p, ...updates }))
+    if (IS_DEMO || !userId) return
+    const { error } = await supabase.from('profiles').update(updates).eq('id', userId)
+    if (error) {
+      setProfile(prev)
+      throw new Error(error.message)
+    }
+  }
+
+  return { profile, updateAvatarUrl, updateProfile }
 }

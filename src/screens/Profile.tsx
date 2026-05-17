@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
+import { EditProfileSheet } from '../components/EditProfileSheet'
 import { BARBERS, POSTS, CUT_LOG, UPCOMING as DEMO_UPCOMING } from '../lib/demoData'
 import { useClientBookings } from '../hooks/useBooking'
 import { useProfile } from '../hooks/useProfile'
@@ -53,9 +54,10 @@ export function Profile({ userId, isBarber, barberId }: Props) {
   const [ownPosts,         setOwnPosts]         = useState<Post[]>([])
   const [userPosts,        setUserPosts]        = useState<UserPost[]>([])
   const [showNewUserPost,  setShowNewUserPost]  = useState(false)
+  const [showEditProfile,  setShowEditProfile]  = useState(false)
   const [selectedPostIdx, setSelectedPostIdx] = useState<number | null>(null)
 
-  const { profile, updateAvatarUrl } = useProfile(userId)
+  const { profile, updateAvatarUrl, updateProfile } = useProfile(userId)
   const follows  = useFollows(userId)
   const { bookings } = useClientBookings(isBarber ? undefined : userId)
   const { info: barberInfo } = useBarberInfo(isBarber ? barberId : undefined, isBarber ? userId : undefined)
@@ -223,7 +225,18 @@ export function Profile({ userId, isBarber, barberId }: Props) {
           </div>
         </div>
 
-        <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>{displayName}</div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 18, fontWeight: 500, color: C.text }}>{displayName}</span>
+          {!isDemo && (
+            <button
+              onClick={() => setShowEditProfile(true)}
+              aria-label="Modifica profilo"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: C.hint, display: 'inline-flex' }}
+            >
+              <i className="ti ti-pencil" style={{ fontSize: 14 }} />
+            </button>
+          )}
+        </div>
         {followingLine !== '' && (
           <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{followingLine}</div>
         )}
@@ -351,6 +364,17 @@ export function Profile({ userId, isBarber, barberId }: Props) {
           setShowNewUserPost(false)
         }}
         onClose={() => setShowNewUserPost(false)}
+      />
+    )}
+
+    {/* Edit profile sheet */}
+    {showEditProfile && (
+      <EditProfileSheet
+        initial={{ display_name: displayName, bio: profile.bio ?? '' }}
+        onSave={async ({ display_name, bio }) => {
+          await updateProfile({ display_name, bio: bio || null })
+        }}
+        onClose={() => setShowEditProfile(false)}
       />
     )}
     </div>

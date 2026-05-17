@@ -3,10 +3,10 @@ import { C } from '../lib/colors'
 import type { BarberInfo } from '../hooks/useBarberInfo'
 
 const FIELDS: [keyof BarberInfo, string, string, string][] = [
-  ['shop_name',   'ti-building-store',   'Salon name',  'e.g. Barber & Co.'],
-  ['address',     'ti-map-pin',          'Address',     'e.g. Via Roma 1, Milano'],
-  ['phone',       'ti-phone',            'Phone',       'e.g. +39 02 1234567'],
-  ['social_link', 'ti-brand-instagram',  'Social link', 'https://instagram.com/...'],
+  ['shop_name',   'ti-building-store',   'Nome del salone', 'es. Barber & Co.'],
+  ['address',     'ti-map-pin',          'Indirizzo',       'es. Via Roma 1, Milano'],
+  ['phone',       'ti-phone',            'Telefono',        'es. +39 02 1234567'],
+  ['social_link', 'ti-brand-instagram',  'Link social',     'https://instagram.com/...'],
 ]
 
 export function EditBarberInfoSheet({
@@ -57,7 +57,7 @@ export function EditBarberInfoSheet({
           padding: '12px 16px 10px',
           borderBottom: `0.5px solid ${C.border}`,
         }}>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>Shop info</span>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>Info salone</span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
             <i className="ti ti-x" style={{ fontSize: 18, color: C.muted }} />
           </button>
@@ -103,8 +103,8 @@ export function EditBarberInfoSheet({
             }}
           >
             {saving
-              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Saving…</>
-              : 'Save'
+              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Salvataggio…</>
+              : 'Salva'
             }
           </button>
         </div>
