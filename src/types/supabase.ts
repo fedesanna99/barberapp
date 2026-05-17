@@ -52,6 +52,9 @@ export type Database = {
           rating: number
           followers_count: number
           auto_accept: boolean
+          phone: string | null
+          address: string | null
+          social_link: string | null
           created_at: string
         }
         Insert: {
@@ -63,6 +66,9 @@ export type Database = {
           rating?: number
           followers_count?: number
           auto_accept?: boolean
+          phone?: string | null
+          address?: string | null
+          social_link?: string | null
           created_at?: string
         }
         Update: {
@@ -72,6 +78,9 @@ export type Database = {
           rating?: number
           followers_count?: number
           auto_accept?: boolean
+          phone?: string | null
+          address?: string | null
+          social_link?: string | null
         }
         Relationships: [
           {

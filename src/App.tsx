@@ -162,14 +162,21 @@ export default function App() {
                 <AdminPanel userId={userId} />
               </div>
             )}
-            {screen === 'menu'      && <Menu onLogout={async () => {
-              await signOut()
-              setLoggedIn(false)
-              setIsBarber(false)
-              setIsAdmin(false)
-              setScreen('feed')
-              setAuthView('login')
-            }} onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }} onSupport={() => setShowSupport(true)} />}
+            {screen === 'menu'      && <Menu
+              isBarber={isBarber}
+              barberId={barberId}
+              userId={userId}
+              onLogout={async () => {
+                await signOut()
+                setLoggedIn(false)
+                setIsBarber(false)
+                setIsAdmin(false)
+                setScreen('feed')
+                setAuthView('login')
+              }}
+              onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }}
+              onSupport={() => setShowSupport(true)}
+            />}
           </>
         )}
 

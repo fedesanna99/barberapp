@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { C } from '../lib/colors'
+import { useBarberInfo } from '../hooks/useBarberInfo'
+import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
 
 type MenuItem = { icon: string; label: string; badge?: string; action?: 'liked' | 'support' }
 
@@ -19,11 +22,20 @@ const SECTIONS: MenuItem[][] = [
   ],
 ]
 
-export function Menu({ onLogout, onLikedPosts, onSupport }: {
+export function Menu({ onLogout, onLikedPosts, onSupport, isBarber, barberId, userId }: {
   onLogout?: () => void
   onLikedPosts?: () => void
   onSupport?: () => void
+  isBarber?: boolean
+  barberId?: string
+  userId?: string
 }) {
+  const [showEdit, setShowEdit] = useState(false)
+  const { info, saving, saveInfo } = useBarberInfo(
+    isBarber ? barberId : undefined,
+    isBarber ? userId   : undefined,
+  )
+
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       {/* Top bar */}
@@ -44,11 +56,23 @@ export function Menu({ onLogout, onLikedPosts, onSupport }: {
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 500, color: C.text }}>Andrea G.</div>
-          <div style={{ fontSize: 12, color: C.muted }}>andrea@email.com</div>
+          <div style={{ fontSize: 12, color: C.muted }}>
+            {isBarber && info.shop_name ? info.shop_name : 'andrea@email.com'}
+          </div>
         </div>
-        <button style={{ padding: '6px 12px', borderRadius: 8, border: `0.5px solid ${C.borderMed}`, background: 'none', fontSize: 12, color: C.muted, cursor: 'pointer', fontFamily: 'inherit' }}>
-          Edit
-        </button>
+        {isBarber && (
+          <button
+            onClick={() => setShowEdit(true)}
+            style={{
+              padding: '6px 12px', borderRadius: 8,
+              border: `0.5px solid ${C.borderMed}`,
+              background: 'none', fontSize: 12, color: C.muted,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            Edit
+          </button>
+        )}
       </div>
 
       {/* Menu sections */}
@@ -82,6 +106,15 @@ export function Menu({ onLogout, onLikedPosts, onSupport }: {
         <i className="ti ti-logout" style={{ fontSize: 20, color: C.red }} />
         <span style={{ flex: 1, fontSize: 14, color: C.red }}>Sign out</span>
       </div>
+
+      {showEdit && (
+        <EditBarberInfoSheet
+          initial={info}
+          saving={saving}
+          onSave={saveInfo}
+          onClose={() => setShowEdit(false)}
+        />
+      )}
     </div>
   )
 }
