@@ -84,11 +84,14 @@ export function BarberDashboard({ barberId }: { barberId?: string }) {
 
 // ── Bookings tab ──────────────────────────────────────────────────────────
 
+const DEMO_PENDING: DemoBarberBooking = { id: 'b0', client: 'Giulio M.', initials: 'GM', date: 'Mon 19 May', time: '08:30', service: 'Fade', status: 'pending' }
+
 function BookingsTab({ barberId }: { barberId?: string }) {
   const isDemo = IS_DEMO || !barberId
   const { bookings: real } = useBarberBookings(barberId)
   const { cancelBooking, confirmBooking, markDone } = useBooking()
-  const [demoList, setDemoList] = useState<DemoBarberBooking[]>(DEMO_BARBER_BOOKINGS)
+  const [demoList, setDemoList] = useState<DemoBarberBooking[]>([DEMO_PENDING, ...DEMO_BARBER_BOOKINGS])
+  const [autoAccept, setAutoAccept] = useState(false)
 
   const pending = isDemo
     ? demoList.filter(b => b.status === 'pending').map(demoToRow)
@@ -97,6 +100,22 @@ function BookingsTab({ barberId }: { barberId?: string }) {
   const upcoming = isDemo
     ? demoList.filter(b => b.status === 'confirmed').map(demoToRow)
     : real.filter(b => b.status === 'confirmed' && b.date >= TODAY).map(toRow)
+
+  useEffect(() => {
+    if (!autoAccept) return
+    if (isDemo) {
+      setDemoList(prev => prev.map(b => b.status === 'pending' ? { ...b, status: 'confirmed' as const } : b))
+    } else {
+      real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAccept, isDemo])
+
+  useEffect(() => {
+    if (!autoAccept || isDemo) return
+    real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [real])
 
   function demoAction(id: string, action: 'done' | 'cancel' | 'confirm') {
     if (action === 'cancel') {
@@ -110,6 +129,13 @@ function BookingsTab({ barberId }: { barberId?: string }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 14px' }}>
+        <div>
+          <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Auto-accept</span>
+          <span style={{ fontSize: 11, color: C.hint, display: 'block', marginTop: 1 }}>New bookings confirm instantly</span>
+        </div>
+        <Toggle on={autoAccept} onChange={() => setAutoAccept(v => !v)} />
+      </div>
       <Section label="Pending" count={pending.length}>
         {pending.length === 0
           ? <EmptyState icon="ti-clock" text="No pending requests" />
