@@ -10,6 +10,13 @@ import { supabase, IS_DEMO } from '../lib/supabase'
 import type { BookingWithBarber } from '../hooks/useBooking'
 import type { Post } from '../types/supabase'
 
+function timeAgoStr(iso: string): string {
+  const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000)
+  if (h < 1) return 'Just now'
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
+
 interface Props {
   userId?: string
   isBarber?: boolean
@@ -31,9 +38,10 @@ function initials(name: string | null | undefined): string {
 export function Profile({ userId, isBarber, barberId }: Props) {
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const postInputRef   = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
-  const [ownPosts,  setOwnPosts]  = useState<Post[]>([])
-  const [localCuts, setLocalCuts] = useState<{ id: string; url: string }[]>([])
+  const [uploading, setUploading]       = useState(false)
+  const [ownPosts,  setOwnPosts]        = useState<Post[]>([])
+  const [localCuts, setLocalCuts]       = useState<{ id: string; url: string }[]>([])
+  const [selectedPostIdx, setSelectedPostIdx] = useState<number | null>(null)
 
   const { profile, updateAvatarUrl } = useProfile(userId)
   const follows  = useFollows(userId)
@@ -124,6 +132,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
   const showDemoPosts       = !isBarber && localCuts.length === 0
 
   return (
+    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
     <div style={{ flex: 1, overflowY: 'auto' }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
@@ -199,9 +208,9 @@ export function Profile({ userId, isBarber, barberId }: Props) {
 
       {/* Cut / post photo grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
-        {showBarberPosts     && <OwnPostGrid posts={ownPosts} />}
-        {showDemoBarberPosts && <DemoBarberPostGrid />}
-        {showClientPosts && <ClientGrid localCuts={localCuts} />}
+        {showBarberPosts     && <OwnPostGrid posts={ownPosts} onPostClick={setSelectedPostIdx} />}
+        {showDemoBarberPosts && <DemoBarberPostGrid onPostClick={setSelectedPostIdx} />}
+        {showClientPosts && <ClientGrid localCuts={localCuts} onCutClick={setSelectedPostIdx} />}
         {showDemoPosts   && <DemoPostGrid />}
       </div>
 
@@ -219,60 +228,101 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
       <input ref={postInputRef}   type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePostChange} />
     </div>
+
+    {/* Post feed overlay — barbers */}
+    {selectedPostIdx !== null && isBarber && (
+      <ProfilePostsFeed
+        posts={showDemoBarberPosts
+          ? POSTS.map(p => ({ id: String(p.id), barber_id: barberId ?? '', image_url: p.imageUrl ?? '', caption: p.caption, label: p.label, likes_count: p.likes, created_at: new Date().toISOString() }))
+          : ownPosts
+        }
+        startIdx={selectedPostIdx}
+        authorName={displayName}
+        accent={C.accent}
+        onClose={() => setSelectedPostIdx(null)}
+      />
+    )}
+
+    {/* Cut photo overlay — clients */}
+    {selectedPostIdx !== null && !isBarber && (
+      <CutOverlay
+        cuts={showClientPosts ? localCuts : []}
+        startIdx={selectedPostIdx}
+        onClose={() => setSelectedPostIdx(null)}
+      />
+    )}
+    </div>
   )
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function OwnPostGrid({ posts }: { posts: Post[] }) {
+function OwnPostGrid({ posts, onPostClick }: { posts: Post[]; onPostClick: (i: number) => void }) {
   return (
     <>
-      {posts.slice(0, 8).map(post => (
+      {posts.map((post, i) => (
         <div
           key={post.id}
+          onClick={() => onPostClick(i)}
           style={{
             aspectRatio: '1', cursor: 'pointer', overflow: 'hidden',
             position: 'relative', background: C.surface,
-            ...(post.image_url
-              ? { backgroundImage: `url(${post.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-              : { display: 'flex', alignItems: 'center', justifyContent: 'center' }),
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {!post.image_url && <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />}
+          {post.image_url
+            ? <img src={post.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />
+          }
+          {post.label && (
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              padding: '12px 4px 4px',
+              background: 'linear-gradient(transparent, rgba(0,0,0,0.45))',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{post.label}</div>
+            </div>
+          )}
         </div>
       ))}
     </>
   )
 }
 
-function ClientGrid({ localCuts }: { localCuts: { id: string; url: string }[] }) {
+function ClientGrid({ localCuts, onCutClick }: { localCuts: { id: string; url: string }[]; onCutClick: (i: number) => void }) {
   return (
     <>
-      {localCuts.map(cut => (
+      {localCuts.map((cut, i) => (
         <div
           key={cut.id}
+          onClick={() => onCutClick(i)}
           style={{
             aspectRatio: '1', overflow: 'hidden', position: 'relative', cursor: 'pointer',
-            backgroundImage: `url(${cut.url})`, backgroundSize: 'cover', backgroundPosition: 'center',
           }}
-        />
+        >
+          <img src={cut.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
       ))}
     </>
   )
 }
 
-function DemoBarberPostGrid() {
+function DemoBarberPostGrid({ onPostClick }: { onPostClick: (i: number) => void }) {
   return (
     <>
-      {POSTS.map(post => {
+      {POSTS.map((post, i) => {
         const barber = BARBERS.find(b => b.id === post.barberId)!
         return (
-          <div key={post.id} style={{
+          <div key={post.id} onClick={() => onPostClick(i)} style={{
             aspectRatio: '1', background: barber.accent + '18',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             position: 'relative', cursor: 'pointer', overflow: 'hidden',
           }}>
-            <i className="ti ti-scissors" style={{ fontSize: 30, color: barber.accent, opacity: 0.4 }} />
+            {post.imageUrl
+              ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <i className="ti ti-scissors" style={{ fontSize: 30, color: barber.accent, opacity: 0.4 }} />
+            }
             <div style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
               padding: '16px 4px 5px',
@@ -361,6 +411,108 @@ function StatusPill({ status, tag }: { status: string; tag?: string }) {
   const color = status === 'confirmed' ? C.accent      : status === 'pending' ? C.green               : C.hint
   return (
     <span style={{ fontSize: 10, background: bg, color, padding: '3px 8px', borderRadius: 20 }}>{label}</span>
+  )
+}
+
+// ── Post feed overlay (barbers) ────────────────────────────────────────────
+
+function ProfilePostsFeed({ posts, startIdx, authorName, accent, onClose }: {
+  posts: Post[]
+  startIdx: number
+  authorName: string
+  accent: string
+  onClose: () => void
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const itemRefs     = useRef<(HTMLDivElement | null)[]>([])
+
+  useEffect(() => {
+    const container = containerRef.current
+    const el        = itemRefs.current[startIdx]
+    if (container && el) container.scrollTop = el.offsetTop
+  }, [startIdx])
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 10, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 8px', flexShrink: 0, borderBottom: `0.5px solid ${C.border}` }}>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+          <i className="ti ti-arrow-left" style={{ fontSize: 22, color: C.text }} />
+        </button>
+        <span style={{ fontSize: 16, fontWeight: 500, color: C.text }}>My posts</span>
+      </div>
+      <div ref={containerRef} style={{ flex: 1, overflowY: 'auto' }}>
+        {posts.map((post, i) => (
+          <div key={post.id} ref={el => { itemRefs.current[i] = el }}>
+            <div style={{
+              width: '100%', height: 280,
+              background: accent + '18',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative', overflow: 'hidden',
+            }}>
+              {post.image_url
+                ? <img src={post.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <i className="ti ti-scissors" style={{ fontSize: 56, color: accent, opacity: 0.35 }} />
+              }
+              {post.label && (
+                <div style={{
+                  position: 'absolute', bottom: 10, left: 12,
+                  background: 'rgba(0,0,0,0.55)', color: '#fff',
+                  fontSize: 11, padding: '3px 10px', borderRadius: 20,
+                }}>
+                  {post.label}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '10px 16px 14px' }}>
+              <div style={{ fontSize: 13, color: C.text }}>
+                <span style={{ fontWeight: 500 }}>{authorName}</span>{' '}{post.caption ?? ''}
+              </div>
+              <div style={{ fontSize: 11, color: C.hint, marginTop: 4 }}>
+                {post.likes_count} likes · {timeAgoStr(post.created_at)}
+              </div>
+            </div>
+            {i < posts.length - 1 && <div style={{ height: 6, background: C.surface }} />}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Client cut overlay ─────────────────────────────────────────────────────
+
+function CutOverlay({ cuts, startIdx, onClose }: {
+  cuts: { id: string; url: string }[]
+  startIdx: number
+  onClose: () => void
+}) {
+  const [idx, setIdx] = useState(startIdx)
+
+  if (cuts.length === 0) return null
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: '#000', zIndex: 10, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px', flexShrink: 0 }}>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+          <i className="ti ti-arrow-left" style={{ fontSize: 22, color: '#fff' }} />
+        </button>
+        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{idx + 1} / {cuts.length}</span>
+        <div style={{ width: 30 }} />
+      </div>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        <img src={cuts[idx].url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+        {idx > 0 && (
+          <button onClick={() => setIdx(i => i - 1)} style={{ position: 'absolute', left: 12, background: 'rgba(0,0,0,0.4)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="ti ti-chevron-left" style={{ fontSize: 18, color: '#fff' }} />
+          </button>
+        )}
+        {idx < cuts.length - 1 && (
+          <button onClick={() => setIdx(i => i + 1)} style={{ position: 'absolute', right: 12, background: 'rgba(0,0,0,0.4)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="ti ti-chevron-right" style={{ fontSize: 18, color: '#fff' }} />
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
