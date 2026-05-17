@@ -93,6 +93,7 @@ function BookingsTab({ barberId }: { barberId?: string }) {
   const { bookings: real, refetch } = useBarberBookings(barberId)
   const { cancelBooking, confirmBooking, markDone } = useBooking()
   const [demoList, setDemoList] = useState<DemoBarberBooking[]>([DEMO_PENDING, ...DEMO_BARBER_BOOKINGS])
+  const [actionError, setActionError] = useState<string | null>(null)
   const { autoAccept, setAutoAccept } = useAutoAccept(isDemo ? undefined : barberId)
 
   const pending = isDemo
@@ -132,11 +133,20 @@ function BookingsTab({ barberId }: { barberId?: string }) {
   function act(id: string, action: 'confirm' | 'cancel' | 'done') {
     if (isDemo) { demoAction(id, action); return }
     const call = action === 'confirm' ? confirmBooking : action === 'cancel' ? cancelBooking : markDone
-    call(id).then(() => refetch())
+    setActionError(null)
+    call(id).then(({ error }) => {
+      if (error) { setActionError(error.message); return }
+      refetch()
+    })
   }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 20px' }}>
+      {actionError && (
+        <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 10, background: '#FEE2E2', color: '#B91C1C', fontSize: 12 }}>
+          {actionError}
+        </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 14px' }}>
         <div>
           <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Auto-accept</span>
@@ -291,7 +301,7 @@ function BookingCard({
         ) : (
           <>
             <Btn icon="ti-trash" color={C.hint}  ghost onClick={onCancel} />
-            <Btn label="Done"    color={C.green} ghost onClick={onMarkDone} />
+            {onMarkDone && <Btn label="Done" color={C.green} ghost onClick={onMarkDone} />}
           </>
         )}
       </div>

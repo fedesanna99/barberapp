@@ -38,6 +38,8 @@ export function useBooking() {
       .from('bookings')
       .update({ status })
       .eq('id', bookingId)
+      .select()
+      .single()
   }
 
   const cancelBooking  = (bookingId: string) => updateStatus(bookingId, 'cancelled')
