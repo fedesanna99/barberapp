@@ -53,9 +53,10 @@ export async function uploadAvatar(file: File, userId: string): Promise<string> 
   const compressed = await compressImage(file, AVATAR_MAX_DIM)
   if (IS_DEMO) return URL.createObjectURL(compressed)
   const path = `${userId}/avatar.jpg`
+  await supabase.storage.from('avatars').remove([path])
   const { error } = await supabase.storage
     .from('avatars')
-    .upload(path, compressed, { upsert: true, contentType: 'image/jpeg' })
+    .upload(path, compressed, { contentType: 'image/jpeg' })
   if (error) throw error
   return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
 }
