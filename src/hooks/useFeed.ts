@@ -97,10 +97,13 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
       .then(({ data }) => {
         if (data) setLikedIds(new Set(data.map(r => r.post_id)))
       })
-  }, [userId])
+  }, [userId, ownBarberId])
 
   useEffect(() => {
-    if (IS_DEMO || !userId || !hasMore) return
+    // Always allow page-0 fetches so that a late-resolving ownBarberId
+    // triggers a fresh load even when a previous run set hasMore=false.
+    if (IS_DEMO || !userId) return
+    if (page > 0 && !hasMore) return
     setLoading(true)
 
     supabase
@@ -159,7 +162,7 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
         if (batch.length < PAGE) setHasMore(false)
         setLoading(false)
       })
-  }, [userId, page])
+  }, [userId, page, ownBarberId])
 
   return {
     posts,
