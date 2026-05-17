@@ -22,7 +22,8 @@ interface BookingRow {
   status: string
 }
 
-const TODAY = new Date().toISOString().split('T')[0]
+const d = new Date()
+const TODAY = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const DOW_ORDER = [1, 2, 3, 4, 5, 6, 0]
 
@@ -100,7 +101,7 @@ function BookingsTab({ barberId }: { barberId?: string }) {
 
   const upcoming = isDemo
     ? demoList.filter(b => b.status === 'confirmed').map(demoToRow)
-    : real.filter(b => b.status === 'confirmed' && b.date >= TODAY).map(toRow)
+    : real.filter(b => (b.status === 'confirmed' || b.status === 'done') && b.date >= TODAY).map(toRow)
 
   useEffect(() => {
     if (!autoAccept) return
@@ -159,7 +160,7 @@ function BookingsTab({ barberId }: { barberId?: string }) {
           ? <EmptyState icon="ti-calendar-off" text="No upcoming appointments" />
           : upcoming.map(r => (
               <BookingCard key={r.id} row={r}
-                onMarkDone={() => act(r.id, 'done')}
+                onMarkDone={r.status === 'confirmed' ? () => act(r.id, 'done') : undefined}
                 onCancel={() => act(r.id, 'cancel')}
               />
             ))
