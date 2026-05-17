@@ -12,12 +12,14 @@ const FIELDS: [keyof BarberInfo, string, string, string][] = [
 export function EditBarberInfoSheet({
   initial,
   saving,
+  saveError,
   onSave,
   onClose,
 }: {
   initial: BarberInfo
   saving: boolean
-  onSave: (info: BarberInfo) => Promise<void>
+  saveError?: string | null
+  onSave: (info: BarberInfo) => Promise<string | null>
   onClose: () => void
 }) {
   const [form, setForm] = useState<BarberInfo>(initial)
@@ -30,8 +32,8 @@ export function EditBarberInfoSheet({
 
   async function handleSave() {
     if (saving) return
-    await onSave(form)
-    onClose()
+    const err = await onSave(form)
+    if (!err) onClose()
   }
 
   return (
@@ -81,6 +83,12 @@ export function EditBarberInfoSheet({
               />
             </div>
           ))}
+
+          {saveError && (
+            <div style={{ fontSize: 12, color: '#E53935', padding: '8px 12px', borderRadius: 8, background: '#FFEBEE' }}>
+              {saveError}
+            </div>
+          )}
 
           <button
             onClick={handleSave}

@@ -30,6 +30,7 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
 export function useBarberInfo(barberId: string | undefined, profileId: string | undefined) {
   const [info, setInfo] = useState<BarberInfo>(DEMO_INFO)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (IS_DEMO || !barberId) return
@@ -48,17 +49,24 @@ export function useBarberInfo(barberId: string | undefined, profileId: string | 
       })
   }, [barberId])
 
-  async function saveInfo(next: BarberInfo): Promise<void> {
+  async function saveInfo(next: BarberInfo): Promise<string | null> {
+    setSaveError(null)
     setInfo(next)
-    if (IS_DEMO || !barberId || !profileId) return
+    if (IS_DEMO || !barberId || !profileId) return null
     setSaving(true)
     try {
-      await supabase.from('barbers').update({
+      const { error } = await supabase.from('barbers').update({
         shop_name:   next.shop_name   || null,
         phone:       next.phone       || null,
         address:     next.address     || null,
         social_link: next.social_link || null,
-      } as never).eq('id', barberId)
+      }).eq('id', barberId)
+
+      if (error) {
+        console.error('[saveInfo]', error)
+        setSaveError(error.message)
+        return error.message
+      }
 
       if (next.address) {
         const coords = await geocodeAddress(next.address)
@@ -66,10 +74,11 @@ export function useBarberInfo(barberId: string | undefined, profileId: string | 
           await supabase.from('profiles').update({ lat: coords.lat, lng: coords.lng }).eq('id', profileId)
         }
       }
+      return null
     } finally {
       setSaving(false)
     }
   }
 
-  return { info, saving, saveInfo }
+  return { info, saving, saveError, saveInfo }
 }

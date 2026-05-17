@@ -31,7 +31,7 @@ export function Menu({ onLogout, onLikedPosts, onSupport, isBarber, barberId, us
   userId?: string
 }) {
   const [showEdit, setShowEdit] = useState(false)
-  const { info, saving, saveInfo } = useBarberInfo(
+  const { info, saving, saveError, saveInfo } = useBarberInfo(
     isBarber ? barberId : undefined,
     isBarber ? userId   : undefined,
   )
@@ -111,6 +111,7 @@ export function Menu({ onLogout, onLikedPosts, onSupport, isBarber, barberId, us
         <EditBarberInfoSheet
           initial={info}
           saving={saving}
+          saveError={saveError}
           onSave={saveInfo}
           onClose={() => setShowEdit(false)}
         />
