@@ -98,7 +98,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
     const { data, error } = await supabase
       .from('posts')
       .insert({ barber_id: barberId, image_url: imageUrl, caption, label })
-      .select('*, barbers ( id, city, profile:profiles!profile_id ( display_name, avatar_url ) )')
+      .select('*, barbers ( id, city, profile:profiles!barbers_profile_id_fkey ( display_name, avatar_url ) )')
       .single()
     if (error) throw new Error(`DB insert failed: ${error.message}`)
     if (!data) throw new Error('No data returned from insert')

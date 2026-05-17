@@ -125,7 +125,7 @@ export function useFeed(userId: string | undefined) {
             barbers (
               id,
               city,
-              profile:profiles!profile_id ( display_name, avatar_url )
+              profile:profiles!barbers_profile_id_fkey ( display_name, avatar_url )
             )
           `)
           .in('barber_id', ids)
