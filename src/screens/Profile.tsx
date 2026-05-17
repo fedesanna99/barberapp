@@ -5,10 +5,19 @@ import { BARBERS, POSTS, CUT_LOG, UPCOMING as DEMO_UPCOMING } from '../lib/demoD
 import { useClientBookings } from '../hooks/useBooking'
 import { useProfile } from '../hooks/useProfile'
 import { useFollows } from '../hooks/useFollows'
-import { uploadAvatar, uploadPostPhoto } from '../hooks/useUpload'
+import { uploadAvatar, uploadPostPhoto, uploadUserPostPhoto } from '../hooks/useUpload'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import type { BookingWithBarber } from '../hooks/useBooking'
-import type { Post } from '../types/supabase'
+import type { Post, UserPost } from '../types/supabase'
+
+type PostLike = {
+  id: string
+  image_url: string
+  label: string | null
+  caption: string | null
+  likes_count: number
+  created_at: string
+}
 
 function timeAgoStr(iso: string): string {
   const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000)
@@ -38,9 +47,10 @@ function initials(name: string | null | undefined): string {
 export function Profile({ userId, isBarber, barberId }: Props) {
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const postInputRef   = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading]       = useState(false)
-  const [ownPosts,  setOwnPosts]        = useState<Post[]>([])
-  const [localCuts, setLocalCuts]       = useState<{ id: string; url: string }[]>([])
+  const [uploading,        setUploading]        = useState(false)
+  const [ownPosts,         setOwnPosts]         = useState<Post[]>([])
+  const [userPosts,        setUserPosts]        = useState<UserPost[]>([])
+  const [showNewUserPost,  setShowNewUserPost]  = useState(false)
   const [selectedPostIdx, setSelectedPostIdx] = useState<number | null>(null)
 
   const { profile, updateAvatarUrl } = useProfile(userId)
@@ -57,6 +67,17 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       .order('created_at', { ascending: false })
       .then(({ data }) => setOwnPosts((data ?? []) as Post[]))
   }, [isBarber, barberId])
+
+  // Client: load own user posts on mount
+  useEffect(() => {
+    if (isBarber || !userId || IS_DEMO) return
+    supabase
+      .from('user_posts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setUserPosts((data ?? []) as UserPost[]))
+  }, [isBarber, userId])
 
   const upcoming = bookings.filter(b => b.date >= TODAY && b.status !== 'cancelled')
   const past     = bookings.filter(b => b.date <  TODAY && b.status === 'done')
@@ -97,39 +118,55 @@ export function Profile({ userId, isBarber, barberId }: Props) {
 
   async function handlePostChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !isBarber || !barberId) return
     setUploading(true)
     try {
-      if (isBarber && barberId) {
-        const url = await uploadPostPhoto(file, barberId)
-        if (!IS_DEMO) {
-          const { data } = await supabase
-            .from('posts')
-            .insert({ barber_id: barberId, image_url: url, caption: null })
-            .select()
-            .single()
-          if (data) setOwnPosts(prev => [data as Post, ...prev])
-        } else {
-          setOwnPosts(prev => [{
-            id: crypto.randomUUID(), barber_id: barberId,
-            image_url: url, caption: null, label: null, likes_count: 0,
-            created_at: new Date().toISOString(),
-          }, ...prev])
-        }
+      const url = await uploadPostPhoto(file, barberId)
+      if (!IS_DEMO) {
+        const { data } = await supabase
+          .from('posts')
+          .insert({ barber_id: barberId, image_url: url, caption: null })
+          .select()
+          .single()
+        if (data) setOwnPosts(prev => [data as Post, ...prev])
       } else {
-        // Client: local-only cut preview
-        const url = URL.createObjectURL(file)
-        setLocalCuts(prev => [{ id: crypto.randomUUID(), url }, ...prev])
+        setOwnPosts(prev => [{
+          id: crypto.randomUUID(), barber_id: barberId,
+          image_url: url, caption: null, label: null, likes_count: 0,
+          created_at: new Date().toISOString(),
+        }, ...prev])
       }
     } catch { /* silent */ }
     setUploading(false)
     e.target.value = ''
   }
 
+  async function addUserPost(caption: string, label: string, file?: File): Promise<void> {
+    if (!userId) throw new Error('Not logged in')
+    if (IS_DEMO) {
+      setUserPosts(prev => [{
+        id: crypto.randomUUID(), user_id: userId,
+        image_url: file ? URL.createObjectURL(file) : '',
+        caption, label, likes_count: 0,
+        created_at: new Date().toISOString(),
+      }, ...prev])
+      return
+    }
+    if (!file) throw new Error('No photo selected')
+    const imageUrl = await uploadUserPostPhoto(file, userId)
+    const { data, error } = await supabase
+      .from('user_posts')
+      .insert({ user_id: userId, image_url: imageUrl, caption, label })
+      .select()
+      .single()
+    if (error) throw new Error(`Upload failed: ${error.message}`)
+    if (data) setUserPosts(prev => [data as UserPost, ...prev])
+  }
+
   const showBarberPosts     = isBarber && !isDemo
   const showDemoBarberPosts = isBarber && isDemo
-  const showClientPosts     = !isBarber && localCuts.length > 0
-  const showDemoPosts       = !isBarber && localCuts.length === 0
+  const showClientPosts     = !isBarber && !isDemo
+  const showDemoPosts       = !isBarber && isDemo
 
   return (
     <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -141,7 +178,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
           {!isBarber && (
             <i
               className="ti ti-camera-plus"
-              onClick={() => !uploading && postInputRef.current?.click()}
+              onClick={() => !uploading && setShowNewUserPost(true)}
               style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }}
             />
           )}
@@ -210,8 +247,8 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
         {showBarberPosts     && <OwnPostGrid posts={ownPosts} onPostClick={setSelectedPostIdx} />}
         {showDemoBarberPosts && <DemoBarberPostGrid onPostClick={setSelectedPostIdx} />}
-        {showClientPosts && <ClientGrid localCuts={localCuts} onCutClick={setSelectedPostIdx} />}
-        {showDemoPosts   && <DemoPostGrid />}
+        {showClientPosts     && <UserPostGrid posts={userPosts} onPostClick={setSelectedPostIdx} />}
+        {showDemoPosts       && <DemoPostGrid />}
       </div>
 
       {/* Your appointment */}
@@ -233,7 +270,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
     {selectedPostIdx !== null && isBarber && (
       <ProfilePostsFeed
         posts={showDemoBarberPosts
-          ? POSTS.map(p => ({ id: String(p.id), barber_id: barberId ?? '', image_url: p.imageUrl ?? '', caption: p.caption, label: p.label, likes_count: p.likes, created_at: new Date().toISOString() }))
+          ? POSTS.map(p => ({ id: String(p.id), image_url: p.imageUrl ?? '', caption: p.caption, label: p.label, likes_count: p.likes, created_at: new Date().toISOString() }))
           : ownPosts
         }
         startIdx={selectedPostIdx}
@@ -243,12 +280,26 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       />
     )}
 
-    {/* Cut photo overlay — clients */}
-    {selectedPostIdx !== null && !isBarber && (
-      <CutOverlay
-        cuts={showClientPosts ? localCuts : []}
+    {/* Post feed overlay — clients */}
+    {selectedPostIdx !== null && !isBarber && showClientPosts && userPosts.length > 0 && (
+      <ProfilePostsFeed
+        posts={userPosts}
         startIdx={selectedPostIdx}
+        authorName={displayName}
+        accent={C.accent}
+        title="My cuts"
         onClose={() => setSelectedPostIdx(null)}
+      />
+    )}
+
+    {/* New user post sheet */}
+    {showNewUserPost && (
+      <NewUserPostSheet
+        onAdd={async (caption, label, file) => {
+          await addUserPost(caption, label, file)
+          setShowNewUserPost(false)
+        }}
+        onClose={() => setShowNewUserPost(false)}
       />
     )}
     </div>
@@ -257,7 +308,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function OwnPostGrid({ posts, onPostClick }: { posts: Post[]; onPostClick: (i: number) => void }) {
+function OwnPostGrid({ posts, onPostClick }: { posts: PostLike[]; onPostClick: (i: number) => void }) {
   return (
     <>
       {posts.map((post, i) => (
@@ -290,18 +341,41 @@ function OwnPostGrid({ posts, onPostClick }: { posts: Post[]; onPostClick: (i: n
   )
 }
 
-function ClientGrid({ localCuts, onCutClick }: { localCuts: { id: string; url: string }[]; onCutClick: (i: number) => void }) {
+function UserPostGrid({ posts, onPostClick }: { posts: UserPost[]; onPostClick: (i: number) => void }) {
+  if (posts.length === 0) {
+    return (
+      <div style={{ gridColumn: '1 / -1', padding: '48px 16px', textAlign: 'center' }}>
+        <i className="ti ti-camera-plus" style={{ fontSize: 38, color: C.hint, opacity: 0.35 }} />
+        <div style={{ fontSize: 13, color: C.muted, marginTop: 10 }}>No posts yet — tap the camera to add your first cut</div>
+      </div>
+    )
+  }
   return (
     <>
-      {localCuts.map((cut, i) => (
+      {posts.map((post, i) => (
         <div
-          key={cut.id}
-          onClick={() => onCutClick(i)}
+          key={post.id}
+          onClick={() => onPostClick(i)}
           style={{
-            aspectRatio: '1', overflow: 'hidden', position: 'relative', cursor: 'pointer',
+            aspectRatio: '1', cursor: 'pointer', overflow: 'hidden',
+            position: 'relative', background: C.surface,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <img src={cut.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {post.image_url
+            ? <img src={post.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />
+          }
+          {post.label && (
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              padding: '12px 4px 4px',
+              background: 'linear-gradient(transparent, rgba(0,0,0,0.45))',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{post.label}</div>
+            </div>
+          )}
         </div>
       ))}
     </>
@@ -416,11 +490,12 @@ function StatusPill({ status, tag }: { status: string; tag?: string }) {
 
 // ── Post feed overlay (barbers) ────────────────────────────────────────────
 
-function ProfilePostsFeed({ posts, startIdx, authorName, accent, onClose }: {
-  posts: Post[]
+function ProfilePostsFeed({ posts, startIdx, authorName, accent, title = 'My posts', onClose }: {
+  posts: PostLike[]
   startIdx: number
   authorName: string
   accent: string
+  title?: string
   onClose: () => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -438,7 +513,7 @@ function ProfilePostsFeed({ posts, startIdx, authorName, accent, onClose }: {
         <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
           <i className="ti ti-arrow-left" style={{ fontSize: 22, color: C.text }} />
         </button>
-        <span style={{ fontSize: 16, fontWeight: 500, color: C.text }}>My posts</span>
+        <span style={{ fontSize: 16, fontWeight: 500, color: C.text }}>{title}</span>
       </div>
       <div ref={containerRef} style={{ flex: 1, overflowY: 'auto' }}>
         {posts.map((post, i) => (
@@ -479,38 +554,117 @@ function ProfilePostsFeed({ posts, startIdx, authorName, accent, onClose }: {
   )
 }
 
-// ── Client cut overlay ─────────────────────────────────────────────────────
+// ── New user post sheet ────────────────────────────────────────────────────
 
-function CutOverlay({ cuts, startIdx, onClose }: {
-  cuts: { id: string; url: string }[]
-  startIdx: number
+function NewUserPostSheet({
+  onAdd,
+  onClose,
+}: {
+  onAdd: (caption: string, label: string, file?: File) => Promise<void>
   onClose: () => void
 }) {
-  const [idx, setIdx] = useState(startIdx)
+  const [caption,   setCaption]   = useState('')
+  const [label,     setLabel]     = useState('')
+  const [file,      setFile]      = useState<File | null>(null)
+  const [preview,   setPreview]   = useState<string | null>(null)
+  const [loading,   setLoading]   = useState(false)
+  const [postError, setPostError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
-  if (cuts.length === 0) return null
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setFile(f)
+    setPreview(URL.createObjectURL(f))
+  }
+
+  const canPost = caption.trim().length > 0 && label.trim().length > 0 && (!IS_DEMO ? file !== null : true)
+
+  async function handlePost() {
+    if (!canPost || loading) return
+    setLoading(true)
+    setPostError(null)
+    try {
+      await onAdd(caption.trim(), label.trim(), file ?? undefined)
+    } catch (err) {
+      setPostError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: '#000', zIndex: 10, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px', flexShrink: 0 }}>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-          <i className="ti ti-arrow-left" style={{ fontSize: 22, color: '#fff' }} />
-        </button>
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{idx + 1} / {cuts.length}</span>
-        <div style={{ width: 30 }} />
-      </div>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-        <img src={cuts[idx].url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-        {idx > 0 && (
-          <button onClick={() => setIdx(i => i - 1)} style={{ position: 'absolute', left: 12, background: 'rgba(0,0,0,0.4)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="ti ti-chevron-left" style={{ fontSize: 18, color: '#fff' }} />
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}
+    >
+      <div style={{ background: C.bg, borderRadius: '20px 20px 0 0', width: '100%', display: 'flex', flexDirection: 'column', animation: 'sheetUp .3s ease-out' }}>
+        <div style={{ width: 40, height: 4, background: C.borderMed, borderRadius: 2, margin: '12px auto 0', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px 10px', borderBottom: `0.5px solid ${C.border}`, flexShrink: 0 }}>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>New cut</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+            <i className="ti ti-x" style={{ fontSize: 18, color: C.muted }} />
           </button>
-        )}
-        {idx < cuts.length - 1 && (
-          <button onClick={() => setIdx(i => i + 1)} style={{ position: 'absolute', right: 12, background: 'rgba(0,0,0,0.4)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="ti ti-chevron-right" style={{ fontSize: 18, color: '#fff' }} />
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+        <div
+          onClick={() => fileRef.current?.click()}
+          style={{
+            height: 130, background: C.surface, borderBottom: `0.5px solid ${C.border}`,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 6, flexShrink: 0, cursor: 'pointer', position: 'relative', overflow: 'hidden',
+          }}
+        >
+          {preview ? (
+            <>
+              <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <i className="ti ti-camera" style={{ fontSize: 22, color: '#fff' }} />
+                <span style={{ fontSize: 11, color: '#fff' }}>Tap to change</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <i className="ti ti-camera-plus" style={{ fontSize: 30, color: C.hint }} />
+              <span style={{ fontSize: 12, color: C.hint }}>{IS_DEMO ? 'Tap to add a photo' : 'Tap to add a photo (required)'}</span>
+            </>
+          )}
+        </div>
+        <div style={{ padding: '14px 16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <textarea
+            value={caption}
+            onChange={e => setCaption(e.target.value)}
+            placeholder="Caption…"
+            rows={3}
+            style={{ padding: '9px 14px', borderRadius: 10, border: `0.5px solid ${C.borderMed}`, fontSize: 13, background: C.surface, color: C.text, outline: 'none', fontFamily: 'inherit', resize: 'none' }}
+          />
+          <input
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            placeholder="Style label (e.g. Skin fade + line up)"
+            style={{ padding: '9px 14px', borderRadius: 10, border: `0.5px solid ${C.borderMed}`, fontSize: 13, background: C.surface, color: C.text, outline: 'none', fontFamily: 'inherit' }}
+          />
+          {postError && (
+            <div style={{ fontSize: 12, color: '#e53935', padding: '6px 10px', background: '#ffebee', borderRadius: 8 }}>{postError}</div>
+          )}
+          <button
+            onClick={handlePost}
+            disabled={!canPost || loading}
+            style={{
+              padding: 13, borderRadius: 12,
+              background: canPost && !loading ? C.text : C.borderMed,
+              color: C.bg, fontSize: 14, fontWeight: 500,
+              border: 'none', cursor: canPost && !loading ? 'pointer' : 'default',
+              fontFamily: 'inherit', transition: 'background .15s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            {loading
+              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Uploading…</>
+              : 'Post'
+            }
           </button>
-        )}
+        </div>
       </div>
     </div>
   )

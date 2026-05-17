@@ -245,6 +245,40 @@ export type Database = {
           }
         ]
       }
+      user_posts: {
+        Row: {
+          id: string
+          user_id: string
+          image_url: string
+          caption: string | null
+          label: string | null
+          likes_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          image_url: string
+          caption?: string | null
+          label?: string | null
+          likes_count?: number
+          created_at?: string
+        }
+        Update: {
+          image_url?: string
+          caption?: string | null
+          label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_posts_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -261,6 +295,7 @@ export type Follow       = Database['public']['Tables']['follows']['Row']
 export type Like         = Database['public']['Tables']['likes']['Row']
 export type Availability = Database['public']['Tables']['availability']['Row']
 export type Booking      = Database['public']['Tables']['bookings']['Row']
+export type UserPost     = Database['public']['Tables']['user_posts']['Row']
 
 // Joined shapes used by hooks
 export type BarberWithProfile = Barber & {

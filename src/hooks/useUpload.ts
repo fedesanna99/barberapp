@@ -23,3 +23,13 @@ export async function uploadPostPhoto(file: File, barberId: string): Promise<str
   if (error) throw error
   return supabase.storage.from('posts').getPublicUrl(path).data.publicUrl
 }
+
+export async function uploadUserPostPhoto(file: File, userId: string): Promise<string> {
+  if (IS_DEMO) return URL.createObjectURL(file)
+  const path = `users/${userId}/${crypto.randomUUID()}.${fileExt(file)}`
+  const { error } = await supabase.storage
+    .from('posts')
+    .upload(path, file, { contentType: file.type })
+  if (error) throw error
+  return supabase.storage.from('posts').getPublicUrl(path).data.publicUrl
+}
