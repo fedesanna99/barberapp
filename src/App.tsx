@@ -79,7 +79,10 @@ export default function App() {
         timeSlot: time,
       })
       if (error) {
-        setToast(`Booking failed: ${error.message}`)
+        const msg = error.message.includes('bookings_no_double')
+          ? 'That slot was just taken — please pick another time.'
+          : `Booking failed: ${error.message}`
+        setToast(msg)
         return
       }
     }

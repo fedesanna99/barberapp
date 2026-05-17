@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
 // Returns HH:MM strings for every slot_minutes-minute slot in [start, end).
@@ -20,8 +21,12 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
   const [slots, setSlots]   = useState<string[]>([])
   const [booked, setBooked] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
+  const channelRef = useRef<RealtimeChannel | null>(null)
 
   useEffect(() => {
+    channelRef.current?.unsubscribe()
+    channelRef.current = null
+
     if (!barberId || !date) {
       setSlots([])
       setBooked(new Set())
@@ -33,8 +38,8 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     setLoading(true)
 
-    type AvailRow = { start_time: string; end_time: string }
-    type BookingRow = { time_slot: string }
+    type AvailRow  = { start_time: string; end_time: string }
+    type BookingRow = { time_slot: string; date: string; status: string }
 
     Promise.all([
       supabase
@@ -64,6 +69,28 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
       setBooked(taken)
       setLoading(false)
     })
+
+    // Keep the booked set in sync while the sheet is open so the slot grid
+    // reflects bookings made by other users in real time.
+    channelRef.current = supabase
+      .channel(`availability_${barberId}_${dateStr}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings', filter: `barber_id=eq.${barberId}` },
+        payload => {
+          const row = (payload.new ?? payload.old) as BookingRow
+          if (!row || row.date !== dateStr) return
+          const slot = row.time_slot.slice(0, 5)
+          if (payload.eventType === 'DELETE' || row.status === 'cancelled') {
+            setBooked(prev => { const next = new Set(prev); next.delete(slot); return next })
+          } else {
+            setBooked(prev => new Set([...prev, slot]))
+          }
+        },
+      )
+      .subscribe()
+
+    return () => { channelRef.current?.unsubscribe(); channelRef.current = null }
   }, [barberId, date?.toDateString()])
 
   return { slots, booked, loading }
