@@ -52,7 +52,7 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
         .select('time_slot')
         .eq('barber_id', barberId)
         .eq('date', dateStr)
-        .neq('status', 'cancelled'),
+        .in('status', ['pending', 'confirmed']),
     ]).then(([avail, existing]) => {
       const win = (avail.data as AvailRow[] | null)?.[0]
       if (!win) {
@@ -81,9 +81,9 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
           const row = (payload.new ?? payload.old) as BookingRow
           if (!row || row.date !== dateStr) return
           const slot = row.time_slot.slice(0, 5)
-          if (payload.eventType === 'DELETE' || row.status === 'cancelled') {
+          if (payload.eventType === 'DELETE' || row.status === 'cancelled' || row.status === 'done') {
             setBooked(prev => { const next = new Set(prev); next.delete(slot); return next })
-          } else {
+          } else if (row.status === 'pending' || row.status === 'confirmed') {
             setBooked(prev => new Set([...prev, slot]))
           }
         },
