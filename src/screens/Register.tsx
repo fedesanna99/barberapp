@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import HCaptcha from '@hcaptcha/react-hcaptcha'
 import { C } from '../lib/colors'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { isValidEmail } from '../lib/validation'
+
+const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY as string | undefined
 
 interface Props {
   onRegister: (asBarber: boolean) => void
@@ -29,6 +32,8 @@ export function Register({ onRegister, onGoToLogin }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [focused, setFocused] = useState<Field | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<HCaptcha>(null)
 
   const strength = passwordStrength(password)
 
@@ -42,6 +47,10 @@ export function Register({ onRegister, onGoToLogin }: Props) {
     if (!isValidEmail(email))  { setError('Inserisci una email valida'); return }
     if (password.length < 6)   { setError('La password deve essere di almeno 6 caratteri'); return }
     if (password !== confirm)  { setError('Le password non coincidono'); return }
+    if (HCAPTCHA_SITE_KEY && !captchaToken && !IS_DEMO) {
+      setError('Completa la verifica anti-bot per continuare')
+      return
+    }
 
     setLoading(true)
 
@@ -55,8 +64,13 @@ export function Register({ onRegister, onGoToLogin }: Props) {
     const { error: e } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name.trim(), role } },
+      options: {
+        data: { full_name: name.trim(), role },
+        captchaToken: captchaToken ?? undefined,
+      },
     })
+    captchaRef.current?.resetCaptcha()
+    setCaptchaToken(null)
     if (e) { setLoading(false); setError(e.message); return }
 
     // The handle_new_user trigger (migration 017) reads role from raw_user_meta_data
@@ -204,6 +218,18 @@ export function Register({ onRegister, onGoToLogin }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 12px', borderRadius: 10, background: 'rgba(226,75,74,0.08)' }}>
             <i className="ti ti-alert-circle" style={{ color: '#E24B4A', fontSize: 16, flexShrink: 0 }} />
             <span style={{ fontSize: 13, color: '#E24B4A' }}>{error}</span>
+          </div>
+        )}
+
+        {/* hCaptcha (only when site key is configured) */}
+        {HCAPTCHA_SITE_KEY && !IS_DEMO && (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <HCaptcha
+              ref={captchaRef}
+              sitekey={HCAPTCHA_SITE_KEY}
+              onVerify={setCaptchaToken}
+              onExpire={() => setCaptchaToken(null)}
+            />
           </div>
         )}
 

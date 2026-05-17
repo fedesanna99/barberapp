@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import HCaptcha from '@hcaptcha/react-hcaptcha'
 import { C } from '../lib/colors'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { writeLog } from '../hooks/useAdminLogs'
 import { isValidEmail } from '../lib/validation'
+
+const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY as string | undefined
 
 const GoogleLogo = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
@@ -28,6 +31,13 @@ export function Login({ onLogin, onGoToRegister }: Props) {
   const [googleRole, setGoogleRole] = useState(false)
   const [forgotSent, setForgotSent] = useState(false)
   const [forgotLoading, setForgotLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<HCaptcha>(null)
+
+  function resetCaptcha() {
+    captchaRef.current?.resetCaptcha()
+    setCaptchaToken(null)
+  }
 
   function border(field: string) {
     return focused === field ? C.accent : C.borderMed
@@ -37,6 +47,10 @@ export function Login({ onLogin, onGoToRegister }: Props) {
     setError(null)
     if (!isValidEmail(email)) { setError('Inserisci una email valida'); return }
     if (!password)            { setError('Inserisci la password'); return }
+    if (HCAPTCHA_SITE_KEY && !captchaToken && !IS_DEMO) {
+      setError('Completa la verifica anti-bot per continuare')
+      return
+    }
 
     setLoading(true)
 
@@ -48,7 +62,12 @@ export function Login({ onLogin, onGoToRegister }: Props) {
       return
     }
 
-    const { data, error: e } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error: e } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: { captchaToken: captchaToken ?? undefined },
+    })
+    resetCaptcha()
     if (e) {
       writeLog('auth.failed', `Tentativo di accesso fallito: ${e.message}`, 'warning', { userEmail: email })
       setLoading(false)
@@ -85,6 +104,10 @@ export function Login({ onLogin, onGoToRegister }: Props) {
       setError('Inserisci la tua email per recuperare la password')
       return
     }
+    if (HCAPTCHA_SITE_KEY && !captchaToken && !IS_DEMO) {
+      setError('Completa la verifica anti-bot per continuare')
+      return
+    }
     setForgotLoading(true)
     if (IS_DEMO) {
       await new Promise(r => setTimeout(r, 500))
@@ -94,7 +117,9 @@ export function Login({ onLogin, onGoToRegister }: Props) {
     }
     const { error: e } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: window.location.origin,
+      captchaToken: captchaToken ?? undefined,
     })
+    resetCaptcha()
     setForgotLoading(false)
     if (e) {
       writeLog('auth.reset.failed', `Reset password fallito: ${e.message}`, 'warning', { userEmail: email })
@@ -205,6 +230,18 @@ export function Login({ onLogin, onGoToRegister }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 12px', borderRadius: 10, background: 'rgba(226,75,74,0.08)' }}>
             <i className="ti ti-alert-circle" style={{ color: C.red, fontSize: 16, flexShrink: 0 }} />
             <span style={{ fontSize: 13, color: C.red }}>{error}</span>
+          </div>
+        )}
+
+        {/* hCaptcha (only when site key is configured) */}
+        {HCAPTCHA_SITE_KEY && !IS_DEMO && (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <HCaptcha
+              ref={captchaRef}
+              sitekey={HCAPTCHA_SITE_KEY}
+              onVerify={setCaptchaToken}
+              onExpire={() => setCaptchaToken(null)}
+            />
           </div>
         )}
 
