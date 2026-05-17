@@ -241,7 +241,7 @@ function RoleSheet({ user, onPick, onCancel }: { user: AdminUser; onPick: (r: Us
 // ── Users Tab ──────────────────────────────────────────────────────────────
 
 function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
-  const { users, loading, createUser, deleteUser, changeRole, sendPasswordReset } = useAdminUsers()
+  const { users, loading, error, createUser, deleteUser, changeRole, sendPasswordReset, reload } = useAdminUsers()
   const [search, setSearch]             = useState('')
   const [expanded, setExpanded]         = useState<string | null>(null)
   const [showAdd, setShowAdd]           = useState(false)
@@ -303,11 +303,14 @@ function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
         </div>
       </div>
 
-      {/* Count */}
-      <div style={{ padding: '8px 16px 2px', flexShrink: 0 }}>
-        <span style={{ fontSize: 11, color: C.hint }}>
-          {loading ? 'Caricamento…' : `${filtered.length} utent${filtered.length === 1 ? 'e' : 'i'}`}
+      {/* Count + reload */}
+      <div style={{ padding: '8px 16px 2px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11, color: error ? C.red : C.hint }}>
+          {loading ? 'Caricamento…' : error ? 'Errore nel caricamento' : `${filtered.length} utent${filtered.length === 1 ? 'e' : 'i'}`}
         </span>
+        <button onClick={reload} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.hint }}>
+          <i className="ti ti-refresh" style={{ fontSize: 15 }} />
+        </button>
       </div>
 
       {/* List */}
@@ -315,6 +318,24 @@ function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 40 }}>
             <i className="ti ti-loader-2" style={{ fontSize: 28, color: C.muted, animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        ) : error ? (
+          <div style={{ margin: '24px 0', padding: '14px 16px', borderRadius: 12, background: 'rgba(226,75,74,0.08)', border: `1px solid rgba(226,75,74,0.2)` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <i className="ti ti-alert-circle" style={{ color: C.red, fontSize: 17 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.red }}>Impossibile caricare gli utenti</span>
+            </div>
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: C.muted, lineHeight: 1.5 }}>{error}</p>
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: C.hint, lineHeight: 1.5 }}>
+              Verifica di aver eseguito la migrazione <strong>011_admin_functions.sql</strong> su Supabase.
+            </p>
+            <button onClick={reload} style={{
+              padding: '6px 14px', borderRadius: 8, border: `1px solid ${C.borderMed}`,
+              background: C.surface, color: C.text, fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              Riprova
+            </button>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', paddingTop: 40, color: C.hint, fontSize: 14 }}>Nessun utente trovato</div>
