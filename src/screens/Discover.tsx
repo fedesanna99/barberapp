@@ -9,13 +9,10 @@ import { accentFromId, initialsFromName } from '../hooks/useFeed'
 import { IS_DEMO } from '../lib/supabase'
 import type { BarberWithProfile } from '../types/supabase'
 
-type SortId = 'nearby' | 'popular' | 'new' | 'toprated'
-
-const SORTS: { id: SortId; label: string }[] = [
-  { id: 'nearby',   label: 'Nearby'    },
-  { id: 'popular',  label: 'Popular'   },
-  { id: 'new',      label: 'New'       },
-  { id: 'toprated', label: 'Top rated' },
+const SORTS: { id: SortMode; label: string }[] = [
+  { id: 'nearby',  label: 'Nearby'  },
+  { id: 'popular', label: 'Popular' },
+  { id: 'new',     label: 'New'     },
 ]
 
 interface DiscoverProps {
@@ -42,53 +39,37 @@ function toDisplayBarber(b: BarberWithProfile, userLat?: number, userLng?: numbe
 }
 
 export function Discover({ onBook, onViewProfile }: DiscoverProps) {
-  const [sort, setSort]             = useState<SortId>('nearby')
+  const [sort, setSort]             = useState<SortMode>('nearby')
   const [search, setSearch]         = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [userLat, setUserLat]       = useState<number | undefined>()
   const [userLng, setUserLng]       = useState<number | undefined>()
 
   useEffect(() => {
-    if (IS_DEMO) return
     navigator.geolocation?.getCurrentPosition(pos => {
       setUserLat(pos.coords.latitude)
       setUserLng(pos.coords.longitude)
     })
   }, [])
 
-  const dbSort: SortMode = sort === 'toprated' ? 'toprated' : sort as SortMode
-  const { barbers: realBarbers, loading } = useBarbers(
-    IS_DEMO ? 'nearby' : dbSort,
-    !IS_DEMO ? userLat : undefined,
-    !IS_DEMO ? userLng : undefined,
-  )
+  const { barbers: realBarbers, loading } = useBarbers(sort, userLat, userLng)
 
-  const demoBarbers: DemoBarber[] = IS_DEMO
-    ? [...BARBERS]
-        .filter(b =>
-          !search ||
-          b.name.toLowerCase().includes(search.toLowerCase()) ||
-          b.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
-        )
-        .sort((a, b) => {
-          if (sort === 'nearby')   return a.dist - b.dist
-          if (sort === 'popular')  return b.followers - a.followers
-          if (sort === 'new')      return Number(b.id) - Number(a.id)
-          return b.rating - a.rating
-        })
-    : []
+  const matchesSearch = (b: DemoBarber) =>
+    !search ||
+    b.name.toLowerCase().includes(search.toLowerCase()) ||
+    b.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
 
-  const prodBarbers: DemoBarber[] = !IS_DEMO
-    ? realBarbers
-        .map(b => toDisplayBarber(b, userLat, userLng))
-        .filter(b =>
-          !search ||
-          b.name.toLowerCase().includes(search.toLowerCase()) ||
-          b.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
-        )
-    : []
-
-  const sorted = IS_DEMO ? demoBarbers : prodBarbers
+  const sorted: DemoBarber[] = !loading && realBarbers.length > 0
+    ? realBarbers.map(b => toDisplayBarber(b, userLat, userLng)).filter(matchesSearch)
+    : IS_DEMO && !loading
+      ? [...BARBERS]
+          .filter(matchesSearch)
+          .sort((a, b) => {
+            if (sort === 'nearby')  return a.dist - b.dist
+            if (sort === 'popular') return b.followers - a.followers
+            return Number(b.id) - Number(a.id)
+          })
+      : []
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -138,7 +119,7 @@ export function Discover({ onBook, onViewProfile }: DiscoverProps) {
       </div>
 
       {/* Loading */}
-      {!IS_DEMO && loading && (
+      {loading && (
         <div style={{ textAlign: 'center', padding: '40px 16px', color: C.hint }}>
           <i className="ti ti-loader-2" style={{ fontSize: 24, animation: 'spin 0.8s linear infinite' }} />
         </div>

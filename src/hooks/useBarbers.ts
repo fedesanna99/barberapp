@@ -16,7 +16,7 @@ export function useBarberByProfile(profileId: string | undefined): string | unde
   return barberId
 }
 
-export type SortMode = 'nearby' | 'popular' | 'new' | 'toprated'
+export type SortMode = 'nearby' | 'popular' | 'new'
 
 export function haversineKm(
   lat1: number, lng1: number,
@@ -48,9 +48,8 @@ export function useBarbers(
       .from('barbers')
       .select('*, profile:profiles ( display_name, avatar_url, lat, lng )')
 
-    if (sort === 'popular')  query = query.order('followers_count', { ascending: false })
-    if (sort === 'toprated') query = query.order('rating', { ascending: false })
-    if (sort === 'new')      query = query.order('created_at', { ascending: false })
+    if (sort === 'popular') query = query.order('followers_count', { ascending: false })
+    if (sort === 'new')     query = query.order('created_at',     { ascending: false })
 
     query.then(({ data, error }) => {
       if (error) { setLoading(false); return }
