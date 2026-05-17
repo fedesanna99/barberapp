@@ -5,7 +5,10 @@ import type { Barber, BarberWithProfile } from '../types/supabase'
 export function useBarberByProfile(profileId: string | undefined): string | undefined {
   const [barberId, setBarberId] = useState<string | undefined>()
   useEffect(() => {
-    if (!profileId) return
+    if (!profileId) {
+      setBarberId(undefined)
+      return
+    }
     supabase
       .from('barbers')
       .select('id')
