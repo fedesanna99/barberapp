@@ -24,7 +24,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF (SELECT role FROM profiles WHERE id = auth.uid()) != 'admin' THEN
+  IF (SELECT profiles.role FROM profiles WHERE profiles.id = auth.uid()) != 'admin' THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -49,7 +49,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF (SELECT role FROM profiles WHERE id = auth.uid()) != 'admin' THEN
+  IF (SELECT profiles.role FROM profiles WHERE profiles.id = auth.uid()) != 'admin' THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
