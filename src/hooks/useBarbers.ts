@@ -53,16 +53,20 @@ export function useBarbers(
     if (sort === 'popular') query = query.order('followers_count', { ascending: false })
     if (sort === 'new')     query = query.order('created_at',     { ascending: false })
 
+    let cancelled = false
+
     query.then(async ({ data: barbersData, error }) => {
+      if (cancelled) return
       if (error) { console.error('[useBarbers]', error); setLoading(false); return }
 
       const rows = (barbersData ?? []) as Barber[]
 
-      // Fetch profiles separately (same pattern as useFeed)
       const profileIds = [...new Set(rows.map(b => b.profile_id))]
       const { data: profilesData } = profileIds.length > 0
         ? await supabase.from('profiles').select('id, display_name, avatar_url, lat, lng').in('id', profileIds)
         : { data: [] }
+
+      if (cancelled) return
 
       const profileMap = Object.fromEntries((profilesData ?? []).map(p => [p.id, p]))
 
@@ -83,6 +87,8 @@ export function useBarbers(
       setBarbers(result)
       setLoading(false)
     })
+
+    return () => { cancelled = true }
   }, [sort, userLat, userLng])
 
   return { barbers, loading }

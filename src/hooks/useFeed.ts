@@ -110,11 +110,9 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
         if (data) setLikedIds(new Set(data.map(r => r.post_id)))
       })
     return () => { cancelled = true }
-  }, [userId, ownBarberId])
+  }, [userId])
 
   useEffect(() => {
-    // Always allow page-0 fetches so that a late-resolving ownBarberId
-    // triggers a fresh load even when a previous run set hasMore=false.
     if (IS_DEMO || !userId) return
     if (page > 0 && !hasMore) return
     setLoading(true)
@@ -122,31 +120,14 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
     let cancelled = false
 
     supabase
-      .from('follows')
-      .select('barber_id')
-      .eq('follower_id', userId)
-      .then(async ({ data: followRows }) => {
-        if (cancelled) return
-        const ids = (followRows ?? []).map(r => r.barber_id)
-        if (ownBarberId && !ids.includes(ownBarberId)) ids.push(ownBarberId)
-        if (ids.length === 0) {
-          setHasMore(false)
-          setLoading(false)
-          return
-        }
-
-        // Fetch posts + barbers (no nested profile embed to avoid ambiguous FK)
-        const { data: postsData, error } = await supabase
-          .from('posts')
-          .select('*, barbers ( id, city, profile_id )')
-          .in('barber_id', ids)
-          .order('created_at', { ascending: false })
-          .range(page * PAGE, (page + 1) * PAGE - 1)
-
+      .from('posts')
+      .select('*, barbers ( id, city, profile_id )')
+      .order('created_at', { ascending: false })
+      .range(page * PAGE, (page + 1) * PAGE - 1)
+      .then(async ({ data: postsData, error }) => {
         if (cancelled) return
         if (error) { setLoading(false); return }
 
-        // Collect unique profile IDs and fetch profiles separately
         const profileIds = [...new Set((postsData ?? []).map(p => (p.barbers as any).profile_id as string))]
         const { data: profilesData } = await supabase
           .from('profiles')
@@ -183,7 +164,7 @@ export function useFeed(userId: string | undefined, ownBarberId?: string) {
       })
 
     return () => { cancelled = true }
-  }, [userId, page, ownBarberId])
+  }, [userId, page])
 
   return {
     posts,
