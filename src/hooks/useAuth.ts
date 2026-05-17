@@ -25,10 +25,12 @@ export function useAuth() {
       }
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       if (session) {
-        fetchProfile(session.user.id)
+        // Skip refetch on token refresh: profile hasn't changed and a failed
+        // refetch would temporarily null the profile, wiping the user's role.
+        if (event !== 'TOKEN_REFRESHED') fetchProfile(session.user.id)
       } else {
         setProfile(null)
         if (sessionResolved.current) setLoading(false)
@@ -44,7 +46,9 @@ export function useAuth() {
       .select('*, barbers(*)')
       .eq('id', userId)
       .single()
-    setProfile(data as unknown as ProfileWithBarber)
+    // Only overwrite profile on success; a failed/null fetch must not clear
+    // an already-loaded profile (e.g. transient network error on tab switch).
+    if (data) setProfile(data as unknown as ProfileWithBarber)
     setLoading(false)
   }
 

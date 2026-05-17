@@ -72,10 +72,6 @@ export default function App() {
       setIsBarber(roleIsBarber)
       setIsAdmin(roleIsAdmin)
       if (roleIsAdmin) setScreen('admin')
-    } else {
-      setLoggedIn(false)
-      setIsBarber(false)
-      setIsAdmin(false)
     }
   }, [session, roleIsBarber, roleIsAdmin, loading])
 
