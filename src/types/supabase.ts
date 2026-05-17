@@ -309,7 +309,22 @@ export type Database = {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      get_admin_users: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          email: string
+          display_name: string
+          role: string
+          created_at: string
+        }[]
+      }
+      admin_delete_user: {
+        Args: { target_user_id: string }
+        Returns: void
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }

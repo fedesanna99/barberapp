@@ -22,47 +22,35 @@ export function useAdminUsers() {
     setLoading(true)
     setError(null)
 
-    if (IS_DEMO || !supabaseAdmin) {
+    if (IS_DEMO) {
       await new Promise(r => setTimeout(r, 400))
       setUsers(DEMO_ADMIN_USERS as AdminUser[])
       setLoading(false)
       return
     }
 
-    const [{ data: authData, error: authErr }, { data: profiles, error: profErr }] = await Promise.all([
-      supabaseAdmin.auth.admin.listUsers(),
-      supabase.from('profiles').select('id, role, display_name'),
-    ])
-
-    if (authErr || profErr) {
-      setError((authErr ?? profErr)!.message)
-      setLoading(false)
-      return
+    // get_admin_users() is SECURITY DEFINER — accesses auth.users server-side
+    const { data, error: e } = await supabase.rpc('get_admin_users')
+    if (e) {
+      setError(e.message)
+    } else {
+      setUsers((data ?? []) as AdminUser[])
     }
-
-    const mapped: AdminUser[] = (authData?.users ?? []).map(u => {
-      const prof = profiles?.find(p => p.id === u.id)
-      return {
-        id:           u.id,
-        email:        u.email ?? '',
-        display_name: prof?.display_name ?? u.email ?? '',
-        role:         (prof?.role as UserRole) ?? 'client',
-        created_at:   u.created_at,
-      }
-    })
-
-    setUsers(mapped)
     setLoading(false)
   }
 
   async function createUser(email: string, password: string, displayName: string, role: UserRole) {
-    if (IS_DEMO || !supabaseAdmin) {
+    if (IS_DEMO) {
       const newUser: AdminUser = {
         id: `demo-${Date.now()}`, email, display_name: displayName, role,
         created_at: new Date().toISOString(),
       }
       setUsers(prev => [newUser, ...prev])
       return { error: null }
+    }
+
+    if (!supabaseAdmin) {
+      return { error: 'Aggiungi VITE_SUPABASE_SERVICE_ROLE_KEY nel .env per creare utenti.' }
     }
 
     const { data, error: e } = await supabaseAdmin.auth.admin.createUser({
@@ -72,8 +60,8 @@ export function useAdminUsers() {
     })
     if (e) return { error: e.message }
 
-    if (data.user && (role !== 'client')) {
-      await supabaseAdmin
+    if (data.user && role !== 'client') {
+      await supabase
         .from('profiles')
         .update({ role, display_name: displayName })
         .eq('id', data.user.id)
@@ -84,12 +72,13 @@ export function useAdminUsers() {
   }
 
   async function deleteUser(userId: string) {
-    if (IS_DEMO || !supabaseAdmin) {
+    if (IS_DEMO) {
       setUsers(prev => prev.filter(u => u.id !== userId))
       return { error: null }
     }
 
-    const { error: e } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    // admin_delete_user() is SECURITY DEFINER — deletes from auth.users server-side
+    const { error: e } = await supabase.rpc('admin_delete_user', { target_user_id: userId })
     if (e) return { error: e.message }
 
     setUsers(prev => prev.filter(u => u.id !== userId))
@@ -97,12 +86,13 @@ export function useAdminUsers() {
   }
 
   async function changeRole(userId: string, role: UserRole) {
-    if (IS_DEMO || !supabaseAdmin) {
+    if (IS_DEMO) {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u))
       return { error: null }
     }
 
-    const { error: e } = await supabaseAdmin
+    // admin_update_any_profile RLS policy allows this with the anon key
+    const { error: e } = await supabase
       .from('profiles')
       .update({ role })
       .eq('id', userId)
