@@ -38,13 +38,13 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     setLoading(true)
 
-    type AvailRow  = { start_time: string; end_time: string }
+    type AvailRow  = { start_time: string; end_time: string; break_start: string | null; break_end: string | null }
     type BookingRow = { time_slot: string; date: string; status: string }
 
     Promise.all([
       supabase
         .from('availability')
-        .select('start_time, end_time')
+        .select('start_time, end_time, break_start, break_end')
         .eq('barber_id', barberId)
         .eq('day_of_week', dow),
       supabase
@@ -62,7 +62,16 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
         return
       }
 
-      const all   = generateSlots(win.start_time, win.end_time)
+      const allRaw = generateSlots(win.start_time, win.end_time)
+      const all = win.break_start && win.break_end
+        ? allRaw.filter(slot => {
+            const [sh, sm] = slot.split(':').map(Number)
+            const slotMin = sh * 60 + sm
+            const bs = win.break_start!.slice(0, 5).split(':').map(Number)
+            const be = win.break_end!.slice(0, 5).split(':').map(Number)
+            return slotMin < bs[0] * 60 + bs[1] || slotMin >= be[0] * 60 + be[1]
+          })
+        : allRaw
       // C4: PostgREST returns time as "HH:MM:SS"; slice to "HH:MM" to match generated slots
       const taken = new Set((existing.data as BookingRow[] | null ?? []).map(b => b.time_slot.slice(0, 5)))
       setSlots(all)

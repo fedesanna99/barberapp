@@ -188,6 +188,8 @@ export type Database = {
           day_of_week: number
           start_time: string
           end_time: string
+          break_start: string | null
+          break_end: string | null
         }
         Insert: {
           id?: string
@@ -195,11 +197,15 @@ export type Database = {
           day_of_week: number
           start_time: string
           end_time: string
+          break_start?: string | null
+          break_end?: string | null
         }
         Update: {
           day_of_week?: number
           start_time?: string
           end_time?: string
+          break_start?: string | null
+          break_end?: string | null
         }
         Relationships: [
           {

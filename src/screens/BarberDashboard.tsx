@@ -211,15 +211,15 @@ function AvailabilityTab({ barberId }: { barberId?: string }) {
     }
   }
 
-  function handleSave(dow: number, start: string, end: string) {
+  function handleSave(dow: number, start: string, end: string, bStart?: string, bEnd?: string) {
     if (isDemo) {
       setDemoRows(prev => {
         const idx = prev.findIndex(r => r.day_of_week === dow)
-        const next = { day_of_week: dow, start_time: start, end_time: end }
+        const next = { day_of_week: dow, start_time: start, end_time: end, break_start: bStart, break_end: bEnd }
         return idx >= 0 ? prev.map((r, i) => (i === idx ? next : r)) : [...prev, next]
       })
     } else {
-      upsertDay(dow, start, end)
+      upsertDay(dow, start, end, bStart, bEnd)
     }
   }
 
@@ -237,8 +237,10 @@ function AvailabilityTab({ barberId }: { barberId?: string }) {
             active={!!row}
             startTime={row?.start_time ?? '09:00'}
             endTime={row?.end_time ?? '18:00'}
+            breakStart={row?.break_start ?? undefined}
+            breakEnd={row?.break_end ?? undefined}
             onToggle={() => handleToggle(dow)}
-            onSave={(s, e) => handleSave(dow, s, e)}
+            onSave={(s, e, bs, be) => handleSave(dow, s, e, bs, be)}
           />
         )
       })}
@@ -362,61 +364,100 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
 }
 
 function DayRow({
-  dayName, active, startTime, endTime, onToggle, onSave,
+  dayName, active, startTime, endTime, breakStart, breakEnd, onToggle, onSave,
 }: {
   dayName: string
   active: boolean
   startTime: string
   endTime: string
+  breakStart?: string
+  breakEnd?: string
   onToggle: () => void
-  onSave: (start: string, end: string) => void
+  onSave: (start: string, end: string, breakStart?: string, breakEnd?: string) => void
 }) {
-  const [start, setStart] = useState(startTime)
-  const [end,   setEnd]   = useState(endTime)
+  const [start,    setStart]    = useState(startTime)
+  const [end,      setEnd]      = useState(endTime)
+  const [hasBreak, setHasBreak] = useState(!!breakStart)
+  const [bStart,   setBStart]   = useState(breakStart ?? '12:00')
+  const [bEnd,     setBEnd]     = useState(breakEnd   ?? '13:00')
 
   useEffect(() => { setStart(startTime) }, [startTime])
   useEffect(() => { setEnd(endTime) }, [endTime])
+  useEffect(() => { setHasBreak(!!breakStart) }, [breakStart])
+  useEffect(() => { if (breakStart) setBStart(breakStart) }, [breakStart])
+  useEffect(() => { if (breakEnd)   setBEnd(breakEnd)     }, [breakEnd])
 
-  const dirty = active && (start !== startTime || end !== endTime)
+  const dirty = active && (
+    start !== startTime ||
+    end   !== endTime   ||
+    hasBreak !== !!breakStart ||
+    (hasBreak && (bStart !== (breakStart ?? '12:00') || bEnd !== (breakEnd ?? '13:00')))
+  )
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '11px 0', borderBottom: `0.5px solid ${C.border}`,
-    }}>
-      <span style={{ width: 32, fontSize: 13, fontWeight: 500, color: active ? C.text : C.hint, flexShrink: 0 }}>
-        {dayName}
-      </span>
-      <Toggle on={active} onChange={onToggle} />
-      {active ? (
-        <>
-          <input
-            type="time" value={start}
-            onChange={e => setStart(e.target.value)}
-            style={timeInputStyle}
-          />
+    <div style={{ padding: '11px 0', borderBottom: `0.5px solid ${C.border}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ width: 32, fontSize: 13, fontWeight: 500, color: active ? C.text : C.hint, flexShrink: 0 }}>
+          {dayName}
+        </span>
+        <Toggle on={active} onChange={onToggle} />
+        {active ? (
+          <>
+            <input type="time" value={start} onChange={e => setStart(e.target.value)} style={timeInputStyle} />
+            <span style={{ fontSize: 12, color: C.hint }}>–</span>
+            <input type="time" value={end}   onChange={e => setEnd(e.target.value)}   style={timeInputStyle} />
+            {!hasBreak && (
+              <button
+                onClick={() => setHasBreak(true)}
+                title="Add break"
+                style={{
+                  width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                  border: `1px solid ${C.borderMed}`, background: 'transparent',
+                  color: C.muted, cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', fontSize: 14, padding: 0,
+                }}
+              >
+                <i className="ti ti-plus" style={{ fontSize: 12 }} />
+              </button>
+            )}
+            {dirty && (
+              <button
+                onClick={() => onSave(start, end, hasBreak ? bStart : undefined, hasBreak ? bEnd : undefined)}
+                style={{
+                  height: 26, padding: '0 10px', borderRadius: 7,
+                  border: 'none', background: C.accent, color: '#fff',
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  marginLeft: 'auto', flexShrink: 0,
+                }}
+              >
+                Save
+              </button>
+            )}
+          </>
+        ) : (
+          <span style={{ fontSize: 12, color: C.hint }}>Off</span>
+        )}
+      </div>
+
+      {active && hasBreak && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 80 }}>
+          <span style={{ fontSize: 11, color: C.hint, flexShrink: 0 }}>break</span>
+          <input type="time" value={bStart} onChange={e => setBStart(e.target.value)} style={timeInputStyle} />
           <span style={{ fontSize: 12, color: C.hint }}>–</span>
-          <input
-            type="time" value={end}
-            onChange={e => setEnd(e.target.value)}
-            style={timeInputStyle}
-          />
-          {dirty && (
-            <button
-              onClick={() => onSave(start, end)}
-              style={{
-                height: 26, padding: '0 10px', borderRadius: 7,
-                border: 'none', background: C.accent, color: '#fff',
-                fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                marginLeft: 'auto', flexShrink: 0,
-              }}
-            >
-              Save
-            </button>
-          )}
-        </>
-      ) : (
-        <span style={{ fontSize: 12, color: C.hint }}>Off</span>
+          <input type="time" value={bEnd}   onChange={e => setBEnd(e.target.value)}   style={timeInputStyle} />
+          <button
+            onClick={() => setHasBreak(false)}
+            title="Remove break"
+            style={{
+              width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+              border: `1px solid ${C.borderMed}`, background: 'transparent',
+              color: C.muted, cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', padding: 0,
+            }}
+          >
+            <i className="ti ti-x" style={{ fontSize: 12 }} />
+          </button>
+        </div>
       )}
     </div>
   )

@@ -14,12 +14,18 @@ export function useAvailabilitySettings(barberId: string | undefined) {
       .then(({ data }) => setRows((data ?? []) as Availability[]))
   }, [barberId])
 
-  async function upsertDay(day_of_week: number, start_time: string, end_time: string) {
+  async function upsertDay(
+    day_of_week: number,
+    start_time: string,
+    end_time: string,
+    break_start?: string | null,
+    break_end?: string | null,
+  ) {
     if (!barberId) return
     const { data } = await supabase
       .from('availability')
       .upsert(
-        { barber_id: barberId, day_of_week, start_time, end_time },
+        { barber_id: barberId, day_of_week, start_time, end_time, break_start: break_start ?? null, break_end: break_end ?? null },
         { onConflict: 'barber_id,day_of_week' },
       )
       .select()

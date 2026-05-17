@@ -80,6 +80,8 @@ export interface DemoAvailRow {
   day_of_week: number
   start_time: string
   end_time: string
+  break_start?: string
+  break_end?: string
 }
 
 export const DEMO_AVAIL: DemoAvailRow[] = [
