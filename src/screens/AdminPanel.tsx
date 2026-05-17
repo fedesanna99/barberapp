@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
 import { Toast } from '../components/Toast'
 import { useAdminUsers, type AdminUser } from '../hooks/useAdminUsers'
 import { useAdminLogs } from '../hooks/useAdminLogs'
-import type { UserRole, LogLevel } from '../types/supabase'
+import { useSupportAdmin, useSupportAdminChat, type ConvWithUser } from '../hooks/useSupportAdmin'
+import type { UserRole, LogLevel, SupportMessage } from '../types/supabase'
 
-type AdminTab  = 'users' | 'logs'
+type AdminTab  = 'users' | 'logs' | 'support'
 type LogFilter = 'all' | LogLevel
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -555,15 +556,245 @@ function LogsTab({ onToast }: { onToast: (msg: string) => void }) {
   )
 }
 
+// ── Support Tab ────────────────────────────────────────────────────────────
+
+function SupportBubble({ msg }: { msg: SupportMessage }) {
+  const isAdmin = msg.is_admin
+  const time = new Date(msg.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  return (
+    <div style={{ display: 'flex', justifyContent: isAdmin ? 'flex-end' : 'flex-start' }}>
+      <div style={{
+        maxWidth: '76%', padding: '8px 12px',
+        borderRadius: isAdmin ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+        background: isAdmin ? C.accent : C.surface,
+        border: isAdmin ? 'none' : `1px solid ${C.border}`,
+      }}>
+        {!isAdmin && (
+          <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 3 }}>Utente</div>
+        )}
+        <div style={{
+          fontSize: 13, color: isAdmin ? '#fff' : C.text,
+          lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+        }}>
+          {msg.content}
+        </div>
+        <div style={{ fontSize: 10, color: isAdmin ? 'rgba(255,255,255,0.6)' : C.hint, marginTop: 3, textAlign: 'right' }}>
+          {time}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SupportThread({
+  conv,
+  adminId,
+  onBack,
+}: { conv: ConvWithUser; adminId: string | undefined; onBack: () => void }) {
+  const { messages, loading, sending, sendReply, closeConversation } = useSupportAdminChat(conv.id, adminId)
+  const [text, setText] = useState('')
+  const bottomRef       = useRef<HTMLDivElement>(null)
+  const textareaRef     = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  async function handleSend() {
+    const t = text.trim()
+    if (!t || sending) return
+    setText('')
+    textareaRef.current?.focus()
+    await sendReply(t)
+  }
+
+  function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+  }
+
+  const initials = conv.userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Thread header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '10px 16px', borderBottom: `0.5px solid ${C.border}`, flexShrink: 0,
+      }}>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+          <i className="ti ti-arrow-left" style={{ fontSize: 20, color: C.muted }} />
+        </button>
+        <Avatar initials={initials} size={32} accent={C.muted} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{conv.userName}</div>
+          <div style={{ fontSize: 11, color: conv.status === 'open' ? C.green : C.hint }}>
+            {conv.status === 'open' ? 'Aperta' : 'Chiusa'}
+          </div>
+        </div>
+        {conv.status === 'open' && (
+          <button
+            onClick={async () => { await closeConversation(); onBack() }}
+            style={{
+              padding: '4px 10px', borderRadius: 8,
+              border: `1px solid ${C.borderMed}`, background: 'none',
+              color: C.muted, fontSize: 11, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            Chiudi
+          </button>
+        )}
+      </div>
+
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {loading ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="ti ti-loader-2" style={{ fontSize: 24, color: C.muted, animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        ) : messages.length === 0 ? (
+          <div style={{ textAlign: 'center', paddingTop: 40, color: C.hint, fontSize: 14 }}>
+            Nessun messaggio
+          </div>
+        ) : (
+          messages.map(msg => <SupportBubble key={msg.id} msg={msg} />)
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Reply input */}
+      {conv.status === 'open' && (
+        <div style={{
+          flexShrink: 0, padding: '8px 12px 16px',
+          borderTop: `0.5px solid ${C.border}`,
+          display: 'flex', gap: 8, alignItems: 'flex-end',
+        }}>
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder="Rispondi all'utente…"
+            rows={1}
+            style={{
+              flex: 1, borderRadius: 16,
+              border: `1.5px solid ${C.borderMed}`,
+              background: C.surface,
+              padding: '9px 13px',
+              fontSize: 13, color: C.text, fontFamily: 'inherit',
+              outline: 'none', resize: 'none', maxHeight: 80, lineHeight: 1.4,
+              boxSizing: 'border-box',
+            }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!text.trim() || sending}
+            style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: text.trim() ? C.accent : C.surface,
+              border: 'none', cursor: text.trim() ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, transition: 'background .15s',
+            }}
+          >
+            {sending
+              ? <i className="ti ti-loader-2" style={{ fontSize: 16, color: '#fff', animation: 'spin 0.8s linear infinite' }} />
+              : <i className="ti ti-send" style={{ fontSize: 16, color: text.trim() ? '#fff' : C.hint }} />
+            }
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SupportTab({ adminId }: { adminId: string | undefined }) {
+  const { conversations, loading, reload } = useSupportAdmin()
+  const [selected, setSelected] = useState<ConvWithUser | null>(null)
+
+  if (selected) {
+    return (
+      <SupportThread
+        conv={selected}
+        adminId={adminId}
+        onBack={() => { setSelected(null); reload() }}
+      />
+    )
+  }
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ padding: '8px 16px 2px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11, color: C.hint }}>
+          {loading ? 'Caricamento…' : `${conversations.length} conversazion${conversations.length === 1 ? 'e' : 'i'}`}
+        </span>
+        <button onClick={reload} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.hint }}>
+          <i className="ti ti-refresh" style={{ fontSize: 15 }} />
+        </button>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 80px' }}>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 40 }}>
+            <i className="ti ti-loader-2" style={{ fontSize: 28, color: C.muted, animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        ) : conversations.length === 0 ? (
+          <div style={{ textAlign: 'center', paddingTop: 48, color: C.hint, fontSize: 14 }}>
+            Nessuna conversazione
+          </div>
+        ) : (
+          conversations.map(conv => {
+            const initials = conv.userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'
+            const ago = timeAgo(conv.updated_at)
+            return (
+              <div
+                key={conv.id}
+                onClick={() => setSelected(conv)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '11px 12px', borderRadius: 12,
+                  background: C.surface, marginBottom: 6,
+                  cursor: 'pointer',
+                  border: `1px solid ${conv.status === 'open' ? C.borderMed : C.border}`,
+                }}
+              >
+                <Avatar initials={initials} size={40} accent={conv.status === 'open' ? C.accent : C.muted} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{conv.userName}</span>
+                    {conv.status === 'open' && (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: C.green, background: 'rgba(29,158,117,0.12)', padding: '1px 6px', borderRadius: 10 }}>
+                        APERTA
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.hint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {conv.lastMessage ?? 'Nessun messaggio'}
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                  <div style={{ fontSize: 10, color: C.hint }}>{ago}</div>
+                  <i className="ti ti-chevron-right" style={{ fontSize: 14, color: C.hint, marginTop: 4, display: 'block' }} />
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 
-export function AdminPanel() {
+export function AdminPanel({ userId }: { userId?: string }) {
   const [tab, setTab]   = useState<AdminTab>('users')
   const [toast, setToast] = useState<string | null>(null)
 
   const tabs: { id: AdminTab; label: string; icon: string }[] = [
-    { id: 'users', label: 'Utenti',      icon: 'ti-users'     },
-    { id: 'logs',  label: 'Log & Errori', icon: 'ti-terminal-2' },
+    { id: 'users',   label: 'Utenti',    icon: 'ti-users'      },
+    { id: 'logs',    label: 'Log',       icon: 'ti-terminal-2' },
+    { id: 'support', label: 'Supporto',  icon: 'ti-headset'    },
   ]
 
   return (
@@ -597,10 +828,9 @@ export function AdminPanel() {
 
       {/* Tab content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: 8, position: 'relative' }}>
-        {tab === 'users'
-          ? <UsersTab onToast={setToast} />
-          : <LogsTab  onToast={setToast} />
-        }
+        {tab === 'users'   && <UsersTab   onToast={setToast} />}
+        {tab === 'logs'    && <LogsTab    onToast={setToast} />}
+        {tab === 'support' && <SupportTab adminId={userId}   />}
       </div>
 
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}

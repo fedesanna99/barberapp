@@ -15,6 +15,7 @@ import { BarberDashboard } from './screens/BarberDashboard'
 import { AdminPanel } from './screens/AdminPanel'
 import { BookingSheet } from './screens/BookingSheet'
 import { BarberProfileSheet } from './screens/BarberProfileSheet'
+import { SupportChat } from './screens/SupportChat'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
 import type { DemoBarber, DemoDate } from './lib/demoData'
@@ -56,6 +57,7 @@ export default function App() {
   const [bookingBarber, setBookingBarber] = useState<DemoBarber | null>(null)
   const [profileBarber, setProfileBarber] = useState<DemoBarber | null>(null)
   const [showLikedFeed, setShowLikedFeed] = useState(false)
+  const [showSupport, setShowSupport]   = useState(false)
   const [toast, setToast]               = useState<string | null>(null)
 
   const barberId = useBarberByProfile(isBarber ? userId : undefined)
@@ -157,7 +159,7 @@ export default function App() {
             )}
             {isAdmin && (
               <div style={{ flex: screen === 'admin' ? 1 : 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <AdminPanel />
+                <AdminPanel userId={userId} />
               </div>
             )}
             {screen === 'menu'      && <Menu onLogout={async () => {
@@ -167,7 +169,7 @@ export default function App() {
               setIsAdmin(false)
               setScreen('feed')
               setAuthView('login')
-            }} onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }} />}
+            }} onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }} onSupport={() => setShowSupport(true)} />}
           </>
         )}
 
@@ -177,6 +179,10 @@ export default function App() {
             onClose={() => setBookingBarber(null)}
             onConfirm={handleConfirm}
           />
+        )}
+
+        {showSupport && userId && (
+          <SupportChat userId={userId} onClose={() => setShowSupport(false)} />
         )}
 
         {toast && <Toast message={toast} onClose={() => setToast(null)} />}

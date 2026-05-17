@@ -1,6 +1,8 @@
 import { C } from '../lib/colors'
 
-const SECTIONS = [
+type MenuItem = { icon: string; label: string; badge?: string; action?: 'liked' | 'support' }
+
+const SECTIONS: MenuItem[][] = [
   [
     { icon: 'ti-calendar', label: 'My appointments', badge: '2' },
     { icon: 'ti-heart',    label: 'Liked posts',     action: 'liked' as const },
@@ -12,12 +14,16 @@ const SECTIONS = [
     { icon: 'ti-share', label: 'Refer a friend' },
   ],
   [
-    { icon: 'ti-help-circle', label: 'Help & support'  },
-    { icon: 'ti-shield',      label: 'Privacy policy'  },
+    { icon: 'ti-headset', label: 'Help & support',  action: 'support' as const },
+    { icon: 'ti-shield',  label: 'Privacy policy'   },
   ],
 ]
 
-export function Menu({ onLogout, onLikedPosts }: { onLogout?: () => void; onLikedPosts?: () => void }) {
+export function Menu({ onLogout, onLikedPosts, onSupport }: {
+  onLogout?: () => void
+  onLikedPosts?: () => void
+  onSupport?: () => void
+}) {
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       {/* Top bar */}
@@ -50,7 +56,10 @@ export function Menu({ onLogout, onLikedPosts }: { onLogout?: () => void; onLike
         <div key={gi}>
           <div style={{ height: 8, background: C.surface }} />
           {group.map(({ icon, label, badge, action }) => (
-            <div key={label} onClick={() => action === 'liked' && onLikedPosts?.()} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer', borderBottom: `0.5px solid ${C.border}` }}>
+            <div key={label} onClick={() => {
+              if (action === 'liked')   onLikedPosts?.()
+              if (action === 'support') onSupport?.()
+            }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer', borderBottom: `0.5px solid ${C.border}` }}>
               <i className={`ti ${icon}`} style={{ fontSize: 20, color: C.muted }} />
               <span style={{ flex: 1, fontSize: 14, color: C.text }}>{label}</span>
               {badge && (

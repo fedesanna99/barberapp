@@ -6,6 +6,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 export type BookingStatus = 'pending' | 'confirmed' | 'done' | 'cancelled'
 export type UserRole = 'client' | 'barber' | 'admin'
 export type LogLevel = 'info' | 'warning' | 'error'
+export type ConvStatus = 'open' | 'closed'
 
 export type Database = {
   public: {
@@ -273,6 +274,72 @@ export type Database = {
         Update: Record<string, never>
         Relationships: []
       }
+      support_conversations: {
+        Row: {
+          id: string
+          user_id: string
+          status: ConvStatus
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          status?: ConvStatus
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: ConvStatus
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'support_conversations_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      support_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          sender_id: string
+          is_admin: boolean
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          sender_id: string
+          is_admin?: boolean
+          content: string
+          created_at?: string
+        }
+        Update: {
+          content?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'support_messages_conversation_id_fkey'
+            columns: ['conversation_id']
+            isOneToOne: false
+            referencedRelation: 'support_conversations'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'support_messages_sender_id_fkey'
+            columns: ['sender_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       user_posts: {
         Row: {
           id: string
@@ -340,6 +407,8 @@ export type Like         = Database['public']['Tables']['likes']['Row']
 export type Availability = Database['public']['Tables']['availability']['Row']
 export type Booking      = Database['public']['Tables']['bookings']['Row']
 export type UserPost     = Database['public']['Tables']['user_posts']['Row']
+export type SupportConversation = Database['public']['Tables']['support_conversations']['Row']
+export type SupportMessage      = Database['public']['Tables']['support_messages']['Row']
 
 // Joined shapes used by hooks
 export type BarberWithProfile = Barber & {
