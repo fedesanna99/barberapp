@@ -64,14 +64,16 @@ export default function App() {
   // Real-time toast for clients when a barber confirms or cancels their booking
   useBookingToast(!isBarber ? userId : undefined, setToast)
 
-  // C1: sync Supabase session → loggedIn (handles Google OAuth redirect)
+  // C1: sync Supabase session → loggedIn (handles Google OAuth redirect).
+  // Only ever set role flags to true here — never clear them — so a transient
+  // SIGNED_OUT→TOKEN_REFRESHED from Supabase doesn't strip the barber/admin nav.
+  // Clearing happens only in the explicit logout handler below.
   useEffect(() => {
     if (IS_DEMO || loading) return
     if (session) {
       setLoggedIn(true)
-      setIsBarber(roleIsBarber)
-      setIsAdmin(roleIsAdmin)
-      if (roleIsAdmin) setScreen('admin')
+      if (roleIsBarber) setIsBarber(true)
+      if (roleIsAdmin) { setIsAdmin(true); setScreen('admin') }
     }
   }, [session, roleIsBarber, roleIsAdmin, loading])
 
