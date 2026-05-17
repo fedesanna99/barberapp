@@ -6,7 +6,7 @@ import type { DemoBarber } from '../lib/demoData'
 import { useFeed, accentFromId, initialsFromName } from '../hooks/useFeed'
 import type { FeedPost } from '../hooks/useFeed'
 import { supabase, IS_DEMO } from '../lib/supabase'
-import { uploadPostPhoto } from '../hooks/useUpload'
+import { uploadPostPhoto, validateImageType } from '../hooks/useUpload'
 import { CommentsSheet } from './CommentsSheet'
 import type { Comment } from './CommentsSheet'
 
@@ -336,6 +336,13 @@ function NewPostSheet({
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
+    try {
+      validateImageType(f)
+    } catch (err) {
+      setPostError(err instanceof Error ? err.message : 'Invalid file')
+      e.target.value = ''
+      return
+    }
     setFile(f)
     setPreview(URL.createObjectURL(f))
   }
@@ -376,7 +383,7 @@ function NewPostSheet({
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           onChange={handleFile}
           style={{ display: 'none' }}
         />

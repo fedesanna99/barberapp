@@ -6,7 +6,7 @@ import { useClientBookings } from '../hooks/useBooking'
 import { useProfile } from '../hooks/useProfile'
 import { useFollows } from '../hooks/useFollows'
 import { useBarberInfo } from '../hooks/useBarberInfo'
-import { uploadAvatar, uploadPostPhoto, uploadUserPostPhoto } from '../hooks/useUpload'
+import { uploadAvatar, uploadPostPhoto, uploadUserPostPhoto, validateImageType } from '../hooks/useUpload'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import type { BookingWithBarber } from '../hooks/useBooking'
 import type { Post, UserPost } from '../types/supabase'
@@ -49,6 +49,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const postInputRef   = useRef<HTMLInputElement>(null)
   const [uploading,        setUploading]        = useState(false)
+  const [uploadError,      setUploadError]      = useState<string | null>(null)
   const [ownPosts,         setOwnPosts]         = useState<Post[]>([])
   const [userPosts,        setUserPosts]        = useState<UserPost[]>([])
   const [showNewUserPost,  setShowNewUserPost]  = useState(false)
@@ -110,10 +111,13 @@ export function Profile({ userId, isBarber, barberId }: Props) {
     const file = e.target.files?.[0]
     if (!file || !userId) return
     setUploading(true)
+    setUploadError(null)
     try {
       const url = await uploadAvatar(file, userId)
       await updateAvatarUrl(url)
-    } catch { /* silent */ }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+    }
     setUploading(false)
     e.target.value = ''
   }
@@ -122,6 +126,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
     const file = e.target.files?.[0]
     if (!file || !isBarber || !barberId) return
     setUploading(true)
+    setUploadError(null)
     try {
       const url = await uploadPostPhoto(file, barberId)
       if (!IS_DEMO) {
@@ -138,7 +143,9 @@ export function Profile({ userId, isBarber, barberId }: Props) {
           created_at: new Date().toISOString(),
         }, ...prev])
       }
-    } catch { /* silent */ }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+    }
     setUploading(false)
     e.target.value = ''
   }
@@ -230,6 +237,12 @@ export function Profile({ userId, isBarber, barberId }: Props) {
           </div>
         )}
 
+        {uploadError && (
+          <div style={{ marginTop: 8, fontSize: 12, color: '#e53e3e', textAlign: 'center', padding: '0 24px', cursor: 'pointer' }} onClick={() => setUploadError(null)}>
+            {uploadError}
+          </div>
+        )}
+
         {isBarber && (
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             {barberInfo.shop_name && (
@@ -297,8 +310,8 @@ export function Profile({ userId, isBarber, barberId }: Props) {
         </div>
       )}
 
-      <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
-      <input ref={postInputRef}   type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePostChange} />
+      <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handleAvatarChange} />
+      <input ref={postInputRef}   type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handlePostChange} />
     </div>
 
     {/* Post feed overlay — barbers */}
@@ -609,6 +622,13 @@ function NewUserPostSheet({
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
+    try {
+      validateImageType(f)
+    } catch (err) {
+      setPostError(err instanceof Error ? err.message : 'Invalid file')
+      e.target.value = ''
+      return
+    }
     setFile(f)
     setPreview(URL.createObjectURL(f))
   }
@@ -641,7 +661,7 @@ function NewUserPostSheet({
             <i className="ti ti-x" style={{ fontSize: 18, color: C.muted }} />
           </button>
         </div>
-        <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFile} style={{ display: 'none' }} />
         <div
           onClick={() => fileRef.current?.click()}
           style={{
