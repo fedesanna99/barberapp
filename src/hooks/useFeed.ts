@@ -63,7 +63,7 @@ let demoPosts: FeedPost[] = POSTS.map(p => {
 
 const PAGE = 12
 
-export function useFeed(userId: string | undefined, ownBarberId?: string) {
+export function useFeed(userId: string | undefined, _ownBarberId?: string) {
   const [posts, setPosts] = useState<FeedPost[]>([])
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(0)
