@@ -36,9 +36,9 @@ export function initialsFromName(name: string | null): string {
 
 function timeAgo(iso: string): string {
   const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000)
-  if (h < 1) return 'Just now'
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
+  if (h < 1) return 'Adesso'
+  if (h < 24) return `${h}h fa`
+  return `${Math.floor(h / 24)}g fa`
 }
 
 // Module-level mutable store so barber posts survive screen switches in demo mode
