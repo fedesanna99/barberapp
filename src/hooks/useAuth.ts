@@ -52,6 +52,7 @@ export function useAuth() {
   const signOut = () => supabase.auth.signOut()
 
   const isBarber = profile?.role === 'barber'
+  const isAdmin  = profile?.role === 'admin'
 
-  return { session, profile, isBarber, loading, signInWithGoogle, signOut }
+  return { session, profile, isBarber, isAdmin, loading, signInWithGoogle, signOut }
 }

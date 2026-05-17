@@ -11,13 +11,14 @@ import { Discover } from './screens/Discover'
 import { Profile } from './screens/Profile'
 import { Menu } from './screens/Menu'
 import { BarberDashboard } from './screens/BarberDashboard'
+import { AdminPanel } from './screens/AdminPanel'
 import { BookingSheet } from './screens/BookingSheet'
 import { BarberProfileSheet } from './screens/BarberProfileSheet'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
 import type { DemoBarber, DemoDate } from './lib/demoData'
 
-type ScreenId = 'feed' | 'discover' | 'profile' | 'menu' | 'dashboard'
+type ScreenId = 'feed' | 'discover' | 'profile' | 'menu' | 'dashboard' | 'admin'
 type AuthView = 'login' | 'register'
 
 const CLIENT_NAV: { id: ScreenId; icon: string; label: string }[] = [
@@ -35,12 +36,20 @@ const BARBER_NAV: { id: ScreenId; icon: string; label: string }[] = [
   { id: 'menu',      icon: 'ti-menu-2',            label: 'Menu'      },
 ]
 
+const ADMIN_NAV: { id: ScreenId; icon: string; label: string }[] = [
+  { id: 'feed',    icon: 'ti-layout-grid',   label: 'Feed'    },
+  { id: 'discover', icon: 'ti-map-search',   label: 'Discover' },
+  { id: 'admin',   icon: 'ti-shield-lock',   label: 'Admin'   },
+  { id: 'menu',    icon: 'ti-menu-2',        label: 'Menu'    },
+]
+
 export default function App() {
-  const { session, isBarber: roleIsBarber, loading, signOut } = useAuth()
+  const { session, isBarber: roleIsBarber, isAdmin: roleIsAdmin, loading, signOut } = useAuth()
   const userId = session?.user.id
 
   const [loggedIn, setLoggedIn]         = useState(false)
   const [isBarber, setIsBarber]         = useState(false)
+  const [isAdmin, setIsAdmin]           = useState(false)
   const [authView, setAuthView]         = useState<AuthView>('login')
   const [screen, setScreen]             = useState<ScreenId>('feed')
   const [bookingBarber, setBookingBarber] = useState<DemoBarber | null>(null)
@@ -60,13 +69,17 @@ export default function App() {
     if (session) {
       setLoggedIn(true)
       setIsBarber(roleIsBarber)
+      setIsAdmin(roleIsAdmin)
+      if (roleIsAdmin) setScreen('admin')
     }
-  }, [session, roleIsBarber, loading])
+  }, [session, roleIsBarber, roleIsAdmin, loading])
 
-  function handleLogin(asBarber = false) {
+  function handleLogin(asBarber = false, asAdmin = false) {
     setLoggedIn(true)
     setIsBarber(asBarber)
-    if (asBarber) setScreen('dashboard')
+    setIsAdmin(asAdmin)
+    if (asAdmin)       setScreen('admin')
+    else if (asBarber) setScreen('dashboard')
   }
 
   // C2: actually write the booking to the DB on confirm
@@ -135,10 +148,16 @@ export default function App() {
                 <BarberDashboard barberId={barberId} />
               </div>
             )}
+            {isAdmin && (
+              <div style={{ flex: screen === 'admin' ? 1 : 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <AdminPanel />
+              </div>
+            )}
             {screen === 'menu'      && <Menu onLogout={async () => {
               await signOut()
               setLoggedIn(false)
               setIsBarber(false)
+              setIsAdmin(false)
               setScreen('feed')
               setAuthView('login')
             }} onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }} />}
@@ -164,7 +183,7 @@ export default function App() {
           flexShrink: 0,
         }}>
           <div style={{ height: 64, display: 'flex' }}>
-            {(isBarber ? BARBER_NAV : CLIENT_NAV).map(({ id, icon, label }) => {
+            {(isAdmin ? ADMIN_NAV : isBarber ? BARBER_NAV : CLIENT_NAV).map(({ id, icon, label }) => {
               const active = screen === id
               return (
                 <button

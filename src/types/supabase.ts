@@ -4,7 +4,8 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
 export type BookingStatus = 'pending' | 'confirmed' | 'done' | 'cancelled'
-export type UserRole = 'client' | 'barber'
+export type UserRole = 'client' | 'barber' | 'admin'
+export type LogLevel = 'info' | 'warning' | 'error'
 
 export type Database = {
   public: {
@@ -248,6 +249,30 @@ export type Database = {
           }
         ]
       }
+      app_logs: {
+        Row: {
+          id: string
+          level: LogLevel
+          action: string
+          message: string
+          user_id: string | null
+          user_email: string | null
+          metadata: Record<string, unknown> | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          level?: LogLevel
+          action: string
+          message: string
+          user_id?: string | null
+          user_email?: string | null
+          metadata?: Record<string, unknown> | null
+          created_at?: string
+        }
+        Update: Record<string, never>
+        Relationships: []
+      }
       user_posts: {
         Row: {
           id: string
@@ -291,6 +316,7 @@ export type Database = {
 }
 
 // Convenience row types
+export type AppLog       = Database['public']['Tables']['app_logs']['Row']
 export type Profile      = Database['public']['Tables']['profiles']['Row']
 export type Barber       = Database['public']['Tables']['barbers']['Row']
 export type Post         = Database['public']['Tables']['posts']['Row']

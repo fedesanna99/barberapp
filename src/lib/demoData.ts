@@ -113,3 +113,47 @@ export function getNext7Days(): DemoDate[] {
 export function getBarberById(id: string): DemoBarber | undefined {
   return BARBERS.find(b => b.id === id)
 }
+
+// ── Admin panel demo data ──────────────────────────────────────────────────
+
+export interface DemoAdminUser {
+  id: string
+  email: string
+  display_name: string
+  role: 'client' | 'barber' | 'admin'
+  created_at: string
+}
+
+export const DEMO_ADMIN_USERS: DemoAdminUser[] = [
+  { id: 'u0', email: 'admin@cutbook.it',    display_name: 'Admin',        role: 'admin',  created_at: '2026-01-01T10:00:00Z' },
+  { id: 'u1', email: 'marco@cutbook.it',    display_name: 'Marco Barba',  role: 'barber', created_at: '2026-02-15T09:30:00Z' },
+  { id: 'u2', email: 'fadi@cutbook.it',     display_name: 'Fadi Nour',    role: 'barber', created_at: '2026-02-20T11:00:00Z' },
+  { id: 'u3', email: 'nico@cutbook.it',     display_name: 'Nico Testa',   role: 'barber', created_at: '2026-03-01T08:00:00Z' },
+  { id: 'u4', email: 'andrea@cutbook.it',   display_name: 'Andrea G.',    role: 'client', created_at: '2026-03-10T14:00:00Z' },
+  { id: 'u5', email: 'luca.r@cutbook.it',   display_name: 'Luca R.',      role: 'client', created_at: '2026-03-12T16:30:00Z' },
+  { id: 'u6', email: 'marco.t@cutbook.it',  display_name: 'Marco T.',     role: 'client', created_at: '2026-04-01T08:00:00Z' },
+  { id: 'u7', email: 'davide@cutbook.it',   display_name: 'Davide M.',    role: 'client', created_at: '2026-04-15T10:00:00Z' },
+]
+
+export interface DemoLog {
+  id: string
+  level: 'info' | 'warning' | 'error'
+  action: string
+  message: string
+  user_email: string | null
+  user_id: string | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+}
+
+export const DEMO_LOGS: DemoLog[] = [
+  { id: 'l1', level: 'info',    action: 'auth.login',         message: 'Accesso riuscito',                                    user_email: 'andrea@cutbook.it',  user_id: 'u4', metadata: null,                    created_at: '2026-05-17T10:32:00Z' },
+  { id: 'l2', level: 'info',    action: 'booking.created',    message: 'Nuova prenotazione per Marco Barba alle 10:00',       user_email: 'andrea@cutbook.it',  user_id: 'u4', metadata: { barber_id: 'u1' },    created_at: '2026-05-17T10:35:00Z' },
+  { id: 'l3', level: 'info',    action: 'booking.confirmed',  message: 'Prenotazione confermata dal barbiere',                user_email: 'marco@cutbook.it',   user_id: 'u1', metadata: null,                    created_at: '2026-05-17T10:37:00Z' },
+  { id: 'l4', level: 'warning', action: 'booking.conflict',   message: 'Tentativo di doppia prenotazione per slot 11:30',     user_email: 'luca.r@cutbook.it',  user_id: 'u5', metadata: { slot: '11:30' },      created_at: '2026-05-17T11:00:00Z' },
+  { id: 'l5', level: 'error',   action: 'upload.failed',      message: 'Caricamento foto fallito: dimensione superiore a 5MB', user_email: 'marco@cutbook.it',  user_id: 'u1', metadata: { size_mb: 7.2 },       created_at: '2026-05-17T11:15:00Z' },
+  { id: 'l6', level: 'warning', action: 'auth.failed',        message: 'Tentativo di accesso fallito (credenziali errate)',   user_email: 'unknown@user.it',    user_id: null, metadata: null,                    created_at: '2026-05-17T12:10:00Z' },
+  { id: 'l7', level: 'info',    action: 'auth.logout',        message: 'Disconnessione effettuata',                          user_email: 'andrea@cutbook.it',  user_id: 'u4', metadata: null,                    created_at: '2026-05-17T12:30:00Z' },
+  { id: 'l8', level: 'error',   action: 'db.query_timeout',   message: 'Timeout query sulla tabella bookings (>5s)',          user_email: null,                 user_id: null, metadata: { table: 'bookings' },   created_at: '2026-05-17T13:00:00Z' },
+  { id: 'l9', level: 'info',    action: 'booking.cancelled',  message: 'Prenotazione cancellata dal cliente',                user_email: 'davide@cutbook.it',  user_id: 'u7', metadata: null,                    created_at: '2026-05-17T13:45:00Z' },
+]

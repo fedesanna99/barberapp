@@ -12,7 +12,7 @@ const GoogleLogo = () => (
 )
 
 interface Props {
-  onLogin: (asBarber?: boolean) => void
+  onLogin: (asBarber?: boolean, asAdmin?: boolean) => void
   onGoToRegister: () => void
 }
 
@@ -48,6 +48,7 @@ export function Login({ onLogin, onGoToRegister }: Props) {
 
     // Check actual role stored in the profiles table
     let asBarber = false
+    let asAdmin  = false
     if (data.user) {
       const { data: profile } = await supabase
         .from('profiles')
@@ -55,9 +56,10 @@ export function Login({ onLogin, onGoToRegister }: Props) {
         .eq('id', data.user.id)
         .single()
       asBarber = profile?.role === 'barber'
+      asAdmin  = profile?.role === 'admin'
     }
     setLoading(false)
-    onLogin(asBarber)
+    onLogin(asBarber, asAdmin)
   }
 
   function handleGoogle() {
@@ -77,11 +79,14 @@ export function Login({ onLogin, onGoToRegister }: Props) {
         </div>
         <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: C.text }}>Chi sei?</p>
         <p style={{ margin: '-8px 0 8px', fontSize: 13, color: C.muted }}>Scegli il tuo ruolo per continuare</p>
-        <button onClick={() => onLogin(false)} style={roleBtn(false)}>
+        <button onClick={() => onLogin(false, false)} style={roleBtn('client')}>
           <i className="ti ti-user" style={{ fontSize: 22 }} /> Cliente
         </button>
-        <button onClick={() => onLogin(true)} style={roleBtn(true)}>
+        <button onClick={() => onLogin(true, false)} style={roleBtn('barber')}>
           <i className="ti ti-scissors" style={{ fontSize: 22 }} /> Barbiere
+        </button>
+        <button onClick={() => onLogin(false, true)} style={roleBtn('admin')}>
+          <i className="ti ti-shield-lock" style={{ fontSize: 22 }} /> Admin
         </button>
         <button onClick={() => setGoogleRole(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.hint, fontFamily: 'inherit', padding: 4 }}>
           ← indietro
@@ -239,14 +244,15 @@ function inputStyle(borderColor: string): React.CSSProperties {
   }
 }
 
-function roleBtn(isBarber: boolean): React.CSSProperties {
+function roleBtn(role: 'client' | 'barber' | 'admin'): React.CSSProperties {
+  const outlined = role !== 'client'
   return {
     width: '100%', height: 52, borderRadius: 14,
-    border: isBarber ? `1.5px solid ${C.accent}` : 'none',
-    background: isBarber ? C.accentLight : C.accent,
+    border: outlined ? `1.5px solid ${C.accent}` : 'none',
+    background: outlined ? C.accentLight : C.accent,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
     fontFamily: 'inherit', fontWeight: 700, fontSize: 15,
-    color: isBarber ? C.accent : '#fff',
+    color: outlined ? C.accent : '#fff',
   }
 }
