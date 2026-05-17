@@ -88,7 +88,7 @@ const DEMO_PENDING: DemoBarberBooking = { id: 'b0', client: 'Giulio M.', initial
 
 function BookingsTab({ barberId }: { barberId?: string }) {
   const isDemo = IS_DEMO || !barberId
-  const { bookings: real } = useBarberBookings(barberId)
+  const { bookings: real, refetch } = useBarberBookings(barberId)
   const { cancelBooking, confirmBooking, markDone } = useBooking()
   const [demoList, setDemoList] = useState<DemoBarberBooking[]>([DEMO_PENDING, ...DEMO_BARBER_BOOKINGS])
   const [autoAccept, setAutoAccept] = useState(false)
@@ -106,14 +106,14 @@ function BookingsTab({ barberId }: { barberId?: string }) {
     if (isDemo) {
       setDemoList(prev => prev.map(b => b.status === 'pending' ? { ...b, status: 'confirmed' as const } : b))
     } else {
-      real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id))
+      real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id).then(() => refetch()))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoAccept, isDemo])
 
   useEffect(() => {
     if (!autoAccept || isDemo) return
-    real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id))
+    real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id).then(() => refetch()))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [real])
 
@@ -125,6 +125,12 @@ function BookingsTab({ barberId }: { barberId?: string }) {
     } else {
       setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'done' as const } : b))
     }
+  }
+
+  function act(id: string, action: 'confirm' | 'cancel' | 'done') {
+    if (isDemo) { demoAction(id, action); return }
+    const call = action === 'confirm' ? confirmBooking : action === 'cancel' ? cancelBooking : markDone
+    call(id).then(() => refetch())
   }
 
   return (
@@ -141,8 +147,8 @@ function BookingsTab({ barberId }: { barberId?: string }) {
           ? <EmptyState icon="ti-clock" text="No pending requests" />
           : pending.map(r => (
               <BookingCard key={r.id} row={r}
-                onConfirm={() => isDemo ? demoAction(r.id, 'confirm') : confirmBooking(r.id)}
-                onDecline={() => isDemo ? demoAction(r.id, 'cancel')  : cancelBooking(r.id)}
+                onConfirm={() => act(r.id, 'confirm')}
+                onDecline={() => act(r.id, 'cancel')}
               />
             ))
         }
@@ -152,8 +158,8 @@ function BookingsTab({ barberId }: { barberId?: string }) {
           ? <EmptyState icon="ti-calendar-off" text="No upcoming appointments" />
           : upcoming.map(r => (
               <BookingCard key={r.id} row={r}
-                onMarkDone={() => isDemo ? demoAction(r.id, 'done')   : markDone(r.id)}
-                onCancel={() => isDemo   ? demoAction(r.id, 'cancel') : cancelBooking(r.id)}
+                onMarkDone={() => act(r.id, 'done')}
+                onCancel={() => act(r.id, 'cancel')}
               />
             ))
         }

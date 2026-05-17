@@ -128,7 +128,7 @@ export default function App() {
             {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} />}
             {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
             {isBarber && (
-              <div style={{ display: screen === 'dashboard' ? 'flex' : 'none', position: 'absolute', inset: 0, flexDirection: 'column', background: C.bg }}>
+              <div style={{ flex: screen === 'dashboard' ? 1 : 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <BarberDashboard barberId={barberId} />
               </div>
             )}

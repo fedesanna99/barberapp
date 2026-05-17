@@ -1,6 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import { useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Booking, BookingStatus } from '../types/supabase'
 
@@ -165,5 +164,15 @@ export function useBarberBookings(barberId: string | undefined) {
     return () => { channelRef.current?.unsubscribe() }
   }, [barberId])
 
-  return { bookings }
+  const refetch = useCallback(() => {
+    if (!barberId) return
+    supabase
+      .from('bookings')
+      .select(BARBER_SELECT)
+      .eq('barber_id', barberId)
+      .order('date', { ascending: true })
+      .then(({ data }) => { if (data) setBookings(data as BookingWithClient[]) })
+  }, [barberId])
+
+  return { bookings, refetch }
 }
