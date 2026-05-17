@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase, supabaseAdmin, IS_DEMO } from '../lib/supabase'
-import { DEMO_LOGS } from '../lib/demoData'
 import type { AppLog } from '../types/supabase'
 
 export type { AppLog }
 
 // ── Demo in-memory log store ───────────────────────────────────────────────
 
-let demoStore: AppLog[] = [...(DEMO_LOGS as unknown as AppLog[])].sort(
-  (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-)
+let demoStore: AppLog[] = []
 const demoSubs = new Set<(logs: AppLog[]) => void>()
 
 function demoNotify() {
