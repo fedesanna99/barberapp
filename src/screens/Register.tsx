@@ -60,10 +60,6 @@ export function Register({ onRegister, onGoToLogin }: Props) {
 
     // If barber and session is available (email confirmation disabled), create the barbers row.
     // The handle_new_barber trigger will flip the profile role to 'barber' automatically.
-    if (role === 'barber' && data.user) {
-      await supabase.from('barbers').insert({ profile_id: data.user.id })
-    }
-
     setLoading(false)
     onRegister(role === 'barber')
   }
