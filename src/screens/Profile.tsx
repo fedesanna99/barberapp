@@ -267,9 +267,9 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       {/* Stats */}
       <div style={{ display: 'flex', borderTop: `0.5px solid ${C.border}`, borderBottom: `0.5px solid ${C.border}`, marginBottom: 16 }}>
         {([
-          [String(cutsCount),     'Cuts logged'],
+          [String(cutsCount),     'Fresh cuts'],
           [String(barbersCount),  'Barbers'],
-          [String(upcomingCount), 'Upcoming'],
+          [String(upcomingCount), 'Followers'],
         ] as [string, string][]).map(([val, label], i) => (
           <div key={label} style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderLeft: i > 0 ? `0.5px solid ${C.border}` : 'none' }}>
             <div style={{ fontSize: 20, fontWeight: 500, color: C.text }}>{val}</div>

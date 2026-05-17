@@ -4,6 +4,7 @@ import { POSTS } from '../lib/demoData'
 import type { DemoBarber } from '../lib/demoData'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { useBarberInfo } from '../hooks/useBarberInfo'
+import { useFollow } from '../hooks/useFollow'
 
 interface BarberPost {
   id: string
@@ -25,12 +26,16 @@ interface Props {
   barber: DemoBarber
   onClose: () => void
   onBook: (barber: DemoBarber) => void
+  userId?: string
+  isBarber?: boolean
 }
 
-export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
+export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber }: Props) {
   const [posts, setPosts]             = useState<BarberPost[]>([])
   const [feedStartIdx, setFeedStartIdx] = useState<number | null>(null)
   const { info } = useBarberInfo(IS_DEMO ? undefined : String(barber.id), undefined)
+  const { isFollowing, followersCount, toggle: toggleFollow, loading: followLoading } =
+    useFollow(userId, IS_DEMO ? undefined : String(barber.id))
 
   useEffect(() => {
     if (IS_DEMO) {
@@ -96,13 +101,6 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
             </div>
           </div>
           <div style={{ fontSize: 20, fontWeight: 500, color: C.text, marginTop: 10 }}>{barber.name}</div>
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-            <i className="ti ti-map-pin" style={{ fontSize: 12 }} />
-            {barber.city}
-            <span style={{ color: C.borderMed }}>·</span>
-            <i className="ti ti-star-filled" style={{ fontSize: 11, color: '#EF9F27' }} />
-            {barber.rating}
-          </div>
           <div style={{ marginTop: 10, display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
             {barber.tags.map(tag => (
               <span key={tag} style={{
@@ -114,6 +112,26 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
               </span>
             ))}
           </div>
+
+          {!isBarber && (
+            <button
+              onClick={toggleFollow}
+              disabled={followLoading}
+              style={{
+                marginTop: 14,
+                padding: '8px 24px', borderRadius: 20,
+                background: isFollowing ? C.surface : barber.accent,
+                color: isFollowing ? C.muted : '#fff',
+                border: isFollowing ? `0.5px solid ${C.borderMed}` : 'none',
+                fontSize: 13, fontWeight: 500, cursor: followLoading ? 'default' : 'pointer',
+                fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 6,
+                transition: 'background .15s, color .15s',
+              }}
+            >
+              <i className={`ti ${isFollowing ? 'ti-user-check' : 'ti-user-plus'}`} style={{ fontSize: 14 }} />
+              {isFollowing ? 'Following' : 'Follow'}
+            </button>
+          )}
 
           {(info.shop_name || info.address || info.phone || info.social_link) && (
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
@@ -152,9 +170,9 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
         {/* Stats */}
         <div style={{ display: 'flex', borderTop: `0.5px solid ${C.border}`, borderBottom: `0.5px solid ${C.border}`, marginBottom: 2 }}>
           {([
-            [String(barber.followers), 'Followers'],
-            [barber.rating.toFixed(1),  'Rating'],
-            [String(posts.length),       'Posts'],
+            [followersCount !== null ? String(followersCount) : String(barber.followers), 'Followers'],
+            [barber.rating.toFixed(1), 'Rating'],
+            [String(posts.length),     'Posts'],
           ] as [string, string][]).map(([val, label], i) => (
             <div key={label} style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderLeft: i > 0 ? `0.5px solid ${C.border}` : 'none' }}>
               <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>{val}</div>

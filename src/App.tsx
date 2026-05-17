@@ -146,6 +146,8 @@ export default function App() {
             barber={profileBarber}
             onClose={() => setProfileBarber(null)}
             onBook={setBookingBarber}
+            userId={userId}
+            isBarber={isBarber}
           />
         ) : (
           <>
