@@ -1,7 +1,24 @@
 import { useState, useRef, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { POSTS } from '../lib/demoData'
-import type { DemoBarber, DemoPost } from '../lib/demoData'
+import type { DemoBarber } from '../lib/demoData'
+import { supabase, IS_DEMO } from '../lib/supabase'
+
+interface BarberPost {
+  id: string
+  label: string
+  caption: string
+  likes: number
+  timeAgo: string
+  imageUrl?: string
+}
+
+function timeAgoStr(iso: string): string {
+  const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000)
+  if (h < 1) return 'Just now'
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
 
 interface Props {
   barber: DemoBarber
@@ -10,9 +27,43 @@ interface Props {
 }
 
 export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
-  const barberPosts = POSTS.filter(p => p.barberId === barber.id)
-  const totalCells  = Math.max(barberPosts.length, 6)
+  const [posts, setPosts]             = useState<BarberPost[]>([])
   const [feedStartIdx, setFeedStartIdx] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (IS_DEMO) {
+      setPosts(
+        POSTS.filter(p => p.barberId === barber.id).map(p => ({
+          id:       String(p.id),
+          label:    p.label,
+          caption:  p.caption,
+          likes:    p.likes,
+          timeAgo:  p.timeAgo,
+          imageUrl: p.imageUrl,
+        }))
+      )
+      return
+    }
+    supabase
+      .from('posts')
+      .select('id, label, caption, likes_count, created_at, image_url')
+      .eq('barber_id', barber.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) {
+          setPosts(data.map(p => ({
+            id:       p.id,
+            label:    p.label ?? '',
+            caption:  p.caption ?? '',
+            likes:    p.likes_count ?? 0,
+            timeAgo:  timeAgoStr(p.created_at),
+            imageUrl: p.image_url ?? undefined,
+          })))
+        }
+      })
+  }, [barber.id])
+
+  const totalCells = Math.max(posts.length, 6)
 
   return (
     <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -68,7 +119,7 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
           {([
             [String(barber.followers), 'Followers'],
             [barber.rating.toFixed(1),  'Rating'],
-            [String(totalCells),         'Posts'],
+            [String(posts.length),       'Posts'],
           ] as [string, string][]).map(([val, label], i) => (
             <div key={label} style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderLeft: i > 0 ? `0.5px solid ${C.border}` : 'none' }}>
               <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>{val}</div>
@@ -80,7 +131,7 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
         {/* Posts grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
           {Array.from({ length: totalCells }).map((_, i) => {
-            const post = barberPosts[i]
+            const post = posts[i]
             return (
               <div
                 key={i}
@@ -91,7 +142,10 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
-                <i className="ti ti-scissors" style={{ fontSize: 28, color: barber.accent, opacity: 0.4 }} />
+                {post?.imageUrl
+                  ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <i className="ti ti-scissors" style={{ fontSize: 28, color: barber.accent, opacity: 0.4 }} />
+                }
                 {post && (
                   <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -128,7 +182,7 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
       {/* Post feed overlay */}
       {feedStartIdx !== null && (
         <PostsFeed
-          posts={barberPosts}
+          posts={posts}
           startIdx={feedStartIdx}
           barber={barber}
           onClose={() => setFeedStartIdx(null)}
@@ -139,7 +193,7 @@ export function BarberProfileSheet({ barber, onClose, onBook }: Props) {
 }
 
 function PostsFeed({ posts, startIdx, barber, onClose }: {
-  posts: DemoPost[]
+  posts: BarberPost[]
   startIdx: number
   barber: DemoBarber
   onClose: () => void
