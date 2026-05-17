@@ -54,10 +54,12 @@ export function Discover({ onBook, onViewProfile }: DiscoverProps) {
 
   const { barbers: realBarbers, loading } = useBarbers(sort, userLat, userLng)
 
+  const q = search.trim().toLowerCase()
   const matchesSearch = (b: DemoBarber) =>
-    !search ||
-    b.name.toLowerCase().includes(search.toLowerCase()) ||
-    b.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
+    !q ||
+    b.name.toLowerCase().includes(q) ||
+    b.city.toLowerCase().includes(q) ||
+    b.tags.some(t => t.toLowerCase().includes(q))
 
   const sorted: DemoBarber[] = !loading && realBarbers.length > 0
     ? realBarbers.map(b => toDisplayBarber(b, userLat, userLng)).filter(matchesSearch)
@@ -76,7 +78,10 @@ export function Discover({ onBook, onViewProfile }: DiscoverProps) {
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
         <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>Discover</span>
-        <button onClick={() => setShowSearch(s => !s)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}>
+        <button
+          onClick={() => setShowSearch(s => { if (s) setSearch(''); return !s })}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}
+        >
           <i className="ti ti-search" style={{ fontSize: 22, color: showSearch ? C.text : C.muted }} />
         </button>
       </div>
