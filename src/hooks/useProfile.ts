@@ -27,9 +27,14 @@ export function useProfile(userId: string | undefined) {
   }, [userId])
 
   async function updateAvatarUrl(url: string) {
+    const prevUrl = profile.avatar_url
     setProfile(prev => ({ ...prev, avatar_url: url }))
     if (IS_DEMO || !userId) return
-    await supabase.from('profiles').update({ avatar_url: url }).eq('id', userId)
+    const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', userId)
+    if (error) {
+      setProfile(prev => ({ ...prev, avatar_url: prevUrl }))
+      throw new Error(error.message)
+    }
   }
 
   return { profile, updateAvatarUrl }

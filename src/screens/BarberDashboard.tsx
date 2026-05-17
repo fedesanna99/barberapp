@@ -110,14 +110,20 @@ function BookingsTab({ barberId }: { barberId?: string }) {
     if (isDemo) {
       setDemoList(prev => prev.map(b => b.status === 'pending' ? { ...b, status: 'confirmed' as const } : b))
     } else {
-      real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id).then(() => refetch()))
+      real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id).then(({ error }) => {
+        if (error) setActionError(`Auto-accept fallito: ${error.message}`)
+        else refetch()
+      }))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoAccept, isDemo])
 
   useEffect(() => {
     if (!autoAccept || isDemo) return
-    real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id).then(() => refetch()))
+    real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id).then(({ error }) => {
+      if (error) setActionError(`Auto-accept fallito: ${error.message}`)
+      else refetch()
+    }))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [real])
 
