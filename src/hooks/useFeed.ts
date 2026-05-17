@@ -62,7 +62,7 @@ const DEMO_FEED: FeedPost[] = POSTS.map(p => {
 
 const PAGE = 12
 
-export function useFeed(userId: string | undefined) {
+export function useFeed(userId: string | undefined, ownBarberId?: string) {
   const [posts, setPosts] = useState<FeedPost[]>([])
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(0)
@@ -109,6 +109,7 @@ export function useFeed(userId: string | undefined) {
       .eq('follower_id', userId)
       .then(async ({ data: followRows }) => {
         const ids = (followRows ?? []).map(r => r.barber_id)
+        if (ownBarberId && !ids.includes(ownBarberId)) ids.push(ownBarberId)
         if (ids.length === 0) {
           setHasMore(false)
           setLoading(false)

@@ -44,7 +44,7 @@ function postToBarber(p: FeedPost): DemoBarber {
 }
 
 export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLiked = false, onShowLikedChange }: FeedProps) {
-  const feed = useFeed(userId)
+  const feed = useFeed(userId, barberId)
 
   const [saved,        setSaved]        = useState<Record<string, boolean>>({})
   const [comments,     setComments]     = useState<Comment[]>(SEED_COMMENTS)
