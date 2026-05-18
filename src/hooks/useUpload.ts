@@ -4,10 +4,20 @@ const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const AVATAR_MAX_DIM = 400
 const POST_MAX_DIM = 1920
 const JPEG_QUALITY = 0.85
+// Hard cap before compression — refuses oversized uploads that would burn
+// CPU/memory on low-end mobile (e.g. a 50 MB HEIC pretending to be JPG).
+const MAX_INPUT_SIZE = 10 * 1024 * 1024
 
 export function validateImageType(file: File): void {
   if (!ALLOWED_TYPES.has(file.type)) {
     throw new Error('Unsupported file type. Please use JPG, PNG, or WebP.')
+  }
+}
+
+function validateImageSize(file: File): void {
+  if (file.size > MAX_INPUT_SIZE) {
+    const mb = (file.size / 1024 / 1024).toFixed(1)
+    throw new Error(`Immagine troppo grande: ${mb} MB (massimo 10 MB).`)
   }
 }
 
@@ -50,6 +60,7 @@ function compressImage(file: File, maxDim: number): Promise<File> {
 
 export async function uploadAvatar(file: File, userId: string): Promise<string> {
   validateImageType(file)
+  validateImageSize(file)
   const compressed = await compressImage(file, AVATAR_MAX_DIM)
   if (IS_DEMO) return URL.createObjectURL(compressed)
   const path = `${userId}/avatar.jpg`
@@ -71,6 +82,7 @@ export async function uploadAvatar(file: File, userId: string): Promise<string> 
 
 export async function uploadPostPhoto(file: File, barberId: string): Promise<string> {
   validateImageType(file)
+  validateImageSize(file)
   const compressed = await compressImage(file, POST_MAX_DIM)
   if (IS_DEMO) return URL.createObjectURL(compressed)
   const path = `${barberId}/${crypto.randomUUID()}.jpg`
@@ -78,11 +90,14 @@ export async function uploadPostPhoto(file: File, barberId: string): Promise<str
     .from('posts')
     .upload(path, compressed, { contentType: 'image/jpeg' })
   if (error) throw error
-  return supabase.storage.from('posts').getPublicUrl(path).data.publicUrl
+  // Cache-bust suffix parallels the avatar upload — same path can be re-uploaded
+  // (e.g. an edit flow in future) and the CDN would otherwise serve the stale image.
+  return `${supabase.storage.from('posts').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`
 }
 
 export async function uploadUserPostPhoto(file: File, userId: string): Promise<string> {
   validateImageType(file)
+  validateImageSize(file)
   const compressed = await compressImage(file, POST_MAX_DIM)
   if (IS_DEMO) return URL.createObjectURL(compressed)
   const path = `users/${userId}/${crypto.randomUUID()}.jpg`
@@ -90,5 +105,5 @@ export async function uploadUserPostPhoto(file: File, userId: string): Promise<s
     .from('posts')
     .upload(path, compressed, { contentType: 'image/jpeg' })
   if (error) throw error
-  return supabase.storage.from('posts').getPublicUrl(path).data.publicUrl
+  return `${supabase.storage.from('posts').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`
 }

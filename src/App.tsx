@@ -1,6 +1,35 @@
 import { useState, useEffect } from 'react'
 import { C } from './lib/colors'
 import { IS_DEMO } from './lib/supabase'
+
+const DEMO_BANNER_DISMISSED_KEY = 'cutbook_demo_banner_dismissed'
+
+function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '6px 12px',
+      background: C.accentLight, color: C.accentDeep,
+      fontSize: 11, fontWeight: 500, lineHeight: 1.3,
+      borderBottom: `1px solid ${C.border}`,
+      flexShrink: 0,
+    }}>
+      <i className="ph-fill ph-warning-circle" style={{ fontSize: 13, lineHeight: 1 }} />
+      <span style={{ flex: 1 }}>DEMO MODE — nessun dato è persistente.</span>
+      <button
+        onClick={onDismiss}
+        aria-label="Chiudi banner demo"
+        style={{
+          minWidth: 24, minHeight: 24, padding: 0,
+          border: 'none', background: 'transparent', cursor: 'pointer',
+          color: C.accentDeep,
+        }}
+      >
+        <i className="ph-bold ph-x" style={{ fontSize: 12 }} />
+      </button>
+    </div>
+  )
+}
 import { useAuth } from './hooks/useAuth'
 import { writeLog } from './hooks/useAdminLogs'
 import { useBarberByProfile } from './hooks/useBarbers'
@@ -68,6 +97,9 @@ export default function App() {
   const [dmOpen, setDmOpen] = useState<null | { peerId: string; name: string | null; avatar: string | null; role: 'client' | 'barber' }>(null)
   const [showDmList, setShowDmList] = useState(false)
   const [toast, setToast]               = useState<ToastEvent | null>(null)
+  const [demoBannerOpen, setDemoBannerOpen] = useState(
+    () => IS_DEMO && localStorage.getItem(DEMO_BANNER_DISMISSED_KEY) !== 'true'
+  )
 
   const barberId = useBarberByProfile(isBarber ? userId : undefined)
   const { createBooking } = useBooking()
@@ -100,12 +132,22 @@ export default function App() {
         timeSlot: time,
       })
       if (error) {
-        const isConflict = error.message.includes('bookings_no_double')
+        // Postgres error codes are the source of truth — the human-readable
+        // message can vary by DB locale. 23P01 = exclusion violation (the
+        // bookings_no_double constraint, slot already taken). 23514 = check
+        // violation (the migration 024 trigger that prevents a barber from
+        // booking themselves).
+        const code = (error as { code?: string }).code
+        const isConflict = code === '23P01' || error.message.includes('bookings_no_double')
+        const isSelfBook = code === '23514' || /barber.*book.*herself|cannot book themselves/i.test(error.message)
         writeLog('booking.conflict', `Prenotazione fallita: ${error.message}`, 'warning', { userId, metadata: { barber_id: barber.id, time_slot: time } })
-        setToast(isConflict
-          ? { kind: 'error', title: 'Slot non più disponibile', message: 'Quello slot è stato appena occupato — scegli un altro orario.' }
-          : { kind: 'error', title: 'Prenotazione fallita', message: error.message }
-        )
+        if (isConflict) {
+          setToast({ kind: 'error', title: 'Slot non più disponibile', message: 'Quello slot è stato appena occupato — scegli un altro orario.' })
+        } else if (isSelfBook) {
+          setToast({ kind: 'error', title: 'Operazione non consentita', message: 'Non puoi prenotare con te stesso.' })
+        } else {
+          setToast({ kind: 'error', title: 'Prenotazione fallita', message: error.message })
+        }
         return
       }
       writeLog('booking.created', `Nuova prenotazione da ${barber.name} alle ${time}`, 'info', { userId, metadata: { barber_id: barber.id, date: date.date, time_slot: time } })
@@ -138,6 +180,13 @@ export default function App() {
 
       <div style={{ height: 'env(safe-area-inset-top, 0px)', flexShrink: 0, background: C.bg }} />
 
+      {demoBannerOpen && (
+        <DemoBanner onDismiss={() => {
+          localStorage.setItem(DEMO_BANNER_DISMISSED_KEY, 'true')
+          setDemoBannerOpen(false)
+        }} />
+      )}
+
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {showLoading ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -162,7 +211,7 @@ export default function App() {
           />
         ) : (
           <>
-            {screen === 'feed'      && <Feed     userId={userId} barberId={barberId} onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} showSaved={showSavedFeed} onShowSavedChange={setShowSavedFeed} />}
+            {screen === 'feed'      && <Feed     userId={userId} barberId={barberId} onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} showSaved={showSavedFeed} onShowSavedChange={setShowSavedFeed} onToast={setToast} />}
             {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} myBarberId={barberId} />}
             {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} onToast={setToast} />}
             {isBarber && (
@@ -231,6 +280,7 @@ export default function App() {
               avatarUrl:   dmOpen.avatar,
               role:        dmOpen.role,
             } : null}
+            onToast={setToast}
           />
         )}
 

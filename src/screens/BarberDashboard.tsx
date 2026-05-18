@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
 import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
@@ -156,25 +156,38 @@ function BookingsTab({ barberId, onToast }: {
     ? demoList.filter(b => b.status === 'confirmed').map(demoToRow)
     : real.filter(b => (b.status === 'confirmed' || b.status === 'done') && b.date >= TODAY).map(toRow)
 
+  // Tracks booking ids currently being auto-confirmed. Without this guard the
+  // effect below fires on every `real` array change (realtime delivers
+  // INSERT + UPDATE in quick succession), causing the same booking to be
+  // confirmed twice — the second call fails silently but pollutes the logs.
+  const autoAcceptInflight = useRef<Set<string>>(new Set())
+
+  function runAutoAccept(targets: typeof real) {
+    targets.forEach(b => {
+      if (autoAcceptInflight.current.has(b.id)) return
+      autoAcceptInflight.current.add(b.id)
+      confirmBooking(b.id)
+        .then(({ error }) => {
+          if (error) onToast?.({ kind: 'error', title: 'Auto-accept fallito', message: error.message })
+          else refetch()
+        })
+        .finally(() => { autoAcceptInflight.current.delete(b.id) })
+    })
+  }
+
   useEffect(() => {
     if (!autoAccept) return
     if (isDemo) {
       setDemoList(prev => prev.map(b => b.status === 'pending' ? { ...b, status: 'confirmed' as const } : b))
     } else {
-      real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id).then(({ error }) => {
-        if (error) onToast?.({ kind: 'error', title: 'Auto-accept fallito', message: error.message })
-        else refetch()
-      }))
+      runAutoAccept(real.filter(b => b.status === 'pending'))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoAccept, isDemo])
 
   useEffect(() => {
     if (!autoAccept || isDemo) return
-    real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id).then(({ error }) => {
-      if (error) onToast?.({ kind: 'error', title: 'Auto-accept fallito', message: error.message })
-      else refetch()
-    }))
+    runAutoAccept(real.filter(b => b.status === 'pending'))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [real])
 

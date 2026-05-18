@@ -134,3 +134,48 @@
 - **Task 13 (tag profilo)**: chip cliccabile naviga al `BarberProfileSheet` quando il tag è un barbiere. Per tag utente non c'è ancora una `UserProfileSheet` dedicata (chip resta visibile ma il click non naviga; commento `TODO` in codice).
 - **Task 12 (contatori tap-to-list)**: i 3 contatori sono corretti, ma non sono cliccabili per aprire la lista degli elementi (extra opzionale, non bloccante per la spec).
 - **Task 14 (skeleton)**: applicato a Feed, BarberList, Notifications; Profile/MyAppointments seguono un pattern simile (spinner esistente) e possono adottarli con poche righe se voluto.
+
+---
+
+## Hardening pre-produzione (ISTRUZIONI_PRODUZIONE.md)
+
+Sessione del 2026-05-18. Tutti i CRITICAL + HIGH + MEDIUM gestibili in autonomia chiusi.
+Type-check ✅ · Build ✅ (`index.js` 362 kB / 104 kB gz, era 573 kB).
+
+| #  | Task                                                  | Stato | Note                                                                                                |
+|----|--------------------------------------------------------|-------|------------------------------------------------------------------------------------------------------|
+| 1  | Edge Function admin-create-user → is_admin             | ⚠️    | Codice fixato. **Manuale:** `supabase functions deploy admin-create-user`                            |
+| 2  | RLS `booking_slots` view + drop policy permissiva      | ⚠️    | Migration `032_booking_slots_view.sql` creata + hook aggiornato. **Manuale:** applicare al DB prod. |
+| 3  | Fail-fast env vars + DEMO banner                       | ✅    | Guard in `main.tsx` + banner dismissibile in `App.tsx`.                                              |
+| 4  | Sostituire `alert()` con Toast                         | ✅    | Feed (2) + DirectMessages (2). Zero `alert(` rimasti in src/.                                        |
+| 5  | Optimistic rollback su like / comment / save           | ✅    | `useComments` / `useSavedPosts` ritornano `{ error }`; Feed + CommentsSheet surface via toast.       |
+| 6  | Auto-accept booking dedup race                         | ✅    | `autoAcceptInflight` Set in BarberDashboard.                                                         |
+| 7  | Booking conflict via `error.code` (23P01/23514)        | ✅    | App.tsx distingue slot occupato / self-book / generico.                                              |
+| 8  | DEPLOYMENT.md                                          | ✅    | Nuovo file in root + `.env.example` con marker "REQUIRED IN PRODUCTION".                             |
+| 9  | Phosphor Icons → npm (rimuovere CDN unpkg)             | ✅    | `@phosphor-icons/web@2.1.1` installato; import via `/thin /fill /bold`. CSP semplificata.            |
+| 10 | Limite 10 MB sulle upload immagini                     | ✅    | `validateImageSize` in `useUpload.ts` (avatar + post). Bonus: cache-bust anche per post.             |
+| 11 | Tap target slot orari BookingSheet → 44px              | ✅    | `padding: '14px 0', minHeight: 44`.                                                                  |
+| 12 | Tap target close-button sheet → 44px                   | ⏳    | Non fatto — lasciato come polish opzionale (diff massivo su 5+ sheet).                                |
+| 13 | MyAppointments filtra appuntamenti già passati nel dì  | ✅    | Helper `bookingTime(date,time_slot)`; confronto su `Date.now()`.                                     |
+| 14 | `useAdminUsers` try/catch su RPC mancante              | ✅    | Messaggio user-friendly se migration 029 non applicata.                                              |
+| 15 | DM textarea `maxLength={4000}` + contatore             | ✅    | Contatore appare sopra 3800 char.                                                                    |
+| 16 | Status `declined` per bookings                         | ⏸️    | **Decisione di prodotto richiesta** (vedi ISTRUZIONI_PRODUZIONE §5 #16).                             |
+| 17 | Validazione phone in EditBarberInfoSheet               | ✅    | Regex `^[+]?[\d\s()-]{7,}$`, input `type="tel"`, bordo rosso + bottone disabilitato se invalido.    |
+| 18 | aria-label su form AdminPanel                          | ⏳    | Non fatto — polish opzionale.                                                                        |
+| 19 | Storage cleanup on post delete                         | ✅    | Già implementato in commit precedente (Feed.tsx:189-200, usa `extractStoragePath`).                  |
+| 20 | Empty state lista Discover                             | ✅    | Già implementato in BarberList.tsx:61-73.                                                            |
+
+**Polish chiusi** (LOW): cache-bust su `uploadPostPhoto` / `uploadUserPostPhoto`.
+
+### Interventi manuali richiesti all'utente
+
+Da fare PRIMA del go-live:
+
+1. **Deploy Edge Function:** `supabase functions deploy admin-create-user` (senza, AdminPanel non può creare utenti).
+2. **Applicare migration `032_booking_slots_view.sql`** sul DB di produzione (chiude leak RLS bookings — altrimenti privacy bug).
+3. **Impostare env vars su Vercel:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (build fallisce senza). Vedi `DEPLOYMENT.md` §1.
+4. **Allowlist Supabase Auth:** aggiungere dominio Vercel alle Redirect URLs (senza, login Google rompe). Vedi `DEPLOYMENT.md` §2.2.
+
+Decisioni di prodotto in sospeso:
+
+- **Status `declined`:** distinguere "barbiere rifiuta" da "cliente annulla" (oggi entrambi → `cancelled`). Vedi ISTRUZIONI_PRODUZIONE §5 #16.

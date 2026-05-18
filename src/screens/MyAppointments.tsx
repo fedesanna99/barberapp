@@ -12,7 +12,14 @@ interface Props {
   onToast?: (t: ToastEvent | null) => void
 }
 
-const TODAY = new Date().toISOString().split('T')[0]
+// Returns the booking's datetime as ms-since-epoch in local time.
+// Used to move bookings to "past" the instant their slot starts, not at
+// midnight: an 08:00 appointment today belongs in Cronologia from 08:01.
+function bookingTime(date: string, timeSlot: string): number {
+  const [y, m, d] = date.split('-').map(Number)
+  const [hh, mm] = timeSlot.slice(0, 5).split(':').map(Number)
+  return new Date(y, m - 1, d, hh, mm).getTime()
+}
 
 function fmtDate(s: string): string {
   const [y, m, d] = s.split('-').map(Number)
@@ -44,9 +51,19 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [reviewBooking, setReviewBooking] = useState<BookingWithBarber | null>(null)
 
-  const upcoming = bookings.filter(b => b.date >= TODAY && b.status !== 'cancelled' && b.status !== 'done')
-  const past     = bookings.filter(b => b.date < TODAY || b.status === 'done' || b.status === 'cancelled')
-                           .sort((a, b) => b.date.localeCompare(a.date))
+  const now = Date.now()
+  const upcoming = bookings.filter(b =>
+    bookingTime(b.date, b.time_slot) >= now
+    && b.status !== 'cancelled'
+    && b.status !== 'done'
+  )
+  const past = bookings.filter(b =>
+    bookingTime(b.date, b.time_slot) < now
+    || b.status === 'done'
+    || b.status === 'cancelled'
+  ).sort((a, b) =>
+    bookingTime(b.date, b.time_slot) - bookingTime(a.date, a.time_slot)
+  )
 
   async function handleCancel(b: BookingWithBarber) {
     const name = b.barbers?.profile?.display_name ?? 'il barbiere'

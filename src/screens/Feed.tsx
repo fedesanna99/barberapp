@@ -15,6 +15,7 @@ import { supabase, IS_DEMO } from '../lib/supabase'
 import { uploadPostPhoto, uploadUserPostPhoto, validateImageType } from '../hooks/useUpload'
 import { CommentsSheet } from './CommentsSheet'
 import { PostMedia } from '../components/PostMedia'
+import type { ToastEvent } from '../components/Toast'
 
 function toStoryBarber(b: BarberWithProfile): DemoBarber {
   const name = b.profile.display_name ?? b.shop_name ?? 'Barbiere'
@@ -44,6 +45,7 @@ interface FeedProps {
   onShowLikedChange?:  (v: boolean) => void
   showSaved?:          boolean
   onShowSavedChange?:  (v: boolean) => void
+  onToast?:            (t: ToastEvent) => void
 }
 
 function postToBarber(p: FeedPost): DemoBarber {
@@ -62,7 +64,7 @@ function postToBarber(p: FeedPost): DemoBarber {
   }
 }
 
-export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLiked = false, onShowLikedChange, showSaved = false, onShowSavedChange }: FeedProps) {
+export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLiked = false, onShowLikedChange, showSaved = false, onShowSavedChange, onToast }: FeedProps) {
   const feed = useFeed(userId, barberId)
   const { barbers: realStoryBarbers } = useBarbers('popular')
   const storyBarbers: DemoBarber[] = IS_DEMO || realStoryBarbers.length === 0
@@ -79,14 +81,18 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
   const [editCaption,  setEditCaption]  = useState('')
 
   async function toggleLike(post: FeedPost) {
-    const isLiked = feed.likedIds.has(post.id)
-    feed.setLiked(post.id, !isLiked)
-    feed.updatePostLikesCount(post.id, isLiked ? -1 : 1)
+    const wasLiked = feed.likedIds.has(post.id)
+    feed.setLiked(post.id, !wasLiked)
+    feed.updatePostLikesCount(post.id, wasLiked ? -1 : 1)
     if (IS_DEMO || !userId) return
-    if (isLiked) {
-      await supabase.from('likes').delete().eq('user_id', userId).eq('post_id', post.id)
-    } else {
-      await supabase.from('likes').insert({ user_id: userId, post_id: post.id })
+    const { error } = wasLiked
+      ? await supabase.from('likes').delete().eq('user_id', userId).eq('post_id', post.id)
+      : await supabase.from('likes').insert({ user_id: userId, post_id: post.id })
+    if (error) {
+      // Rollback the optimistic update so the UI matches the DB.
+      feed.setLiked(post.id, wasLiked)
+      feed.updatePostLikesCount(post.id, wasLiked ? 1 : -1)
+      onToast?.({ kind: 'error', title: 'Azione fallita', message: error.message })
     }
   }
 
@@ -341,7 +347,10 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                 <IconAction
                   icon={isSaved ? 'ph-fill ph-bookmark-simple' : 'ph-thin ph-bookmark-simple'}
                   color={C.text}
-                  onClick={() => toggleSaved(post.id)}
+                  onClick={async () => {
+                    const { error } = await toggleSaved(post.id)
+                    if (error) onToast?.({ kind: 'error', title: 'Salvataggio fallito', message: error })
+                  }}
                 />
               </div>
 
@@ -446,6 +455,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
           userId={userId}
           postOwnerProfileId={activePost.barberProfileId}
           onClose={() => setActivePostId(null)}
+          onToast={onToast}
         />
       )}
 
@@ -485,7 +495,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
               await saveCaption(editPost, next)
               setEditPost(null)
             } catch (e) {
-              alert(`Salvataggio fallito: ${e instanceof Error ? e.message : 'errore'}`)
+              onToast?.({ kind: 'error', title: 'Salvataggio fallito', message: e instanceof Error ? e.message : 'Errore sconosciuto' })
             }
           }}
         />
@@ -502,7 +512,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
             const p = delPost
             setDelPost(null)
             try { await deletePost(p) }
-            catch (e) { alert(`Eliminazione fallita: ${e instanceof Error ? e.message : 'errore'}`) }
+            catch (e) { onToast?.({ kind: 'error', title: 'Eliminazione fallita', message: e instanceof Error ? e.message : 'Errore sconosciuto' }) }
           }}
           onCancel={() => setDelPost(null)}
         />

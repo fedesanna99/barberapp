@@ -11,11 +11,13 @@ import {
   findConversation,
 } from '../hooks/useDirectMessages'
 import type { ConvStatus } from '../types/supabase'
+import type { ToastEvent } from '../components/Toast'
 
 interface Props {
   userId?:    string
   onClose:    () => void
   initialPeer?: { profileId: string; displayName: string | null; avatarUrl?: string | null; role?: 'client' | 'barber' } | null
+  onToast?:   (t: ToastEvent) => void
 }
 
 interface PeerInfo {
@@ -40,7 +42,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)} g`
 }
 
-export function DirectMessages({ userId, onClose, initialPeer }: Props) {
+export function DirectMessages({ userId, onClose, initialPeer, onToast }: Props) {
   const [activePeer, setActivePeer] = useState<PeerInfo | null>(
     initialPeer
       ? {
@@ -59,6 +61,7 @@ export function DirectMessages({ userId, onClose, initialPeer }: Props) {
         peer={activePeer}
         onBack={() => setActivePeer(null)}
         onClose={onClose}
+        onToast={onToast}
       />
     )
   }
@@ -152,11 +155,12 @@ function DMList({ userId, onClose, onOpenPeer }: {
   )
 }
 
-function DMThread({ meId, peer, onBack, onClose }: {
+function DMThread({ meId, peer, onBack, onClose, onToast }: {
   meId: string
   peer: PeerInfo
   onBack: () => void
   onClose: () => void
+  onToast?: (t: ToastEvent) => void
 }) {
   const [convId, setConvId]   = useState<string | null>(null)
   const [status, setStatus]   = useState<ConvStatus>('open')
@@ -190,7 +194,7 @@ function DMThread({ meId, peer, onBack, onClose }: {
     setText('')
     const { conversationId, error } = await sendDirectMessage(meId, peer.profileId, t)
     setSending(false)
-    if (error) { alert(`Invio fallito: ${error}`); return }
+    if (error) { onToast?.({ kind: 'error', title: 'Invio fallito', message: error }); return }
     if (conversationId) { setConvId(conversationId); setStatus('open') }
   }
 
@@ -200,7 +204,7 @@ function DMThread({ meId, peer, onBack, onClose }: {
     const prev = status
     setStatus(next)
     const { error } = await setConversationStatus(convId, next)
-    if (error) { setStatus(prev); alert(`Operazione fallita: ${error}`) }
+    if (error) { setStatus(prev); onToast?.({ kind: 'error', title: 'Operazione fallita', message: error }) }
   }
 
   return (
@@ -289,20 +293,32 @@ function DMThread({ meId, peer, onBack, onClose }: {
         borderTop: `1px solid ${C.border}`,
         display: 'flex', gap: 10, alignItems: 'flex-end',
       }}>
-        <textarea
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }}
-          placeholder={status === 'closed' ? 'Scrivi per riaprire la conversazione…' : 'Scrivi un messaggio…'}
-          rows={1}
-          style={{
-            flex: 1, borderRadius: 'var(--r-pill)',
-            border: `1px solid ${C.border}`, background: C.surfaceAlt,
-            padding: '10px 14px', fontSize: 13.5, color: C.text, fontFamily: 'inherit',
-            outline: 'none', resize: 'none', maxHeight: 80, lineHeight: 1.4,
-            boxSizing: 'border-box',
-          }}
-        />
+        <div style={{ flex: 1, position: 'relative' }}>
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value.slice(0, 4000))}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }}
+            placeholder={status === 'closed' ? 'Scrivi per riaprire la conversazione…' : 'Scrivi un messaggio…'}
+            rows={1}
+            maxLength={4000}
+            style={{
+              width: '100%', borderRadius: 'var(--r-pill)',
+              border: `1px solid ${C.border}`, background: C.surfaceAlt,
+              padding: '10px 14px', fontSize: 13.5, color: C.text, fontFamily: 'inherit',
+              outline: 'none', resize: 'none', maxHeight: 80, lineHeight: 1.4,
+              boxSizing: 'border-box',
+            }}
+          />
+          {text.length > 3800 && (
+            <span style={{
+              position: 'absolute', right: 12, bottom: -16,
+              fontSize: 10, color: text.length >= 4000 ? C.red : C.hint,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              {text.length}/4000
+            </span>
+          )}
+        </div>
         <button
           onClick={handleSend}
           disabled={!text.trim() || sending}

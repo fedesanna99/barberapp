@@ -31,12 +31,13 @@ Deno.serve(async (req) => {
     const { data: { user: caller } } = await callerClient.auth.getUser()
     if (!caller) return json({ error: 'Unauthorized' }, 401)
 
+    // Migration 029 moved admin from profiles.role='admin' to profiles.is_admin boolean.
     const { data: profile } = await callerClient
       .from('profiles')
-      .select('role')
+      .select('is_admin')
       .eq('id', caller.id)
       .single()
-    if (profile?.role !== 'admin') return json({ error: 'Forbidden' }, 403)
+    if (profile?.is_admin !== true) return json({ error: 'Forbidden' }, 403)
 
     const { email, password, displayName, role } = await req.json()
 

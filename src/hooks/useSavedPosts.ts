@@ -24,7 +24,7 @@ export function useSavedPosts(userId: string | undefined) {
       })
   }, [userId])
 
-  const toggleSaved = useCallback(async (postId: string) => {
+  const toggleSaved = useCallback(async (postId: string): Promise<{ error: string | null }> => {
     const isSaved = savedIds.has(postId)
     // Optimistic update
     setSavedIds(prev => {
@@ -32,7 +32,7 @@ export function useSavedPosts(userId: string | undefined) {
       if (isSaved) next.delete(postId); else next.add(postId)
       return next
     })
-    if (IS_DEMO || !userId) return
+    if (IS_DEMO || !userId) return { error: null }
     const { error } = isSaved
       ? await supabase.from('saved_posts').delete().eq('user_id', userId).eq('post_id', postId)
       : await supabase.from('saved_posts').insert({ user_id: userId, post_id: postId })
@@ -43,7 +43,9 @@ export function useSavedPosts(userId: string | undefined) {
         if (isSaved) next.add(postId); else next.delete(postId)
         return next
       })
+      return { error: error.message }
     }
+    return { error: null }
   }, [userId, savedIds])
 
   return { savedIds, toggleSaved }

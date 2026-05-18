@@ -80,8 +80,13 @@ export function useComments(postId: string | null, userId: string | undefined) {
     return () => { cancelled = true }
   }, [postId, userId])
 
-  const add = useCallback(async (content: string) => {
-    if (!postId) return
+  // All mutations roll back optimistically on failure AND return the error
+  // message so the caller can surface it via toast (the hook itself stays
+  // UI-agnostic).
+  type MutResult = { error: string | null }
+
+  const add = useCallback(async (content: string): Promise<MutResult> => {
+    if (!postId) return { error: null }
     if (IS_DEMO) {
       const c: CommentRow = {
         id:           'demo-' + crypto.randomUUID(),
@@ -95,9 +100,9 @@ export function useComments(postId: string | null, userId: string | undefined) {
       }
       demoComments = [...demoComments, c]
       setComments(prev => [...prev, c])
-      return
+      return { error: null }
     }
-    if (!userId) return
+    if (!userId) return { error: null }
     const tempId = 'optim-' + crypto.randomUUID()
     const optimistic: CommentRow = {
       id:           tempId,
@@ -118,29 +123,34 @@ export function useComments(postId: string | null, userId: string | undefined) {
       .single()
     if (error || !data) {
       setComments(prev => prev.filter(c => c.id !== tempId))
-      return
+      return { error: error?.message ?? 'Errore sconosciuto' }
     }
     setComments(prev => prev.map(c =>
       c.id === tempId ? { ...c, id: data.id, createdAt: data.created_at } : c
     ))
+    return { error: null }
   }, [postId, userId, meProfile])
 
-  const remove = useCallback(async (commentId: string) => {
+  const remove = useCallback(async (commentId: string): Promise<MutResult> => {
     if (IS_DEMO) {
       demoComments = demoComments.filter(c => c.id !== commentId)
       setComments(prev => prev.filter(c => c.id !== commentId))
-      return
+      return { error: null }
     }
-    if (!userId) return
+    if (!userId) return { error: null }
     const snapshot = comments
     setComments(prev => prev.filter(c => c.id !== commentId))
     const { error } = await supabase.from('comments').delete().eq('id', commentId)
-    if (error) setComments(snapshot)
+    if (error) {
+      setComments(snapshot)
+      return { error: error.message }
+    }
+    return { error: null }
   }, [comments, userId])
 
-  const toggleLike = useCallback(async (commentId: string) => {
+  const toggleLike = useCallback(async (commentId: string): Promise<MutResult> => {
     const target = comments.find(c => c.id === commentId)
-    if (!target) return
+    if (!target) return { error: null }
     const wasLiked = target.likedByMe
     const flip = (c: CommentRow): CommentRow => c.id === commentId
       ? { ...c, likedByMe: !wasLiked, likesCount: c.likesCount + (wasLiked ? -1 : 1) }
@@ -152,14 +162,18 @@ export function useComments(postId: string | null, userId: string | undefined) {
     if (IS_DEMO) {
       demoComments = demoComments.map(flip)
       setComments(prev => prev.map(flip))
-      return
+      return { error: null }
     }
-    if (!userId) return
+    if (!userId) return { error: null }
     setComments(prev => prev.map(flip))
     const { error } = wasLiked
       ? await supabase.from('comment_likes').delete().eq('user_id', userId).eq('comment_id', commentId)
       : await supabase.from('comment_likes').insert({ user_id: userId, comment_id: commentId })
-    if (error) setComments(prev => prev.map(unflip))
+    if (error) {
+      setComments(prev => prev.map(unflip))
+      return { error: error.message }
+    }
+    return { error: null }
   }, [comments, userId])
 
   return { comments, add, remove, toggleLike }
