@@ -193,7 +193,14 @@ export function Profile({ userId, isBarber, barberId }: Props) {
               style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }}
             />
           )}
-          <i className="ti ti-settings" style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }} />
+          {!isDemo && (
+            <i
+              className="ti ti-settings"
+              onClick={() => setShowEditProfile(true)}
+              style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }}
+              aria-label="Modifica profilo"
+            />
+          )}
         </div>
       </div>
 

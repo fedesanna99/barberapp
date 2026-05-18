@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
+import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
 import { IS_DEMO } from '../lib/supabase'
 import { writeLog } from '../hooks/useAdminLogs'
 import {
@@ -10,6 +11,7 @@ import {
 import { useBarberBookings, useBooking, type BookingWithClient } from '../hooks/useBooking'
 import { useAvailabilitySettings } from '../hooks/useAvailabilitySettings'
 import { useAutoAccept } from '../hooks/useAutoAccept'
+import { useBarberInfo } from '../hooks/useBarberInfo'
 
 type DashTab = 'bookings' | 'availability'
 
@@ -49,14 +51,23 @@ function demoToRow(b: DemoBarberBooking): BookingRow {
 
 // ── Main ──────────────────────────────────────────────────────────────────
 
-export function BarberDashboard({ barberId }: { barberId?: string }) {
+export function BarberDashboard({ barberId, userId }: { barberId?: string; userId?: string }) {
   const [tab, setTab] = useState<DashTab>('bookings')
+  const [showEditInfo, setShowEditInfo] = useState(false)
+  const { info, saving, saveError, saveInfo } = useBarberInfo(barberId, userId)
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 0', flexShrink: 0 }}>
         <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>Dashboard</span>
-        <i className="ti ti-settings" style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }} />
+        {barberId && !IS_DEMO && (
+          <i
+            className="ti ti-settings"
+            onClick={() => setShowEditInfo(true)}
+            style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }}
+            aria-label="Impostazioni salone"
+          />
+        )}
       </div>
 
       <div style={{ display: 'flex', padding: '10px 16px 0', gap: 8, flexShrink: 0 }}>
@@ -81,6 +92,16 @@ export function BarberDashboard({ barberId }: { barberId?: string }) {
         ? <BookingsTab barberId={barberId} />
         : <AvailabilityTab barberId={barberId} />
       }
+
+      {showEditInfo && (
+        <EditBarberInfoSheet
+          initial={info}
+          saving={saving}
+          saveError={saveError}
+          onSave={saveInfo}
+          onClose={() => setShowEditInfo(false)}
+        />
+      )}
     </div>
   )
 }

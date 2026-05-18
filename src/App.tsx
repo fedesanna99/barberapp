@@ -159,7 +159,7 @@ export default function App() {
             {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
             {isBarber && (
               <div style={{ flex: screen === 'dashboard' ? 1 : 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <BarberDashboard barberId={barberId} />
+                <BarberDashboard barberId={barberId} userId={userId} />
               </div>
             )}
             {isAdmin && (
