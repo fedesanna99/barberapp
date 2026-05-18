@@ -31,12 +31,21 @@ export function useAdminUsers() {
       return
     }
 
-    // get_admin_users() is SECURITY DEFINER — accesses auth.users server-side
-    const { data, error: e } = await supabase.rpc('get_admin_users')
-    if (e) {
-      setError(e.message)
-    } else {
-      setUsers((data ?? []) as AdminUser[])
+    // get_admin_users() is SECURITY DEFINER — accesses auth.users server-side.
+    // If migration 029 hasn't been applied yet, the RPC doesn't exist; surface
+    // a useful message instead of the raw PostgREST 404.
+    try {
+      const { data, error: e } = await supabase.rpc('get_admin_users')
+      if (e) {
+        const isMissing = /function.*does not exist|404/i.test(e.message)
+        setError(isMissing
+          ? 'Admin DB non inizializzato. Applica le migration più recenti (in particolare 029_is_admin_and_notifications.sql) e ricarica.'
+          : e.message)
+      } else {
+        setUsers((data ?? []) as AdminUser[])
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Errore sconosciuto nel caricamento utenti.')
     }
     setLoading(false)
   }

@@ -9,11 +9,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#FFFFFF" />
     <title>CutBook</title>
-    <!-- Phosphor Icons — webfont CSS per weight (works with React-rendered <i>). -->
-    <!-- Use jsdelivr so it matches the CSP style-src/font-src allowlist in vercel.json. -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/thin/style.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+    <!-- Phosphor Icons sono importati da src/main.tsx via npm (bundle locale, no CDN). -->
+    <!-- Sostituisce il loader jsdelivr precedente: bundle + zero supply-chain exposure. -->
   </head>
   <body>
     <div id="root"></div>

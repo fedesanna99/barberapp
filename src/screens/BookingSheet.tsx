@@ -153,7 +153,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                         disabled={taken}
                         onClick={() => !taken && setSelTime(t)}
                         style={{
-                          padding: '12px 0', textAlign: 'center',
+                          padding: '14px 0', minHeight: 44, textAlign: 'center',
                           fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 500,
                           border: `1px solid ${sel ? C.text : C.border}`,
                           background: sel ? C.text : C.surface,
