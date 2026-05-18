@@ -4,6 +4,7 @@ import { Avatar } from '../components/Avatar'
 import { ConfirmSheet } from '../components/ConfirmSheet'
 import { initialsFromName } from '../hooks/useFeed'
 import { useComments } from '../hooks/useComments'
+import type { ToastEvent } from '../components/Toast'
 
 interface Props {
   postId:             string
@@ -11,9 +12,10 @@ interface Props {
   userId?:            string
   postOwnerProfileId?: string
   onClose:            () => void
+  onToast?:           (t: ToastEvent) => void
 }
 
-export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, onClose }: Props) {
+export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, onClose, onToast }: Props) {
   const { comments, add, remove, toggleLike } = useComments(postId, userId)
   const [text, setText] = useState('')
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
@@ -27,7 +29,21 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
     const t = text.trim()
     if (!t) return
     setText('')
-    await add(t)
+    const { error } = await add(t)
+    if (error) {
+      setText(t)
+      onToast?.({ kind: 'error', title: 'Commento non inviato', message: error })
+    }
+  }
+
+  async function handleRemove(id: string) {
+    const { error } = await remove(id)
+    if (error) onToast?.({ kind: 'error', title: 'Eliminazione fallita', message: error })
+  }
+
+  async function handleToggleLike(id: string) {
+    const { error } = await toggleLike(id)
+    if (error) onToast?.({ kind: 'error', title: 'Azione fallita', message: error })
   }
 
   const isPostOwner = !!userId && userId === postOwnerProfileId
@@ -93,7 +109,7 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
                   )}
                 </div>
                 <button
-                  onClick={() => toggleLike(c.id)}
+                  onClick={() => handleToggleLike(c.id)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0 0', flexShrink: 0, minWidth: 22 }}
                 >
                   <i className={`${c.likedByMe ? 'ph-fill' : 'ph-thin'} ph-heart`} style={{ fontSize: 16, color: c.likedByMe ? C.red : C.hint }} />
@@ -141,7 +157,7 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
           cancelLabel="Annulla"
           destructive
           icon="trash"
-          onConfirm={() => { remove(pendingDelete); setPendingDelete(null) }}
+          onConfirm={() => { handleRemove(pendingDelete); setPendingDelete(null) }}
           onCancel={() => setPendingDelete(null)}
         />
       )}

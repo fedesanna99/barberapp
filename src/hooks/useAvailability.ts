@@ -40,6 +40,7 @@ export function useAvailability(barberId: string | undefined, date: Date | null,
 
     type AvailRow  = { start_time: string; end_time: string; break_start: string | null; break_end: string | null }
     type BookingRow = { time_slot: string; date: string; status: string }
+    type SlotRow    = { time_slot: string }
 
     Promise.all([
       supabase
@@ -47,12 +48,14 @@ export function useAvailability(barberId: string | undefined, date: Date | null,
         .select('start_time, end_time, break_start, break_end')
         .eq('barber_id', barberId)
         .eq('day_of_week', dow),
-      supabase
-        .from('bookings')
+      // booking_slots is a view (migration 032) that exposes only
+      // (barber_id, date, time_slot) for pending+confirmed rows. Replaces a
+      // direct .from('bookings') read which leaked client_id cross-user via
+      // the now-dropped bookings_availability_select policy.
+      (supabase.from('booking_slots' as never) as any)
         .select('time_slot')
         .eq('barber_id', barberId)
-        .eq('date', dateStr)
-        .in('status', ['pending', 'confirmed']),
+        .eq('date', dateStr) as Promise<{ data: SlotRow[] | null }>,
     ]).then(([avail, existing]) => {
       const win = (avail.data as AvailRow[] | null)?.[0]
       if (!win) {
@@ -79,7 +82,7 @@ export function useAvailability(barberId: string | undefined, date: Date | null,
           })
         : allRaw
       // C4: PostgREST returns time as "HH:MM:SS"; slice to "HH:MM" to match generated slots
-      const taken = new Set((existing.data as BookingRow[] | null ?? []).map(b => b.time_slot.slice(0, 5)))
+      const taken = new Set((existing.data as SlotRow[] | null ?? []).map(b => b.time_slot.slice(0, 5)))
       setSlots(all)
       setBooked(taken)
       setLoading(false)
