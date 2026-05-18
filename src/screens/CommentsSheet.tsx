@@ -72,7 +72,9 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
                   </div>
                   {canDelete(c.authorId) && (
                     <button
-                      onClick={() => remove(c.id)}
+                      onClick={() => {
+                        if (window.confirm('Eliminare questo commento?')) remove(c.id)
+                      }}
                       style={{ background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', fontSize: 11, color: C.hint, fontFamily: 'inherit' }}
                     >
                       Elimina
