@@ -4,6 +4,7 @@ import { Avatar } from '../components/Avatar'
 import { SLOTS, TAKEN_INDICES, getNext7Days } from '../lib/demoData'
 import type { DemoBarber, DemoDate } from '../lib/demoData'
 import { useAvailability } from '../hooks/useAvailability'
+import { useBarberDefaults } from '../hooks/useBarberDefaults'
 import { IS_DEMO } from '../lib/supabase'
 
 interface BookingSheetProps {
@@ -24,7 +25,9 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
   // In demo mode pass undefined so the hook skips DB calls entirely.
   // In production the barber.id would be a real UUID string.
   const barberId = IS_DEMO ? undefined : String(barber.id)
-  const { slots, booked, loading } = useAvailability(barberId, dates[selDate].date)
+  const { slotMinutes, price } = useBarberDefaults(barberId)
+  const { slots, booked, loading } = useAvailability(barberId, dates[selDate].date, slotMinutes)
+  const priceFmt = `~€${Number.isInteger(price) ? price : price.toFixed(2)}`
 
   const effectiveSlots  = IS_DEMO ? SLOTS  : slots
   const effectiveBooked = IS_DEMO ? DEMO_TAKEN : booked
@@ -64,7 +67,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
               <Avatar initials={barber.initials} size={40} accent={barber.accent} />
               <div>
                 <div style={{ fontSize: 12, fontWeight: 500, color: C.text }}>{barber.tags.join(' · ')}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>Sessione 30 min · ~€25</div>
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>Sessione {slotMinutes} min · {priceFmt}</div>
               </div>
             </div>
 
@@ -185,8 +188,8 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                 ['Data',     `${dates[selDate].day}, ${dates[selDate].num} ${dates[selDate].month}`],
                 ['Ora',      selTime!],
                 ['Servizio', barber.tags[0]],
-                ['Durata',   '30 min'],
-                ['Prezzo',   '~€25'],
+                ['Durata',   `${slotMinutes} min`],
+                ['Prezzo',   priceFmt],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: `0.5px solid ${C.border}` }}>
                   <span style={{ fontSize: 13, color: C.muted }}>{k}</span>

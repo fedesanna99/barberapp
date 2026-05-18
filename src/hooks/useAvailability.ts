@@ -17,7 +17,7 @@ function generateSlots(start: string, end: string, slotMinutes = 30): string[] {
   return slots
 }
 
-export function useAvailability(barberId: string | undefined, date: Date | null) {
+export function useAvailability(barberId: string | undefined, date: Date | null, slotMinutes = 30) {
   const [slots, setSlots]   = useState<string[]>([])
   const [booked, setBooked] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
@@ -62,7 +62,7 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
         return
       }
 
-      const allRaw = generateSlots(win.start_time, win.end_time)
+      const allRaw = generateSlots(win.start_time, win.end_time, slotMinutes)
       const all = win.break_start && win.break_end
         ? allRaw.filter(slot => {
             const [sh, sm] = slot.split(':').map(Number)
@@ -100,7 +100,7 @@ export function useAvailability(barberId: string | undefined, date: Date | null)
       .subscribe()
 
     return () => { channelRef.current?.unsubscribe(); channelRef.current = null }
-  }, [barberId, date?.toDateString()])
+  }, [barberId, date?.toDateString(), slotMinutes])
 
   return { slots, booked, loading }
 }

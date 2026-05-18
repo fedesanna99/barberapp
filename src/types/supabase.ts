@@ -55,6 +55,8 @@ export type Database = {
           phone: string | null
           address: string | null
           social_link: string | null
+          default_slot_minutes: number
+          default_price: number
           created_at: string
         }
         Insert: {
@@ -69,6 +71,8 @@ export type Database = {
           phone?: string | null
           address?: string | null
           social_link?: string | null
+          default_slot_minutes?: number
+          default_price?: number
           created_at?: string
         }
         Update: {
@@ -81,6 +85,8 @@ export type Database = {
           phone?: string | null
           address?: string | null
           social_link?: string | null
+          default_slot_minutes?: number
+          default_price?: number
         }
         Relationships: [
           {

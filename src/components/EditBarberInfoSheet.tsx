@@ -3,10 +3,12 @@ import { C } from '../lib/colors'
 import type { BarberInfo } from '../hooks/useBarberInfo'
 
 const FIELDS: [keyof BarberInfo, string, string, string][] = [
-  ['shop_name',   'ti-building-store',   'Nome del salone', 'es. Barber & Co.'],
-  ['address',     'ti-map-pin',          'Indirizzo',       'es. Via Roma 1, Milano'],
-  ['phone',       'ti-phone',            'Telefono',        'es. +39 02 1234567'],
-  ['social_link', 'ti-brand-instagram',  'Link social',     'https://instagram.com/...'],
+  ['shop_name',            'ti-building-store',   'Nome del salone',     'es. Barber & Co.'],
+  ['address',              'ti-map-pin',          'Indirizzo',           'es. Via Roma 1, Milano'],
+  ['phone',                'ti-phone',            'Telefono',            'es. +39 02 1234567'],
+  ['social_link',          'ti-brand-instagram',  'Link social',         'https://instagram.com/...'],
+  ['default_slot_minutes', 'ti-clock',            'Durata slot (min)',   '30'],
+  ['default_price',        'ti-cash',             'Prezzo medio (€)',    '25'],
 ]
 
 export function EditBarberInfoSheet({
