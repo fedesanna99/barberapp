@@ -35,7 +35,13 @@ export function useAuth() {
       if (session) {
         // Skip refetch on token refresh unless a preceding transient SIGNED_OUT
         // already cleared profileRef — in that case we must restore the profile.
-        if (event !== 'TOKEN_REFRESHED' || !profileRef.current) fetchProfile(session.user.id)
+        // Defer with setTimeout(0) so the query runs outside this callback —
+        // calling .from() synchronously inside onAuthStateChange can deadlock
+        // because the query awaits the same auth lock the callback is holding.
+        // Symptom (Task 20): infinite spinner on page reload with a stored session.
+        if (event !== 'TOKEN_REFRESHED' || !profileRef.current) {
+          setTimeout(() => fetchProfile(session.user.id), 0)
+        }
       } else {
         profileRef.current = null
         setProfile(null)

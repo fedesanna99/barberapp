@@ -185,7 +185,14 @@ export function useDirectThread(conversationId: string | null, meId: string | un
       .channel(`dm_thread_${conversationId}`)
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `conversation_id=eq.${conversationId}` },
-        payload => setMessages(prev => [...prev, payload.new as DirectMessage]),
+        payload => setMessages(prev => {
+          // Dedup by id. In dev React.StrictMode mounts the effect twice,
+          // briefly keeping two server-side subs to the same channel; both
+          // would receive the same INSERT and the row would render twice
+          // until the next fetch. This guard makes the listener idempotent.
+          const m = payload.new as DirectMessage
+          return prev.some(x => x.id === m.id) ? prev : [...prev, m]
+        }),
       )
       .subscribe()
     return () => { channelRef.current?.unsubscribe(); channelRef.current = null }
