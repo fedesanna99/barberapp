@@ -270,7 +270,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
 
               {/* Post image */}
               <div style={{
-                width: '100%', height: 220,
+                width: '100%', aspectRatio: '4 / 3',
                 background: post.barberAccent + '18',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 position: 'relative', overflow: 'hidden',

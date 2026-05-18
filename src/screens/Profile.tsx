@@ -608,7 +608,7 @@ function ProfilePostsFeed({ posts, startIdx, authorName, accent, title = 'I miei
         {posts.map((post, i) => (
           <div key={post.id} ref={el => { itemRefs.current[i] = el }}>
             <div style={{
-              width: '100%', height: 280,
+              width: '100%', aspectRatio: '4 / 3',
               background: accent + '18',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               position: 'relative', overflow: 'hidden',

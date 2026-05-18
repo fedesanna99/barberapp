@@ -276,7 +276,7 @@ function PostsFeed({ posts, startIdx, barber, onClose }: {
           <div key={post.id} ref={el => { itemRefs.current[i] = el }}>
             {/* Photo */}
             <div style={{
-              width: '100%', height: 280,
+              width: '100%', aspectRatio: '4 / 3',
               background: barber.accent + '18',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               position: 'relative', overflow: 'hidden',
