@@ -5,6 +5,7 @@ import type { DemoBarber } from '../lib/demoData'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { useBarberInfo } from '../hooks/useBarberInfo'
 import { useFollow } from '../hooks/useFollow'
+import { PostMedia } from '../components/PostMedia'
 
 interface BarberPost {
   id: string
@@ -275,16 +276,7 @@ function PostsFeed({ posts, startIdx, barber, onClose }: {
         {posts.map((post, i) => (
           <div key={post.id} ref={el => { itemRefs.current[i] = el }}>
             {/* Photo */}
-            <div style={{
-              width: '100%', aspectRatio: '4 / 3',
-              background: barber.accent + '18',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              position: 'relative', overflow: 'hidden',
-            }}>
-              {post.imageUrl
-                ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <i className="ti ti-scissors" style={{ fontSize: 56, color: barber.accent, opacity: 0.35 }} />
-              }
+            <PostMedia imageUrl={post.imageUrl} fallbackAccent={barber.accent} fallbackIconSize={56}>
               <div style={{
                 position: 'absolute', bottom: 10, left: 12,
                 background: 'rgba(0,0,0,0.55)', color: '#fff',
@@ -292,7 +284,7 @@ function PostsFeed({ posts, startIdx, barber, onClose }: {
               }}>
                 {post.label}
               </div>
-            </div>
+            </PostMedia>
             {/* Caption */}
             <div style={{ padding: '10px 16px 14px' }}>
               <div style={{ fontSize: 13, color: C.text }}>

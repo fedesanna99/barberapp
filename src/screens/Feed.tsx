@@ -12,6 +12,7 @@ import { supabase, IS_DEMO } from '../lib/supabase'
 import { uploadPostPhoto, validateImageType } from '../hooks/useUpload'
 import { CommentsSheet } from './CommentsSheet'
 import type { Comment } from './CommentsSheet'
+import { PostMedia } from '../components/PostMedia'
 
 function toStoryBarber(b: BarberWithProfile): DemoBarber {
   const name = b.profile.display_name ?? b.shop_name ?? 'Barbiere'
@@ -269,23 +270,13 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
               </div>
 
               {/* Post image */}
-              <div style={{
-                width: '100%', aspectRatio: '4 / 3',
-                background: post.barberAccent + '18',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                position: 'relative', overflow: 'hidden',
-                borderTop: `0.5px solid ${C.border}`, borderBottom: `0.5px solid ${C.border}`,
-              }}>
-                {post.imageUrl
-                  ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <i className="ti ti-scissors" style={{ fontSize: 52, color: post.barberAccent, opacity: 0.35 }} />
-                }
+              <PostMedia imageUrl={post.imageUrl} fallbackAccent={post.barberAccent} withBorder>
                 {post.label && (
                   <div style={{ position: 'absolute', bottom: 10, left: 12, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, padding: '3px 10px', borderRadius: 20 }}>
                     {post.label}
                   </div>
                 )}
-              </div>
+              </PostMedia>
 
               {/* Actions */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px 4px' }}>

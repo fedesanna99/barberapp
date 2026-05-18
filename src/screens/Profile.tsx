@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
 import { EditProfileSheet } from '../components/EditProfileSheet'
+import { PostMedia } from '../components/PostMedia'
 import { BARBERS, POSTS, CUT_LOG, UPCOMING as DEMO_UPCOMING } from '../lib/demoData'
 import { useClientBookings } from '../hooks/useBooking'
 import { useProfile } from '../hooks/useProfile'
@@ -607,16 +608,7 @@ function ProfilePostsFeed({ posts, startIdx, authorName, accent, title = 'I miei
       <div ref={containerRef} style={{ flex: 1, overflowY: 'auto' }}>
         {posts.map((post, i) => (
           <div key={post.id} ref={el => { itemRefs.current[i] = el }}>
-            <div style={{
-              width: '100%', aspectRatio: '4 / 3',
-              background: accent + '18',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              position: 'relative', overflow: 'hidden',
-            }}>
-              {post.image_url
-                ? <img src={post.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <i className="ti ti-scissors" style={{ fontSize: 56, color: accent, opacity: 0.35 }} />
-              }
+            <PostMedia imageUrl={post.image_url ?? undefined} fallbackAccent={accent} fallbackIconSize={56}>
               {post.label && (
                 <div style={{
                   position: 'absolute', bottom: 10, left: 12,
@@ -626,7 +618,7 @@ function ProfilePostsFeed({ posts, startIdx, authorName, accent, title = 'I miei
                   {post.label}
                 </div>
               )}
-            </div>
+            </PostMedia>
             <div style={{ padding: '10px 16px 14px' }}>
               <div style={{ fontSize: 13, color: C.text }}>
                 <span style={{ fontWeight: 500 }}>{authorName}</span>{' '}{post.caption ?? ''}
