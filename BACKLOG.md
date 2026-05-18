@@ -26,17 +26,32 @@ Lista delle UI / feature che attualmente NON funzionano o girano solo in demo. Q
 
 Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali per tutto il blocco.
 
-- [ ] STUB #1 + #2 — collegare le ⚙️ settings ai sheet esistenti (15 min totali)
-- [ ] STUB #3 + #4 — nascondere icone send finché non c'è feature (10 min)
-- [ ] STUB #5 — schermata "I miei appuntamenti" base (riusa `RealUpcoming` esistente) (M, 1-2h)
-- [ ] PARTIAL #2 + #3 — calcolare badge reale / rimuovere hardcoded "3" (20 min)
-- [ ] MISSING #3 — bottone "Annulla" su prenotazioni cliente (RLS già pronto) (S, 30 min)
+- [x] STUB #1 + #2 — collegare le ⚙️ settings ai sheet esistenti ✅ commit `a397b67`
+- [x] STUB #3 + #4 — nascondere icone send finché non c'è feature ✅ commit `94f1ad1`
+- [x] STUB #5 — schermata "I miei appuntamenti" + cancel client ✅ commit `0016f64`
+- [x] PARTIAL #2 + #3 — badge dinamico + rimuovi hardcoded "3" ✅ in commits `d7ea8eb` e `0016f64`
+- [x] MISSING #3 — bottone "Annulla" prenotazioni cliente ✅ commit `0016f64`
+
+---
+
+## ✅ Stato globale (sessione audit + STUB bundle)
+
+| Categoria | Iniziale | Chiusi | Rimasti |
+|---|---|---|---|
+| 🔧 STUB | 10 | 10 | 0 |
+| 🟡 PARTIAL | 10 | 2 | 8 |
+| ❌ MISSING | 12 | 1 | 11 |
+
+I 10 STUB e il MISSING #3 sono stati implementati e testati live in browser
+nella sessione del 2026-05-18. Vedi commit `94f1ad1` → `0016f64`.
 
 ---
 
 ## 🔧 STUB — bottoni/icone senza handler
 
-### #1 — ⚙️ Settings in Profile
+> ✅ **Tutti i 10 STUB sono stati chiusi nella sessione del 2026-05-18** (commit `94f1ad1` → `0016f64`). Le sezioni sotto restano come storico / riferimento per chi guarda i diff.
+
+### #1 — ⚙️ Settings in Profile ✅ DONE
 
 - **Cosa l'utente vede:** icona ingranaggio in alto a destra in Profilo
 - **Dove:** [src/screens/Profile.tsx:194](src/screens/Profile.tsx:194)
@@ -47,7 +62,7 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 - **File da toccare:** `src/screens/Profile.tsx`
 - **Effort:** S (5 min se riusi `EditProfileSheet`)
 
-### #2 — ⚙️ Settings in BarberDashboard
+### #2 — ⚙️ Settings in BarberDashboard ✅ DONE
 
 - **Cosa l'utente vede:** icona ingranaggio accanto al titolo "Dashboard"
 - **Dove:** [src/screens/BarberDashboard.tsx:59](src/screens/BarberDashboard.tsx:59)
@@ -58,7 +73,7 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 - **File da toccare:** `src/screens/BarberDashboard.tsx`
 - **Effort:** S (15 min)
 
-### #3 — ✈️ Send in Feed top-bar
+### #3 — ✈️ Send in Feed top-bar ✅ DONE (rimosso)
 
 - **Cosa l'utente vede:** icona aeroplano in alto a destra nel Feed (accanto al cuore)
 - **Dove:** [src/screens/Feed.tsx:159](src/screens/Feed.tsx:159)
@@ -69,7 +84,7 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 - **File da toccare:** `src/screens/Feed.tsx`
 - **Effort:** S (5 min per rimuovere)
 
-### #4 — ✈️ Send sotto ogni post
+### #4 — ✈️ Send sotto ogni post ✅ DONE (rimosso)
 
 - **Cosa l'utente vede:** icona aeroplano nella riga azioni di ogni post (tra commento e bookmark)
 - **Dove:** [src/screens/Feed.tsx:253](src/screens/Feed.tsx:253)
@@ -78,7 +93,7 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 - **File da toccare:** `src/screens/Feed.tsx`
 - **Effort:** S (5 min)
 
-### #5 — Voce Menu "I miei appuntamenti" (badge "2")
+### #5 — Voce Menu "I miei appuntamenti" (badge "2") ✅ DONE
 
 - **Cosa l'utente vede:** prima voce nel Menu, con badge numerico
 - **Dove:** [src/screens/Menu.tsx:10](src/screens/Menu.tsx:10)
@@ -91,7 +106,7 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 - **File da toccare:** `src/screens/Menu.tsx`, `src/App.tsx`, nuovo `src/screens/MyAppointments.tsx`
 - **Effort:** M (1-2h)
 
-### #6 — Voce Menu "Notifiche" (badge "3")
+### #6 — Voce Menu "Notifiche" (badge "3") ✅ DONE (placeholder)
 
 - **Cosa l'utente vede:** seconda voce nel Menu con badge "3"
 - **Dove:** [src/screens/Menu.tsx:12](src/screens/Menu.tsx:12)
@@ -102,7 +117,7 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 - **Effort:** S (10 min per placeholder) → L se implementi vero sistema
 - **Vedi anche:** MISSING #5
 
-### #7 — Voce Menu "Impostazioni posizione"
+### #7 — Voce Menu "Impostazioni posizione" ✅ DONE
 
 - **Cosa l'utente vede:** voce con icona pin
 - **Dove:** [src/screens/Menu.tsx:13](src/screens/Menu.tsx:13)
@@ -113,7 +128,7 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 - **File da toccare:** `src/screens/Menu.tsx`, nuovo `src/components/LocationSettingsSheet.tsx`, `src/hooks/useProfile.ts` (aggiungi `updateLocation`)
 - **Effort:** M (1-2h)
 
-### #8 — Voce Menu "Valuta l'app"
+### #8 — Voce Menu "Valuta l'app" ✅ DONE (rimosso)
 
 - **Cosa l'utente vede:** voce con stella
 - **Dove:** [src/screens/Menu.tsx:16](src/screens/Menu.tsx:16)
@@ -123,7 +138,7 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
   - In assenza di store URL: nascondere finché non hai una destinazione
 - **Effort:** S (5 min per nascondere, 15 min per link)
 
-### #9 — Voce Menu "Invita un amico"
+### #9 — Voce Menu "Invita un amico" ✅ DONE
 
 - **Cosa l'utente vede:** voce con icona share
 - **Dove:** [src/screens/Menu.tsx:17](src/screens/Menu.tsx:17)
@@ -133,7 +148,7 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 - **File da toccare:** `src/screens/Menu.tsx`
 - **Effort:** S (20 min)
 
-### #10 — Voce Menu "Privacy policy"
+### #10 — Voce Menu "Privacy policy" ✅ DONE (rimosso)
 
 - **Cosa l'utente vede:** voce con icona scudo
 - **Dove:** [src/screens/Menu.tsx:21](src/screens/Menu.tsx:21)
@@ -277,7 +292,7 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 - **File da toccare:** nuova migration che relaxes immutability, `src/screens/BookingSheet.tsx`, `src/screens/BarberDashboard.tsx`
 - **Effort:** M (3-4h)
 
-### #3 — Cancellazione prenotazione lato cliente
+### #3 — Cancellazione prenotazione lato cliente ✅ DONE (in `0016f64`, bonus dello STUB #5)
 
 - **Stato attuale:** RLS [001:279](supabase/migrations/001_initial_schema.sql:279) + WITH CHECK del mio C1 (migration 016) **permettono** al client di cancellare. UI manca.
 - **Cosa fare:**
