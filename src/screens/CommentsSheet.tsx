@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
+import { ConfirmSheet } from '../components/ConfirmSheet'
 import { initialsFromName } from '../hooks/useFeed'
 import { useComments } from '../hooks/useComments'
 
@@ -15,6 +16,7 @@ interface Props {
 export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, onClose }: Props) {
   const { comments, add, remove, toggleLike } = useComments(postId, userId)
   const [text, setText] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -72,9 +74,7 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
                   </div>
                   {canDelete(c.authorId) && (
                     <button
-                      onClick={() => {
-                        if (window.confirm('Eliminare questo commento?')) remove(c.id)
-                      }}
+                      onClick={() => setPendingDelete(c.id)}
                       style={{ background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', fontSize: 11, color: C.hint, fontFamily: 'inherit' }}
                     >
                       Elimina
@@ -121,6 +121,19 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
           </button>
         </div>
       </div>
+
+      {pendingDelete && (
+        <ConfirmSheet
+          title="Eliminare commento?"
+          message="Questa azione non può essere annullata."
+          confirmLabel="Elimina"
+          cancelLabel="Annulla"
+          destructive
+          icon="ti-trash"
+          onConfirm={() => { remove(pendingDelete); setPendingDelete(null) }}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </div>
   )
 }
