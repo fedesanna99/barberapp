@@ -106,6 +106,7 @@ export type Database = {
           caption: string | null
           label: string | null
           likes_count: number
+          comments_count: number
           created_at: string
         }
         Insert: {
@@ -115,6 +116,7 @@ export type Database = {
           caption?: string | null
           label?: string | null
           likes_count?: number
+          comments_count?: number
           created_at?: string
         }
         Update: {
@@ -192,6 +194,75 @@ export type Database = {
             columns: ['post_id']
             isOneToOne: false
             referencedRelation: 'posts'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      comments: {
+        Row: {
+          id: string
+          post_id: string
+          author_id: string
+          content: string
+          likes_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          author_id: string
+          content: string
+          likes_count?: number
+          created_at?: string
+        }
+        Update: {
+          content?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'comments_post_id_fkey'
+            columns: ['post_id']
+            isOneToOne: false
+            referencedRelation: 'posts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'comments_author_id_fkey'
+            columns: ['author_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      comment_likes: {
+        Row: {
+          user_id: string
+          comment_id: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          comment_id: string
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          comment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'comment_likes_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'comment_likes_comment_id_fkey'
+            columns: ['comment_id']
+            isOneToOne: false
+            referencedRelation: 'comments'
             referencedColumns: ['id']
           }
         ]
@@ -450,6 +521,8 @@ export type Barber       = Database['public']['Tables']['barbers']['Row']
 export type Post         = Database['public']['Tables']['posts']['Row']
 export type Follow       = Database['public']['Tables']['follows']['Row']
 export type Like         = Database['public']['Tables']['likes']['Row']
+export type Comment      = Database['public']['Tables']['comments']['Row']
+export type CommentLike  = Database['public']['Tables']['comment_likes']['Row']
 export type Availability = Database['public']['Tables']['availability']['Row']
 export type Booking      = Database['public']['Tables']['bookings']['Row']
 export type UserPost     = Database['public']['Tables']['user_posts']['Row']

@@ -5,12 +5,14 @@ import { BARBERS, POSTS } from '../lib/demoData'
 export interface FeedPost {
   id: string
   barberId: string
+  barberProfileId: string
   barberName: string
   barberInitials: string
   barberCity: string
   barberAccent: string
   barberAvatarUrl?: string
   likesCount: number
+  commentsCount: number
   caption: string
   label: string
   createdAt: string
@@ -47,12 +49,14 @@ let demoPosts: FeedPost[] = POSTS.map(p => {
   return {
     id: String(p.id),
     barberId: String(p.barberId),
+    barberProfileId: String(p.barberId),
     barberName: b.name,
     barberInitials: b.initials,
     barberCity: b.city,
     barberAccent: b.accent,
     barberAvatarUrl: undefined,
     likesCount: p.likes,
+    commentsCount: 0,
     caption: p.caption,
     label: p.label,
     createdAt: new Date().toISOString(),
@@ -149,12 +153,14 @@ export function useFeed(userId: string | undefined, _ownBarberId?: string) {
           return {
             id: p.id,
             barberId: b.id,
+            barberProfileId: b.profile_id,
             barberName: prof.display_name ?? 'Barber',
             barberInitials: initialsFromName(prof.display_name ?? null),
             barberCity: b.city ?? '',
             barberAccent: accentFromId(b.id),
             barberAvatarUrl: prof.avatar_url ?? undefined,
             likesCount: p.likes_count,
+            commentsCount: (p as any).comments_count ?? 0,
             caption: p.caption ?? '',
             label: (p as any).label ?? '',
             createdAt: p.created_at,

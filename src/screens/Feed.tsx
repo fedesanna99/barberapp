@@ -11,7 +11,6 @@ import type { BarberWithProfile } from '../types/supabase'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { uploadPostPhoto, validateImageType } from '../hooks/useUpload'
 import { CommentsSheet } from './CommentsSheet'
-import type { Comment } from './CommentsSheet'
 import { PostMedia } from '../components/PostMedia'
 
 function toStoryBarber(b: BarberWithProfile): DemoBarber {
@@ -28,15 +27,6 @@ function toStoryBarber(b: BarberWithProfile): DemoBarber {
     accent:    accentFromId(b.id),
   }
 }
-
-const SEED_COMMENTS: Comment[] = [
-  { id: 's1', postId: '1', author: 'Luca R.',    text: 'Fuoco 🔥 quella linea è chirurgica'   },
-  { id: 's2', postId: '1', author: 'Marco T.',   text: 'Devo prenotare prima possibile'        },
-  { id: 's3', postId: '2', author: 'Andrea G.',  text: 'Lo shave arabo è una cosa seria 👌'   },
-  { id: 's4', postId: '2', author: 'Youssef K.', text: 'Il migliore in zona senza dubbi'       },
-  { id: 's5', postId: '3', author: 'Paolo V.',   text: 'French crop perfetto, bravo!'          },
-  { id: 's6', postId: '4', author: 'Gianni M.',  text: 'Classic never dies ✂️'                },
-]
 
 interface FeedProps {
   userId?:             string
@@ -74,17 +64,8 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
 
   const { savedIds, toggleSaved } = useSavedPosts(userId)
 
-  const [comments,     setComments]     = useState<Comment[]>(SEED_COMMENTS)
   const [activePostId, setActivePostId] = useState<string | null>(null)
   const [showNewPost,  setShowNewPost]  = useState(false)
-
-  function addComment(postId: string, text: string) {
-    setComments(prev => [...prev, { id: crypto.randomUUID(), postId, author: 'You', text }])
-  }
-
-  function deleteComment(id: string) {
-    setComments(prev => prev.filter(c => c.id !== id))
-  }
 
   async function toggleLike(post: FeedPost) {
     const isLiked = feed.likedIds.has(post.id)
@@ -104,12 +85,14 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
       feed.prependPost({
         id:              crypto.randomUUID(),
         barberId:        demoId,
+        barberProfileId: userId ?? demoId,
         barberName:      'You',
         barberInitials:  'YO',
         barberCity:      '',
         barberAccent:    C.accent,
         barberAvatarUrl: undefined,
         likesCount:      0,
+        commentsCount:   0,
         caption,
         label,
         createdAt: new Date().toISOString(),
@@ -131,12 +114,14 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
     feed.prependPost({
       id: post.id,
       barberId: barberId,
+      barberProfileId: userId!,
       barberName: profileRow?.display_name ?? 'Barbiere',
       barberInitials: initialsFromName(profileRow?.display_name ?? null),
       barberCity: barberRow?.city ?? '',
       barberAccent: accentFromId(barberId),
       barberAvatarUrl: profileRow?.avatar_url ?? undefined,
       likesCount: 0,
+      commentsCount: 0,
       caption: post.caption ?? '',
       label: (post as any).label ?? '',
       createdAt: post.created_at,
@@ -151,7 +136,6 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
       ? feed.posts.filter(p => feed.likedIds.has(p.id))
       : feed.posts
   const activePost    = feed.posts.find(p => p.id === activePostId) ?? null
-  const sheetComments = activePostId !== null ? comments.filter(c => c.postId === activePostId) : []
 
   return (
     <div style={{ flex: 1, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -243,7 +227,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
         {visiblePosts.map((post, idx) => {
           const isLiked = feed.likedIds.has(post.id)
           const isSaved = savedIds.has(post.id)
-          const count   = comments.filter(c => c.postId === post.id).length
+          const count   = post.commentsCount
 
           return (
             <div key={post.id}>
@@ -327,11 +311,10 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
       {/* Comments sheet */}
       {activePost && (
         <CommentsSheet
+          postId={activePost.id}
           postLabel={activePost.label || activePost.caption}
-          comments={sheetComments}
-          isBarber={!!isBarber}
-          onAdd={text => addComment(activePost.id, text)}
-          onDelete={deleteComment}
+          userId={userId}
+          postOwnerProfileId={activePost.barberProfileId}
           onClose={() => setActivePostId(null)}
         />
       )}

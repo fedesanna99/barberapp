@@ -142,7 +142,7 @@ export function Profile({ userId, isBarber, barberId }: Props) {
       } else {
         setOwnPosts(prev => [{
           id: crypto.randomUUID(), barber_id: barberId,
-          image_url: url, caption: null, label: null, likes_count: 0,
+          image_url: url, caption: null, label: null, likes_count: 0, comments_count: 0,
           created_at: new Date().toISOString(),
         }, ...prev])
       }

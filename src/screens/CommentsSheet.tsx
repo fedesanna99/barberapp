@@ -1,23 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
 import { C } from '../lib/colors'
-
-export interface Comment {
-  id: string
-  postId: string
-  author: string
-  text: string
-}
+import { Avatar } from '../components/Avatar'
+import { initialsFromName } from '../hooks/useFeed'
+import { useComments } from '../hooks/useComments'
 
 interface Props {
-  postLabel:  string
-  comments:   Comment[]
-  isBarber:   boolean
-  onAdd:      (text: string) => void
-  onDelete:   (id: string) => void
-  onClose:    () => void
+  postId:             string
+  postLabel:          string
+  userId?:            string
+  postOwnerProfileId?: string
+  onClose:            () => void
 }
 
-export function CommentsSheet({ postLabel, comments, isBarber, onAdd, onDelete, onClose }: Props) {
+export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, onClose }: Props) {
+  const { comments, add, remove, toggleLike } = useComments(postId, userId)
   const [text, setText] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -25,12 +21,16 @@ export function CommentsSheet({ postLabel, comments, isBarber, onAdd, onDelete, 
     inputRef.current?.focus({ preventScroll: true })
   }, [])
 
-  function submit() {
+  async function submit() {
     const t = text.trim()
     if (!t) return
-    onAdd(t)
     setText('')
+    await add(t)
   }
+
+  const isPostOwner = !!userId && userId === postOwnerProfileId
+  const canDelete = (authorId: string | null) =>
+    (!!authorId && authorId === userId) || isPostOwner
 
   return (
     <div
@@ -61,19 +61,33 @@ export function CommentsSheet({ postLabel, comments, isBarber, onAdd, onDelete, 
             </div>
           ) : (
             comments.map(c => (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14 }}>
-                <div style={{ flex: 1, fontSize: 13, color: C.text, lineHeight: 1.45 }}>
-                  <span style={{ fontWeight: 500 }}>{c.author} </span>
-                  {c.text}
+              <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14 }}>
+                {c.authorAvatar
+                  ? <img src={c.authorAvatar} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: `0.5px solid ${C.border}` }} />
+                  : <Avatar initials={initialsFromName(c.authorName)} size={32} />
+                }
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: C.text, lineHeight: 1.45, wordBreak: 'break-word' }}>
+                    <span style={{ fontWeight: 500 }}>{c.authorName}</span>{' '}{c.content}
+                  </div>
+                  {canDelete(c.authorId) && (
+                    <button
+                      onClick={() => remove(c.id)}
+                      style={{ background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', fontSize: 11, color: C.hint, fontFamily: 'inherit' }}
+                    >
+                      Elimina
+                    </button>
+                  )}
                 </div>
-                {isBarber && (
-                  <button
-                    onClick={() => onDelete(c.id)}
-                    style={{ background: 'none', border: 'none', padding: '2px 0 0', cursor: 'pointer', flexShrink: 0 }}
-                  >
-                    <i className="ti ti-trash" style={{ fontSize: 14, color: C.hint }} />
-                  </button>
-                )}
+                <button
+                  onClick={() => toggleLike(c.id)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0 0', flexShrink: 0, minWidth: 22 }}
+                >
+                  <i className="ti ti-heart" style={{ fontSize: 14, color: c.likedByMe ? C.red : C.hint }} />
+                  {c.likesCount > 0 && (
+                    <span style={{ fontSize: 10, color: C.hint, marginTop: 1 }}>{c.likesCount}</span>
+                  )}
+                </button>
               </div>
             ))
           )}
