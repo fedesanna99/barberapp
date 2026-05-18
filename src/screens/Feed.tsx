@@ -297,7 +297,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                 </button>
                 <div style={{ flex: 1 }} />
                 <button onClick={() => toggleSaved(post.id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-                  <i className={`ti ${isSaved ? 'ti-bookmark-filled' : 'ti-bookmark'}`} style={{ fontSize: 22, color: isSaved ? C.text : C.muted }} />
+                  <i className="ti ti-bookmark" style={{ fontSize: 22, color: isSaved ? C.text : C.muted }} />
                 </button>
               </div>
 
