@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { haversineKm } from '../lib/geo'
 import type { Barber, BarberWithProfile } from '../types/supabase'
 
 export function useBarberByProfile(profileId: string | undefined): string | undefined {
@@ -19,27 +20,16 @@ export function useBarberByProfile(profileId: string | undefined): string | unde
   return barberId
 }
 
-export type SortMode = 'nearby' | 'popular' | 'new'
+export type SortMode = 'nearby' | 'popular' | 'new' | 'toprated'
 
-export function haversineKm(
-  lat1: number, lng1: number,
-  lat2: number, lng2: number,
-): number {
-  const R = 6371
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLng = ((lng2 - lng1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
+// Re-export so existing call sites that imported it from this hook keep working.
+export { haversineKm } from '../lib/geo'
 
 export function useBarbers(
   sort: SortMode,
   userLat?: number,
   userLng?: number,
+  search = '',
 ) {
   const [barbers, setBarbers] = useState<BarberWithProfile[]>([])
   const [loading, setLoading] = useState(false)
@@ -47,11 +37,10 @@ export function useBarbers(
   useEffect(() => {
     setLoading(true)
 
-    // Fetch barbers without nested profile embed to avoid ambiguous FK issues
     let query = supabase.from('barbers').select('*')
-
-    if (sort === 'popular') query = query.order('followers_count', { ascending: false })
-    if (sort === 'new')     query = query.order('created_at',     { ascending: false })
+    if (sort === 'popular')  query = query.order('followers_count', { ascending: false })
+    if (sort === 'new')      query = query.order('created_at',     { ascending: false })
+    if (sort === 'toprated') query = query.order('rating',         { ascending: false })
 
     let cancelled = false
 
@@ -60,7 +49,6 @@ export function useBarbers(
       if (error) { console.error('[useBarbers]', error); setLoading(false); return }
 
       const rows = (barbersData ?? []) as Barber[]
-
       const profileIds = [...new Set(rows.map(b => b.profile_id))]
       const { data: profilesData } = profileIds.length > 0
         ? await supabase.from('profiles').select('id, display_name, avatar_url, lat, lng').in('id', profileIds)
@@ -75,12 +63,22 @@ export function useBarbers(
         profile: profileMap[b.profile_id] ?? { display_name: null, avatar_url: null, lat: null, lng: null },
       }))
 
+      if (search.trim()) {
+        const q = search.trim().toLowerCase()
+        result = result.filter(b =>
+          (b.profile.display_name ?? '').toLowerCase().includes(q) ||
+          (b.shop_name ?? '').toLowerCase().includes(q) ||
+          (b.city ?? '').toLowerCase().includes(q) ||
+          (b.specialties ?? '').toLowerCase().includes(q),
+        )
+      }
+
       if (sort === 'nearby' && userLat != null && userLng != null) {
         result = result
           .filter(b => b.profile.lat != null && b.profile.lng != null)
           .sort((a, b) =>
-            haversineKm(userLat, userLng, a.profile.lat!, a.profile.lng!) -
-            haversineKm(userLat, userLng, b.profile.lat!, b.profile.lng!),
+            haversineKm({ lat: userLat, lng: userLng }, { lat: a.profile.lat!, lng: a.profile.lng! }) -
+            haversineKm({ lat: userLat, lng: userLng }, { lat: b.profile.lat!, lng: b.profile.lng! }),
           )
       }
 
@@ -89,7 +87,7 @@ export function useBarbers(
     })
 
     return () => { cancelled = true }
-  }, [sort, userLat, userLng])
+  }, [sort, userLat, userLng, search])
 
   return { barbers, loading }
 }

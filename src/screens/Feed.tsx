@@ -228,6 +228,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
           const isLiked = feed.likedIds.has(post.id)
           const isSaved = savedIds.has(post.id)
           const count   = post.commentsCount
+          const isOwnPost = !!barberId && String(barberId) === String(post.barberId)
 
           return (
             <div key={post.id}>
@@ -245,12 +246,14 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                     <div style={{ fontSize: 11, color: C.hint }}>{post.barberCity} · {post.timeAgo}</div>
                   </div>
                 </div>
-                <button
-                  onClick={() => onBook(postToBarber(post))}
-                  style={{ padding: '6px 13px', borderRadius: 8, background: C.text, color: C.bg, fontSize: 12, border: 'none', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit' }}
-                >
-                  Prenota
-                </button>
+                {!isOwnPost && (
+                  <button
+                    onClick={() => onBook(postToBarber(post))}
+                    style={{ padding: '6px 13px', borderRadius: 8, background: C.text, color: C.bg, fontSize: 12, border: 'none', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit' }}
+                  >
+                    Prenota
+                  </button>
+                )}
               </div>
 
               {/* Post image */}

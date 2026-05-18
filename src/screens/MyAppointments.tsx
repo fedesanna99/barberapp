@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
+import { ReviewSheet } from '../components/ReviewSheet'
 import { useBooking, useClientBookings, type BookingWithBarber } from '../hooks/useBooking'
+import { useReviews } from '../hooks/useReviews'
 import type { ToastEvent } from '../components/Toast'
 
 interface Props {
@@ -40,6 +42,9 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
   const { bookings } = useClientBookings(userId)
   const { cancelBooking } = useBooking()
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  // Booking whose "Recensisci/Modifica" button was tapped.
+  // We open ReviewSheet bound to the booking's barber.
+  const [reviewBooking, setReviewBooking] = useState<BookingWithBarber | null>(null)
 
   const upcoming = bookings.filter(b => b.date >= TODAY && b.status !== 'cancelled' && b.status !== 'done')
   const past     = bookings.filter(b => b.date < TODAY || b.status === 'done' || b.status === 'cancelled')
@@ -101,14 +106,67 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
             {past.length > 0 && (
               <Section title="Storia" count={past.length}>
                 {past.map(b => (
-                  <BookingCard key={b.id} booking={b} />
+                  <BookingCard
+                    key={b.id}
+                    booking={b}
+                    onReview={b.status === 'done' ? () => setReviewBooking(b) : undefined}
+                  />
                 ))}
               </Section>
             )}
           </>
         )}
       </div>
+
+      {reviewBooking && (
+        <ReviewSheetForBooking
+          userId={userId}
+          booking={reviewBooking}
+          onClose={() => setReviewBooking(null)}
+          onToast={onToast}
+        />
+      )}
     </div>
+  )
+}
+
+// Thin wrapper that re-uses useReviews to mount the ReviewSheet
+// scoped to a specific (barber, current user) pair. Kept as a child
+// component so the hook only runs while the sheet is open.
+function ReviewSheetForBooking({
+  userId, booking, onClose, onToast,
+}: {
+  userId:   string
+  booking:  BookingWithBarber
+  onClose:  () => void
+  onToast?: (t: ToastEvent | null) => void
+}) {
+  const barberId   = booking.barbers?.id
+  const barberName = booking.barbers?.profile?.display_name ?? 'il barbiere'
+  const { myReview, upsertReview, removeReview } = useReviews(barberId, userId)
+
+  if (!barberId) { onClose(); return null }
+
+  return (
+    <ReviewSheet
+      barberName={barberName}
+      existing={myReview}
+      onClose={onClose}
+      onSubmit={async (rating, comment) => {
+        const res = await upsertReview(rating, comment)
+        if (!res.error) onToast?.({
+          kind:    'success',
+          title:   myReview ? 'Recensione aggiornata' : 'Recensione pubblicata',
+          message: barberName,
+        })
+        return res
+      }}
+      onDelete={myReview ? async () => {
+        const res = await removeReview()
+        if (!res.error) onToast?.({ kind: 'success', title: 'Recensione eliminata', message: barberName })
+        return res
+      } : undefined}
+    />
   )
 }
 
@@ -145,10 +203,11 @@ function Section({ title, count, children }: { title: string; count: number; chi
   )
 }
 
-function BookingCard({ booking, cancelling, onCancel }: {
+function BookingCard({ booking, cancelling, onCancel, onReview }: {
   booking: BookingWithBarber
   cancelling?: boolean
   onCancel?: () => void
+  onReview?: () => void
 }) {
   const name   = booking.barbers?.profile?.display_name ?? 'Barbiere'
   const status = booking.status as keyof typeof STATUS_COLOR
@@ -187,6 +246,21 @@ function BookingCard({ booking, cancelling, onCancel }: {
           }}
         >
           {cancelling ? '…' : 'Annulla'}
+        </button>
+      )}
+      {onReview && (
+        <button
+          onClick={onReview}
+          style={{
+            height: 28, padding: '0 10px', borderRadius: 8,
+            border: `1px solid ${C.accent}`, background: 'transparent',
+            color: C.accent, fontSize: 11, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          <i className="ti ti-star" style={{ fontSize: 12 }} />
+          Recensisci
         </button>
       )}
     </div>

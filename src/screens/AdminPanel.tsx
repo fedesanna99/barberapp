@@ -444,12 +444,30 @@ function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
 
 // ── Logs Tab ───────────────────────────────────────────────────────────────
 
-function LogsTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
-  const { logs, loading, error, clearLogs, reload } = useAdminLogs()
-  const [filter, setFilter] = useState<LogFilter>('all')
-  const [clearing, setClearing] = useState(false)
+const HIDDEN_LOGS_KEY = 'cutbook.admin.logs.hidden'
 
-  const filtered = filter === 'all' ? logs : logs.filter(l => l.level === filter)
+function loadHiddenLogs(): Set<string> {
+  try {
+    const raw = localStorage.getItem(HIDDEN_LOGS_KEY)
+    if (!raw) return new Set()
+    const arr = JSON.parse(raw) as unknown
+    return Array.isArray(arr) ? new Set(arr.filter((x): x is string => typeof x === 'string')) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
+function saveHiddenLogs(ids: Set<string>) {
+  try { localStorage.setItem(HIDDEN_LOGS_KEY, JSON.stringify([...ids])) } catch { /* quota / private mode */ }
+}
+
+function LogsTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
+  const { logs, loading, error, reload } = useAdminLogs()
+  const [filter, setFilter] = useState<LogFilter>('all')
+  const [hidden, setHidden] = useState<Set<string>>(() => loadHiddenLogs())
+
+  const visible  = logs.filter(l => !hidden.has(l.id))
+  const filtered = filter === 'all' ? visible : visible.filter(l => l.level === filter)
 
   const filters: { id: LogFilter; label: string; color: string }[] = [
     { id: 'all',     label: 'Tutti',    color: C.muted  },
@@ -458,12 +476,26 @@ function LogsTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
     { id: 'error',   label: 'Errore',   color: C.red    },
   ]
 
-  async function handleClear() {
-    setClearing(true)
-    const { error: e } = await clearLogs()
-    setClearing(false)
-    if (e) onToast({ kind: 'error', title: 'Cancellazione log fallita', message: e })
-    else onToast({ kind: 'success', title: 'Log cancellati' })
+  function handleClear() {
+    if (filtered.length === 0) return
+    const ids = filtered.map(l => l.id)
+    setHidden(prev => {
+      const next = new Set(prev)
+      ids.forEach(id => next.add(id))
+      saveHiddenLogs(next)
+      return next
+    })
+    const titles: Record<LogFilter, string> = {
+      all:     'Tutti i log nascosti',
+      info:    'Log info nascosti',
+      warning: 'Log warning nascosti',
+      error:   'Log errore nascosti',
+    }
+    onToast({
+      kind:    'success',
+      title:   titles[filter],
+      message: `${ids.length} riga${ids.length === 1 ? '' : 'he'} nascost${ids.length === 1 ? 'a' : 'e'} dalla vista`,
+    })
   }
 
   return (
@@ -486,15 +518,15 @@ function LogsTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
             )
           })}
         </div>
-        <button onClick={handleClear} disabled={clearing || logs.length === 0} style={{
+        <button onClick={handleClear} disabled={filtered.length === 0} style={{
           padding: '5px 10px', borderRadius: 8, border: `1px solid ${C.borderMed}`,
-          background: 'none', color: clearing ? C.hint : C.red,
-          fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+          background: 'none', color: filtered.length === 0 ? C.hint : C.red,
+          fontSize: 11, fontWeight: 600,
+          cursor: filtered.length === 0 ? 'default' : 'pointer',
+          fontFamily: 'inherit', flexShrink: 0,
           display: 'flex', alignItems: 'center', gap: 4,
         }}>
-          {clearing
-            ? <i className="ti ti-loader-2" style={{ fontSize: 12, animation: 'spin 0.8s linear infinite' }} />
-            : <i className="ti ti-trash" style={{ fontSize: 12 }} />}
+          <i className="ti ti-trash" style={{ fontSize: 12 }} />
           Cancella
         </button>
       </div>

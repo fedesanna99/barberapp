@@ -8,6 +8,8 @@ import { useClientBookings } from '../hooks/useBooking'
 import { useProfile } from '../hooks/useProfile'
 import { useFollows } from '../hooks/useFollows'
 import { useBarberInfo } from '../hooks/useBarberInfo'
+import { useReviews } from '../hooks/useReviews'
+import { ReviewsList } from '../components/ReviewsList'
 import { uploadAvatar, uploadPostPhoto, uploadUserPostPhoto, validateImageType } from '../hooks/useUpload'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import type { BookingWithBarber } from '../hooks/useBooking'
@@ -57,11 +59,17 @@ export function Profile({ userId, isBarber, barberId }: Props) {
   const [showNewUserPost,  setShowNewUserPost]  = useState(false)
   const [showEditProfile,  setShowEditProfile]  = useState(false)
   const [selectedPostIdx, setSelectedPostIdx] = useState<number | null>(null)
+  // Tabs shown only on the barber's own profile (Post / Recensioni)
+  const [barberTab, setBarberTab] = useState<'posts' | 'reviews'>('posts')
 
   const { profile, updateAvatarUrl, updateProfile } = useProfile(userId)
   const follows  = useFollows(userId)
   const { bookings } = useClientBookings(isBarber ? undefined : userId)
   const { info: barberInfo } = useBarberInfo(isBarber ? barberId : undefined, isBarber ? userId : undefined)
+  // Reviews on the barber's own profile (read-only view: no "leave review" CTA
+  // since you can't review yourself; just shows what clients wrote).
+  const { reviews: barberReviews, aggregate: reviewAggregate } =
+    useReviews(isBarber ? barberId : undefined, undefined)
 
   // Barber: load own posts on mount
   useEffect(() => {
@@ -315,13 +323,54 @@ export function Profile({ userId, isBarber, barberId }: Props) {
         ))}
       </div>
 
-      {/* Cut / post photo grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
-        {showBarberPosts     && <OwnPostGrid posts={ownPosts} onPostClick={setSelectedPostIdx} />}
-        {showDemoBarberPosts && <DemoBarberPostGrid onPostClick={setSelectedPostIdx} />}
-        {showClientPosts     && <UserPostGrid posts={userPosts} onPostClick={setSelectedPostIdx} />}
-        {showDemoPosts       && <DemoPostGrid />}
-      </div>
+      {/* Barber-only tab bar — clients keep the simple post grid */}
+      {isBarber && (
+        <div style={{ display: 'flex', borderBottom: `0.5px solid ${C.border}`, marginTop: -16, marginBottom: 0 }}>
+          {([
+            ['posts',   'ti-layout-grid', 'Post'],
+            ['reviews', 'ti-star',        `Recensioni${reviewAggregate.count > 0 ? ` · ${reviewAggregate.count}` : ''}`],
+          ] as ['posts' | 'reviews', string, string][]).map(([id, icon, label]) => {
+            const active = barberTab === id
+            return (
+              <button
+                key={id}
+                onClick={() => setBarberTab(id)}
+                style={{
+                  flex: 1, padding: '10px 0',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  fontFamily: 'inherit',
+                  borderBottom: active ? `2px solid ${C.text}` : '2px solid transparent',
+                  color: active ? C.text : C.hint,
+                  fontSize: 12, fontWeight: 500,
+                }}
+              >
+                <i className={`ti ${icon}`} style={{ fontSize: 14 }} />
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Cut / post photo grid (hidden on barber when Recensioni tab is active) */}
+      {(!isBarber || barberTab === 'posts') && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+          {showBarberPosts     && <OwnPostGrid posts={ownPosts} onPostClick={setSelectedPostIdx} />}
+          {showDemoBarberPosts && <DemoBarberPostGrid onPostClick={setSelectedPostIdx} />}
+          {showClientPosts     && <UserPostGrid posts={userPosts} onPostClick={setSelectedPostIdx} />}
+          {showDemoPosts       && <DemoPostGrid />}
+        </div>
+      )}
+
+      {/* Reviews tab content (barber only) */}
+      {isBarber && barberTab === 'reviews' && (
+        <ReviewsList
+          reviews={barberReviews}
+          aggregate={reviewAggregate}
+          accent={C.accent}
+        />
+      )}
 
       {/* Your appointment */}
       {(isDemo || upcoming.length > 0) && (
