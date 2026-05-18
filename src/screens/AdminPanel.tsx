@@ -444,10 +444,27 @@ function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
 
 // ── Logs Tab ───────────────────────────────────────────────────────────────
 
+const HIDDEN_LOGS_KEY = 'cutbook.admin.logs.hidden'
+
+function loadHiddenLogs(): Set<string> {
+  try {
+    const raw = localStorage.getItem(HIDDEN_LOGS_KEY)
+    if (!raw) return new Set()
+    const arr = JSON.parse(raw) as unknown
+    return Array.isArray(arr) ? new Set(arr.filter((x): x is string => typeof x === 'string')) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
+function saveHiddenLogs(ids: Set<string>) {
+  try { localStorage.setItem(HIDDEN_LOGS_KEY, JSON.stringify([...ids])) } catch { /* quota / private mode */ }
+}
+
 function LogsTab({ onToast }: { onToast: (msg: string) => void }) {
   const { logs, loading, error, reload } = useAdminLogs()
   const [filter, setFilter] = useState<LogFilter>('all')
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const [hidden, setHidden] = useState<Set<string>>(() => loadHiddenLogs())
 
   const visible  = logs.filter(l => !hidden.has(l.id))
   const filtered = filter === 'all' ? visible : visible.filter(l => l.level === filter)
@@ -465,6 +482,7 @@ function LogsTab({ onToast }: { onToast: (msg: string) => void }) {
     setHidden(prev => {
       const next = new Set(prev)
       ids.forEach(id => next.add(id))
+      saveHiddenLogs(next)
       return next
     })
     const labels: Record<LogFilter, string> = {
