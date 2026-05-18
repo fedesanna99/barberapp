@@ -39,15 +39,16 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 | Categoria | Iniziale | Chiusi | Rimasti |
 |---|---|---|---|
 | 🔧 STUB | 10 | 10 | 0 |
-| 🟡 PARTIAL | 10 | 5 | 5 |
+| 🟡 PARTIAL | 10 | 6 | 4 |
 | ❌ MISSING | 12 | 1 | 11 |
 
 I 10 STUB e il MISSING #3 sono stati implementati e testati live in browser
 nella sessione del 2026-05-18. Vedi commit `94f1ad1` → `0016f64`.
 
 PARTIAL chiusi successivamente: #2, #3 (badge dinamici, già coperti dai
-commit STUB), #4 (Stories real data), #8, #9 (durata e prezzo per barbiere).
-Vedi commit `f2dd88d` (Stories) e `b45fdbc` (defaults + migration 020).
+commit STUB), #4 (Stories real data), #8, #9 (durata e prezzo per barbiere),
+#1 (bookmark persistente + vista Post salvati). Vedi commit `f2dd88d`,
+`b45fdbc`, `7c31515`.
 
 ---
 
@@ -167,7 +168,7 @@ Vedi commit `f2dd88d` (Stories) e `b45fdbc` (defaults + migration 020).
 
 ## 🟡 PARTIAL — UI completa, dati hardcoded/local
 
-### #1 — Bookmark/segnalibro 🔖 sui post
+### #1 — Bookmark/segnalibro 🔖 sui post ✅ DONE (`7c31515` + fix icon `e0c3417`, richiede migration 021)
 
 - **Cosa l'utente vede:** icona bookmark sotto ogni post, si "riempie" quando cliccato
 - **Dove:** [src/screens/Feed.tsx:54](src/screens/Feed.tsx:54), [src/screens/Feed.tsx:255](src/screens/Feed.tsx:255)
