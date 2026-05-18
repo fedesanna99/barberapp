@@ -445,11 +445,12 @@ function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
 // ── Logs Tab ───────────────────────────────────────────────────────────────
 
 function LogsTab({ onToast }: { onToast: (msg: string) => void }) {
-  const { logs, loading, error, clearLogs, reload } = useAdminLogs()
+  const { logs, loading, error, reload } = useAdminLogs()
   const [filter, setFilter] = useState<LogFilter>('all')
-  const [clearing, setClearing] = useState(false)
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
 
-  const filtered = filter === 'all' ? logs : logs.filter(l => l.level === filter)
+  const visible  = logs.filter(l => !hidden.has(l.id))
+  const filtered = filter === 'all' ? visible : visible.filter(l => l.level === filter)
 
   const filters: { id: LogFilter; label: string; color: string }[] = [
     { id: 'all',     label: 'Tutti',    color: C.muted  },
@@ -458,12 +459,21 @@ function LogsTab({ onToast }: { onToast: (msg: string) => void }) {
     { id: 'error',   label: 'Errore',   color: C.red    },
   ]
 
-  async function handleClear() {
-    setClearing(true)
-    const { error: e } = await clearLogs()
-    setClearing(false)
-    if (e) onToast('Errore: ' + e)
-    else onToast('Log cancellati')
+  function handleClear() {
+    if (filtered.length === 0) return
+    const ids = filtered.map(l => l.id)
+    setHidden(prev => {
+      const next = new Set(prev)
+      ids.forEach(id => next.add(id))
+      return next
+    })
+    const labels: Record<LogFilter, string> = {
+      all:     'Tutti i log nascosti',
+      info:    'Log info nascosti',
+      warning: 'Log warning nascosti',
+      error:   'Log errore nascosti',
+    }
+    onToast(labels[filter])
   }
 
   return (
@@ -486,15 +496,15 @@ function LogsTab({ onToast }: { onToast: (msg: string) => void }) {
             )
           })}
         </div>
-        <button onClick={handleClear} disabled={clearing || logs.length === 0} style={{
+        <button onClick={handleClear} disabled={filtered.length === 0} style={{
           padding: '5px 10px', borderRadius: 8, border: `1px solid ${C.borderMed}`,
-          background: 'none', color: clearing ? C.hint : C.red,
-          fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+          background: 'none', color: filtered.length === 0 ? C.hint : C.red,
+          fontSize: 11, fontWeight: 600,
+          cursor: filtered.length === 0 ? 'default' : 'pointer',
+          fontFamily: 'inherit', flexShrink: 0,
           display: 'flex', alignItems: 'center', gap: 4,
         }}>
-          {clearing
-            ? <i className="ti ti-loader-2" style={{ fontSize: 12, animation: 'spin 0.8s linear infinite' }} />
-            : <i className="ti ti-trash" style={{ fontSize: 12 }} />}
+          <i className="ti ti-trash" style={{ fontSize: 12 }} />
           Cancella
         </button>
       </div>
