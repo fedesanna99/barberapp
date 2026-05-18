@@ -9,7 +9,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#FFFFFF" />
     <title>CutBook</title>
-    <!-- Phosphor Icons sono importati da src/main.tsx via npm (bundle locale). -->
+    <!-- Phosphor Icons sono importati da src/main.tsx via npm (bundle locale, no CDN). -->
+    <!-- Sostituisce il loader jsdelivr precedente: bundle + zero supply-chain exposure. -->
   </head>
   <body>
     <div id="root"></div>
