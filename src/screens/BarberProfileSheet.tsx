@@ -5,7 +5,10 @@ import type { DemoBarber } from '../lib/demoData'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { useBarberInfo } from '../hooks/useBarberInfo'
 import { useFollow } from '../hooks/useFollow'
+import { useReviews } from '../hooks/useReviews'
 import { PostMedia } from '../components/PostMedia'
+import { ReviewsList } from '../components/ReviewsList'
+import { ReviewSheet } from '../components/ReviewSheet'
 
 interface BarberPost {
   id: string
@@ -29,14 +32,27 @@ interface Props {
   onBook: (barber: DemoBarber) => void
   userId?: string
   isBarber?: boolean
+  // The current user's own barbers.id when logged in as a barber.
+  // Used to detect "this is MY profile" and hide Prenota / review CTAs.
+  myBarberId?: string
 }
 
-export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber }: Props) {
+export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, myBarberId }: Props) {
+  // True when the currently logged-in barber is looking at their own profile.
+  // Server-side triggers already block self-booking / self-review; this is
+  // the UI half of the same rule (cleaner UX than waiting for the error).
+  const isOwnProfile = !!myBarberId && String(myBarberId) === String(barber.id)
   const [posts, setPosts]             = useState<BarberPost[]>([])
   const [feedStartIdx, setFeedStartIdx] = useState<number | null>(null)
+  const [tab, setTab]                 = useState<'posts' | 'reviews'>('posts')
+  const [reviewOpen, setReviewOpen]   = useState(false)
   const { info } = useBarberInfo(IS_DEMO ? undefined : String(barber.id), undefined)
   const { isFollowing, followersCount, toggle: toggleFollow, loading: followLoading } =
     useFollow(userId, IS_DEMO ? undefined : String(barber.id))
+  const {
+    reviews, aggregate, myReview, canReview,
+    upsertReview, removeReview, effectiveUserId,
+  } = useReviews(barber.id, userId)
 
   useEffect(() => {
     if (IS_DEMO) {
@@ -172,7 +188,8 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber }
         <div style={{ display: 'flex', borderTop: `0.5px solid ${C.border}`, borderBottom: `0.5px solid ${C.border}`, marginBottom: 2 }}>
           {([
             [followersCount !== null ? String(followersCount) : String(barber.followers), 'Follower'],
-            [barber.rating.toFixed(1), 'Voto'],
+            // Voto = real aggregate when we have reviews, otherwise the seed barber.rating
+            [aggregate.count > 0 ? aggregate.rating.toFixed(1) : barber.rating.toFixed(1), 'Voto'],
             [String(posts.length),     'Post'],
           ] as [string, string][]).map(([val, label], i) => (
             <div key={label} style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderLeft: i > 0 ? `0.5px solid ${C.border}` : 'none' }}>
@@ -182,56 +199,137 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber }
           ))}
         </div>
 
-        {/* Posts grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
-          {Array.from({ length: totalCells }).map((_, i) => {
-            const post = posts[i]
+        {/* Tabs */}
+        <div style={{ display: 'flex', borderBottom: `0.5px solid ${C.border}` }}>
+          {([
+            ['posts',   'ti-layout-grid', 'Post'],
+            ['reviews', 'ti-star',        'Recensioni'],
+          ] as ['posts' | 'reviews', string, string][]).map(([id, icon, label]) => {
+            const active = tab === id
             return (
-              <div
-                key={i}
-                onClick={() => post && setFeedStartIdx(i)}
+              <button
+                key={id}
+                onClick={() => setTab(id)}
                 style={{
-                  aspectRatio: '1', cursor: post ? 'pointer' : 'default', position: 'relative', overflow: 'hidden',
-                  background: barber.accent + '18',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flex: 1, padding: '10px 0',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  fontFamily: 'inherit',
+                  borderBottom: active ? `2px solid ${C.text}` : '2px solid transparent',
+                  color: active ? C.text : C.hint,
+                  fontSize: 12, fontWeight: 500,
                 }}
               >
-                {post?.imageUrl
-                  ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <i className="ti ti-scissors" style={{ fontSize: 28, color: barber.accent, opacity: 0.4 }} />
-                }
-                {post && (
-                  <div style={{
-                    position: 'absolute', bottom: 0, left: 0, right: 0,
-                    padding: '12px 4px 4px',
-                    background: 'linear-gradient(transparent, rgba(0,0,0,0.45))',
-                    textAlign: 'center',
-                  }}>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{post.label}</div>
-                  </div>
-                )}
-              </div>
+                <i className={`ti ${icon}`} style={{ fontSize: 14 }} />
+                {label}
+              </button>
             )
           })}
         </div>
+
+        {/* Tab content */}
+        {tab === 'posts' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+            {Array.from({ length: totalCells }).map((_, i) => {
+              const post = posts[i]
+              return (
+                <div
+                  key={i}
+                  onClick={() => post && setFeedStartIdx(i)}
+                  style={{
+                    aspectRatio: '1', cursor: post ? 'pointer' : 'default', position: 'relative', overflow: 'hidden',
+                    background: barber.accent + '18',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  {post?.imageUrl
+                    ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <i className="ti ti-scissors" style={{ fontSize: 28, color: barber.accent, opacity: 0.4 }} />
+                  }
+                  {post && (
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      padding: '12px 4px 4px',
+                      background: 'linear-gradient(transparent, rgba(0,0,0,0.45))',
+                      textAlign: 'center',
+                    }}>
+                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{post.label}</div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <>
+            <ReviewsList
+              reviews={reviews}
+              aggregate={aggregate}
+              accent={barber.accent}
+              myUserId={effectiveUserId}
+              onEditMine={() => setReviewOpen(true)}
+            />
+            {/* CTA: clients (or barbers viewing OTHER barbers) can review when eligible.
+                If `canReview` is false we still show a contextual hint so the user understands
+                why the button isn't there. Barbers viewing their OWN profile see nothing
+                (they can't auto-review themselves). */}
+            {!isOwnProfile && (
+              <div style={{ padding: '0 16px 16px' }}>
+                {myReview ? null : canReview ? (
+                  <button
+                    onClick={() => setReviewOpen(true)}
+                    style={{
+                      width: '100%', padding: 12, borderRadius: 12,
+                      background: barber.accent, color: '#fff',
+                      fontSize: 14, fontWeight: 500, border: 'none',
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    }}
+                  >
+                    <i className="ti ti-star" style={{ fontSize: 16 }} />
+                    Lascia una recensione
+                  </button>
+                ) : (
+                  <div style={{
+                    padding: '12px 14px', borderRadius: 12,
+                    background: C.surface, border: `0.5px dashed ${C.borderMed}`,
+                    fontSize: 12, color: C.muted, textAlign: 'center', lineHeight: 1.4,
+                  }}>
+                    Puoi recensire solo dopo un appuntamento completato.
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Book button */}
-      <div style={{ padding: '12px 16px 20px', background: C.bg, borderTop: `0.5px solid ${C.border}`, flexShrink: 0 }}>
-        <button
-          onClick={() => onBook(barber)}
-          style={{
-            width: '100%', padding: 15, borderRadius: 12,
-            background: C.text, color: C.bg,
-            fontSize: 15, fontWeight: 500, border: 'none', cursor: 'pointer',
-            fontFamily: 'inherit', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: 8,
-          }}
-        >
-          <i className="ti ti-calendar-plus" style={{ fontSize: 18 }} />
-          Prenota con {barber.name.split(' ')[0]}
-        </button>
-      </div>
+      {/* Book button — hidden when the logged-in barber is viewing their own profile */}
+      {!isOwnProfile ? (
+        <div style={{ padding: '12px 16px 20px', background: C.bg, borderTop: `0.5px solid ${C.border}`, flexShrink: 0 }}>
+          <button
+            onClick={() => onBook(barber)}
+            style={{
+              width: '100%', padding: 15, borderRadius: 12,
+              background: C.text, color: C.bg,
+              fontSize: 15, fontWeight: 500, border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 8,
+            }}
+          >
+            <i className="ti ti-calendar-plus" style={{ fontSize: 18 }} />
+            Prenota con {barber.name.split(' ')[0]}
+          </button>
+        </div>
+      ) : (
+        <div style={{
+          padding: '12px 16px 20px', background: C.bg,
+          borderTop: `0.5px solid ${C.border}`, flexShrink: 0,
+          textAlign: 'center', fontSize: 12, color: C.hint,
+        }}>
+          Questo è il tuo profilo pubblico
+        </div>
+      )}
 
       {/* Post feed overlay */}
       {feedStartIdx !== null && (
@@ -240,6 +338,17 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber }
           startIdx={feedStartIdx}
           barber={barber}
           onClose={() => setFeedStartIdx(null)}
+        />
+      )}
+
+      {/* Review create/edit sheet */}
+      {reviewOpen && (
+        <ReviewSheet
+          barberName={barber.name}
+          existing={myReview}
+          onClose={() => setReviewOpen(false)}
+          onSubmit={upsertReview}
+          onDelete={myReview ? removeReview : undefined}
         />
       )}
     </div>

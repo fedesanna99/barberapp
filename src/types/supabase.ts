@@ -50,6 +50,7 @@ export type Database = {
           city: string | null
           specialties: string | null
           rating: number
+          reviews_count: number
           followers_count: number
           auto_accept: boolean
           phone: string | null
@@ -66,6 +67,7 @@ export type Database = {
           city?: string | null
           specialties?: string | null
           rating?: number
+          reviews_count?: number
           followers_count?: number
           auto_accept?: boolean
           phone?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           city?: string | null
           specialties?: string | null
           rating?: number
+          reviews_count?: number
           followers_count?: number
           auto_accept?: boolean
           phone?: string | null
@@ -457,6 +460,46 @@ export type Database = {
           }
         ]
       }
+      reviews: {
+        Row: {
+          id: string
+          barber_id: string
+          client_id: string
+          rating: number
+          comment: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          barber_id: string
+          client_id: string
+          rating: number
+          comment?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          rating?: number
+          comment?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'reviews_barber_id_fkey'
+            columns: ['barber_id']
+            isOneToOne: false
+            referencedRelation: 'barbers'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'reviews_client_id_fkey'
+            columns: ['client_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       user_posts: {
         Row: {
           id: string
@@ -525,6 +568,7 @@ export type Comment      = Database['public']['Tables']['comments']['Row']
 export type CommentLike  = Database['public']['Tables']['comment_likes']['Row']
 export type Availability = Database['public']['Tables']['availability']['Row']
 export type Booking      = Database['public']['Tables']['bookings']['Row']
+export type Review       = Database['public']['Tables']['reviews']['Row']
 export type UserPost     = Database['public']['Tables']['user_posts']['Row']
 export type SupportConversation = Database['public']['Tables']['support_conversations']['Row']
 export type SupportMessage      = Database['public']['Tables']['support_messages']['Row']

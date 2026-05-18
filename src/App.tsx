@@ -156,11 +156,12 @@ export default function App() {
             onBook={setBookingBarber}
             userId={userId}
             isBarber={isBarber}
+            myBarberId={barberId}
           />
         ) : (
           <>
             {screen === 'feed'      && <Feed     userId={userId} barberId={barberId} onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} showSaved={showSavedFeed} onShowSavedChange={setShowSavedFeed} />}
-            {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} />}
+            {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} myBarberId={barberId} />}
             {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
             {isBarber && (
               <div style={{ flex: screen === 'dashboard' ? 1 : 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>

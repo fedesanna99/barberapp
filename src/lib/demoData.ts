@@ -8,6 +8,8 @@ export interface DemoBarber {
   tags: string[]
   followers: number
   accent: string
+  lat?: number
+  lng?: number
 }
 
 export interface DemoPost {
@@ -29,11 +31,11 @@ export interface DemoDate {
 }
 
 export const BARBERS: DemoBarber[] = [
-  { id: '1', name: 'Marco Barba',   initials: 'MB', city: 'Cagliari centro', dist: 0.4, rating: 4.9, tags: ['Skin fade', 'Beard'],        followers: 1240, accent: '#5DCAA5' },
-  { id: '2', name: 'Fadi Nour',     initials: 'FN', city: 'Poetto',          dist: 1.2, rating: 4.8, tags: ['Arabic shave', 'Fade'],       followers: 892,  accent: '#85B7EB' },
-  { id: '3', name: 'Nico Testa',    initials: 'NT', city: 'Is Mirrionis',    dist: 2.1, rating: 4.7, tags: ['Classic', 'Texture'],         followers: 567,  accent: '#EF9F27' },
-  { id: '4', name: 'Tariq Khalid',  initials: 'TK', city: 'Villanova',       dist: 2.8, rating: 4.9, tags: ['Taper', 'Line up'],           followers: 2103, accent: '#AFA9EC' },
-  { id: '5', name: 'Luca Barbieri', initials: 'LB', city: 'Quartu',          dist: 4.5, rating: 4.6, tags: ['French crop', 'Beard'],       followers: 734,  accent: '#F09595' },
+  { id: '1', name: 'Marco Barba',   initials: 'MB', city: 'Cagliari centro', dist: 0.4, rating: 4.9, tags: ['Skin fade', 'Beard'],        followers: 1240, accent: '#5DCAA5', lat: 39.2238, lng: 9.1217 },
+  { id: '2', name: 'Fadi Nour',     initials: 'FN', city: 'Poetto',          dist: 1.2, rating: 4.8, tags: ['Arabic shave', 'Fade'],       followers: 892,  accent: '#85B7EB', lat: 39.2087, lng: 9.1693 },
+  { id: '3', name: 'Nico Testa',    initials: 'NT', city: 'Is Mirrionis',    dist: 2.1, rating: 4.7, tags: ['Classic', 'Texture'],         followers: 567,  accent: '#EF9F27', lat: 39.2354, lng: 9.0995 },
+  { id: '4', name: 'Tariq Khalid',  initials: 'TK', city: 'Villanova',       dist: 2.8, rating: 4.9, tags: ['Taper', 'Line up'],           followers: 2103, accent: '#AFA9EC', lat: 39.2189, lng: 9.1289 },
+  { id: '5', name: 'Luca Barbieri', initials: 'LB', city: 'Quartu',          dist: 4.5, rating: 4.6, tags: ['French crop', 'Beard'],       followers: 734,  accent: '#F09595', lat: 39.2402, lng: 9.2628 },
 ]
 
 export const POSTS: DemoPost[] = [
