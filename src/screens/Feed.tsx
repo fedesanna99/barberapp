@@ -156,7 +156,6 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                 onClick={() => onShowLikedChange?.(true)}
                 style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }}
               />
-              <i className="ti ti-send" style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }} />
             </div>
           </div>
         )}
@@ -250,7 +249,6 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                 <button onClick={() => setActivePostId(post.id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                   <i className="ti ti-message-circle" style={{ fontSize: 22, color: C.muted }} />
                 </button>
-                <i className="ti ti-send" style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }} />
                 <div style={{ flex: 1 }} />
                 <button onClick={() => toggleSave(post.id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
                   <i className={`ti ${isSaved ? 'ti-bookmark-filled' : 'ti-bookmark'}`} style={{ fontSize: 22, color: isSaved ? C.text : C.muted }} />
