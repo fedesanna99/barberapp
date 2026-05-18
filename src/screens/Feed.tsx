@@ -5,10 +5,27 @@ import { BARBERS } from '../lib/demoData'
 import type { DemoBarber } from '../lib/demoData'
 import { useFeed, accentFromId, initialsFromName } from '../hooks/useFeed'
 import type { FeedPost } from '../hooks/useFeed'
+import { useBarbers } from '../hooks/useBarbers'
+import type { BarberWithProfile } from '../types/supabase'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { uploadPostPhoto, validateImageType } from '../hooks/useUpload'
 import { CommentsSheet } from './CommentsSheet'
 import type { Comment } from './CommentsSheet'
+
+function toStoryBarber(b: BarberWithProfile): DemoBarber {
+  const name = b.profile.display_name ?? b.shop_name ?? 'Barbiere'
+  return {
+    id:        b.id,
+    name,
+    initials:  initialsFromName(name),
+    city:      b.city ?? '',
+    dist:      0,
+    rating:    b.rating,
+    tags:      b.specialties?.split(',').map(s => s.trim()).filter(Boolean) ?? [],
+    followers: b.followers_count,
+    accent:    accentFromId(b.id),
+  }
+}
 
 const SEED_COMMENTS: Comment[] = [
   { id: 's1', postId: '1', author: 'Luca R.',    text: 'Fuoco 🔥 quella linea è chirurgica'   },
@@ -45,6 +62,11 @@ function postToBarber(p: FeedPost): DemoBarber {
 
 export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLiked = false, onShowLikedChange }: FeedProps) {
   const feed = useFeed(userId, barberId)
+  // Stories row: real popular barbers in prod, fallback to BARBERS demo
+  const { barbers: realStoryBarbers } = useBarbers('popular')
+  const storyBarbers: DemoBarber[] = IS_DEMO || realStoryBarbers.length === 0
+    ? BARBERS
+    : realStoryBarbers.slice(0, 8).map(toStoryBarber)
 
   const [saved,        setSaved]        = useState<Record<string, boolean>>({})
   const [comments,     setComments]     = useState<Comment[]>(SEED_COMMENTS)
@@ -163,7 +185,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
         {/* Stories row (demo barbers) */}
         {!showLiked && (
           <div style={{ display: 'flex', gap: 12, padding: '4px 16px 14px', overflowX: 'auto' }}>
-            {BARBERS.map(b => (
+            {storyBarbers.map(b => (
               <div key={b.id} onClick={() => onViewProfile(b)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', minWidth: 58 }}>
                 <div style={{ padding: 2.5, borderRadius: '50%', background: `linear-gradient(135deg,${C.accent},#E8B86D)` }}>
                   <div style={{
