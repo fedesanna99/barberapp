@@ -28,25 +28,25 @@ type ScreenId = 'feed' | 'discover' | 'profile' | 'menu' | 'dashboard' | 'admin'
 type AuthView = 'login' | 'register'
 
 const CLIENT_NAV: { id: ScreenId; icon: string; label: string }[] = [
-  { id: 'feed',     icon: 'ti-layout-grid',      label: 'Feed'      },
-  { id: 'discover', icon: 'ti-map-search',        label: 'Esplora'   },
-  { id: 'profile',  icon: 'ti-user',              label: 'Profilo'   },
-  { id: 'menu',     icon: 'ti-menu-2',            label: 'Menu'      },
+  { id: 'feed',     icon: 'ph-square-half',   label: 'Feed'    },
+  { id: 'discover', icon: 'ph-map-trifold',   label: 'Esplora' },
+  { id: 'profile',  icon: 'ph-user',          label: 'Profilo' },
+  { id: 'menu',     icon: 'ph-list',          label: 'Menu'    },
 ]
 
 const BARBER_NAV: { id: ScreenId; icon: string; label: string }[] = [
-  { id: 'feed',      icon: 'ti-layout-grid',       label: 'Feed'      },
-  { id: 'discover',  icon: 'ti-map-search',         label: 'Esplora'   },
-  { id: 'dashboard', icon: 'ti-layout-dashboard',  label: 'Dashboard' },
-  { id: 'profile',   icon: 'ti-user',              label: 'Profilo'   },
-  { id: 'menu',      icon: 'ti-menu-2',            label: 'Menu'      },
+  { id: 'feed',      icon: 'ph-square-half',  label: 'Feed'    },
+  { id: 'discover',  icon: 'ph-map-trifold',  label: 'Esplora' },
+  { id: 'dashboard', icon: 'ph-storefront',   label: 'Bottega' },
+  { id: 'profile',   icon: 'ph-user',         label: 'Profilo' },
+  { id: 'menu',      icon: 'ph-list',         label: 'Menu'    },
 ]
 
 const ADMIN_NAV: { id: ScreenId; icon: string; label: string }[] = [
-  { id: 'feed',    icon: 'ti-layout-grid',   label: 'Feed'     },
-  { id: 'discover', icon: 'ti-map-search',   label: 'Esplora'  },
-  { id: 'admin',   icon: 'ti-shield-lock',   label: 'Admin'    },
-  { id: 'menu',    icon: 'ti-menu-2',        label: 'Menu'     },
+  { id: 'feed',    icon: 'ph-square-half',  label: 'Feed'    },
+  { id: 'discover', icon: 'ph-map-trifold', label: 'Esplora' },
+  { id: 'admin',   icon: 'ph-shield-check', label: 'Admin'   },
+  { id: 'menu',    icon: 'ph-list',         label: 'Menu'    },
 ]
 
 export default function App() {
@@ -72,13 +72,8 @@ export default function App() {
   const barberId = useBarberByProfile(isBarber ? userId : undefined)
   const { createBooking } = useBooking()
 
-  // Real-time toast for clients when a barber confirms or cancels their booking
   useBookingToast(!isBarber ? userId : undefined, setToast)
 
-  // C1: sync Supabase session → loggedIn (handles Google OAuth redirect).
-  // Only ever set role flags to true here — never clear them — so a transient
-  // SIGNED_OUT→TOKEN_REFRESHED from Supabase doesn't strip the barber/admin nav.
-  // Clearing happens only in the explicit logout handler below.
   useEffect(() => {
     if (IS_DEMO || loading) return
     if (session) {
@@ -96,7 +91,6 @@ export default function App() {
     else if (asBarber) setScreen('dashboard')
   }
 
-  // C2: actually write the booking to the DB on confirm
   async function handleConfirm(barber: DemoBarber, date: DemoDate, time: string) {
     if (!IS_DEMO && userId) {
       const { error } = await createBooking({
@@ -122,8 +116,8 @@ export default function App() {
     setProfileBarber(null)
     setToast({
       kind:    'success',
-      title:   'Prenotazione inviata',
-      message: `${barber.name} · ${date.day} ${date.num} ${date.month} alle ${time}`,
+      title:   'Prenotato.',
+      message: `${date.day} ${date.num} ${date.month} · ${time} · ${barber.name}`,
     })
   }
 
@@ -139,17 +133,15 @@ export default function App() {
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
-      boxShadow: '0 0 0 0.5px rgba(0,0,0,0.08)',
+      boxShadow: '0 0 0 1px rgba(10,10,10,0.04)',
     }}>
 
-      {/* iOS safe-area top (Dynamic Island / notch) */}
       <div style={{ height: 'env(safe-area-inset-top, 0px)', flexShrink: 0, background: C.bg }} />
 
-      {/* Screen area */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {showLoading ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="ti ti-loader-2" style={{ fontSize: 36, color: C.muted, animation: 'spin 0.8s linear infinite' }} />
+            <i className="ph-thin ph-spinner-gap" style={{ fontSize: 32, color: C.muted, animation: 'spin 0.8s linear infinite' }} />
           </div>
         ) : recoveryMode ? (
           <ResetPassword onDone={clearRecoveryMode} />
@@ -245,14 +237,14 @@ export default function App() {
         {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
       </div>
 
-      {/* Bottom navbar */}
+      {/* Bottom nav — pill icons, coral active */}
       {loggedIn && !recoveryMode && (
-        <div style={{
-          borderTop: `0.5px solid ${C.border}`,
+        <nav style={{
+          borderTop: `1px solid ${C.border}`,
           background: C.bg,
           flexShrink: 0,
         }}>
-          <div style={{ height: 64, display: 'flex' }}>
+          <div style={{ height: 64, display: 'flex', padding: '6px 8px', gap: 4 }}>
             {(isAdmin ? ADMIN_NAV : isBarber ? BARBER_NAV : CLIENT_NAV).map(({ id, icon, label }) => {
               const active = screen === id
               return (
@@ -264,8 +256,6 @@ export default function App() {
                     setBookingBarber(null)
                     setShowLikedFeed(false)
                     setShowSavedFeed(false)
-                    // Task 10 — close every overlay so changing tab doesn't leave
-                    // Notifiche / Appuntamenti / Supporto / DM stuck on top of the new tab.
                     setShowNotifications(false)
                     setShowMyAppointments(false)
                     setShowSupport(false)
@@ -276,19 +266,32 @@ export default function App() {
                     flex: 1, display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
                     gap: 2, cursor: 'pointer', border: 'none',
-                    background: 'none', padding: '6px 0 0', fontFamily: 'inherit',
+                    background: 'none', padding: 0, fontFamily: 'inherit',
+                    borderRadius: 'var(--r-md)',
                   }}
                 >
-                  <i className={`ti ${icon}`} style={{ fontSize: 22, color: active ? C.text : C.hint }} />
-                  <span style={{ fontSize: 9, color: active ? C.text : C.hint, fontWeight: active ? 500 : 400 }}>{label}</span>
-                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.text, opacity: active ? 1 : 0, marginTop: 1, transition: 'opacity .2s' }} />
+                  <i
+                    className={`${active ? 'ph-fill' : 'ph-thin'} ${icon}`}
+                    style={{
+                      fontSize: 22,
+                      color: active ? C.accent : C.muted,
+                      lineHeight: 1,
+                      transition: 'color 120ms var(--ease)',
+                    }}
+                  />
+                  <span style={{
+                    fontSize: 10, fontWeight: 500,
+                    color: active ? C.text : C.muted,
+                    marginTop: 2,
+                  }}>
+                    {label}
+                  </span>
                 </button>
               )
             })}
           </div>
-          {/* iOS home indicator safe area */}
           <div style={{ height: 'env(safe-area-inset-bottom, 0px)', background: C.bg }} />
-        </div>
+        </nav>
       )}
     </div>
   )

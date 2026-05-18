@@ -13,9 +13,8 @@ import {
 import type { ConvStatus } from '../types/supabase'
 
 interface Props {
-  userId?: string
-  onClose: () => void
-  // Optional: open straight into a conversation with this profile.
+  userId?:    string
+  onClose:    () => void
   initialPeer?: { profileId: string; displayName: string | null; avatarUrl?: string | null; role?: 'client' | 'barber' } | null
 }
 
@@ -34,14 +33,13 @@ function initials(name: string | null | undefined): string {
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60000)
-  if (m < 1) return 'adesso'
-  if (m < 60) return `${m}m`
+  if (m < 1)  return 'adesso'
+  if (m < 60) return `${m} m`
   const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h`
-  return `${Math.floor(h / 24)}g`
+  if (h < 24) return `${h} h`
+  return `${Math.floor(h / 24)} g`
 }
 
-// Task 16/17/18 — DM root: shows the conversation list, then a thread on tap.
 export function DirectMessages({ userId, onClose, initialPeer }: Props) {
   const [activePeer, setActivePeer] = useState<PeerInfo | null>(
     initialPeer
@@ -69,30 +67,28 @@ export function DirectMessages({ userId, onClose, initialPeer }: Props) {
 }
 
 function DMList({ userId, onClose, onOpenPeer }: {
-  userId: string | undefined
-  onClose: () => void
-  onOpenPeer: (peer: PeerInfo) => void
+  userId:      string | undefined
+  onClose:     () => void
+  onOpenPeer:  (peer: PeerInfo) => void
 }) {
   const { items, loading } = useDirectMessagesList(userId)
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 50, display: 'flex', flexDirection: 'column' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '14px 16px 8px', flexShrink: 0,
-        borderBottom: `0.5px solid ${C.border}`,
-      }}>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-          <i className="ti ti-arrow-left" style={{ fontSize: 22, color: C.text }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px 12px', flexShrink: 0, borderBottom: `1px solid ${C.border}` }}>
+        <button onClick={onClose} aria-label="Indietro" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+          <i className="ph-thin ph-arrow-left" style={{ fontSize: 22, color: C.text }} />
         </button>
-        <span style={{ flex: 1, fontSize: 16, fontWeight: 500, color: C.text }}>Messaggi</span>
+        <span style={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
+          Messaggi
+        </span>
       </div>
 
       {loading ? (
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          <ListRowSkeleton avatar={40} />
-          <ListRowSkeleton avatar={40} />
-          <ListRowSkeleton avatar={40} />
+          <ListRowSkeleton avatar={44} />
+          <ListRowSkeleton avatar={44} />
+          <ListRowSkeleton avatar={44} />
         </div>
       ) : items.length === 0 ? (
         <div style={{
@@ -100,52 +96,54 @@ function DMList({ userId, onClose, onOpenPeer }: {
           alignItems: 'center', justifyContent: 'center', gap: 10,
           padding: '0 32px', textAlign: 'center',
         }}>
-          <i className="ti ti-messages-off" style={{ fontSize: 44, color: C.hint, opacity: 0.5 }} />
-          <div style={{ fontSize: 15, fontWeight: 500, color: C.text }}>Nessuna conversazione</div>
-          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.45 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="ph-thin ph-chat-circle" style={{ fontSize: 20, color: C.hint }} />
+          </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
+            Nessuna conversazione
+          </div>
+          <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.55, maxWidth: 280 }}>
             Quando scriverai a un barbiere (o riceverai un messaggio), la conversazione apparirà qui.
           </div>
         </div>
       ) : (
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {items.map(c => (
-            <div
-              key={c.id}
-              onClick={() => onOpenPeer({
-                profileId: c.peerId,
-                displayName: c.peerName,
-                avatarUrl: c.peerAvatar,
-                role: c.peerRole,
-              })}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 16px',
-                borderBottom: `0.5px solid ${C.border}`, cursor: 'pointer',
-              }}
-            >
-              {c.peerAvatar
-                ? <img src={c.peerAvatar} style={{ width: 44, height: 44, borderRadius: 22, objectFit: 'cover', flexShrink: 0 }} />
-                : <Avatar initials={initials(c.peerName)} size={44} accent={c.peerRole === 'barber' ? C.green : C.muted} />
-              }
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {c.peerName ?? 'Profilo'}
+          {items.map((c, i) => (
+            <div key={c.id}>
+              {i > 0 && <div style={{ height: 1, background: C.border, marginLeft: 20 }} />}
+              <div
+                onClick={() => onOpenPeer({
+                  profileId: c.peerId,
+                  displayName: c.peerName,
+                  avatarUrl: c.peerAvatar,
+                  role: c.peerRole,
+                })}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 20px', cursor: 'pointer',
+                }}
+              >
+                <Avatar initials={initials(c.peerName)} size={44} photo={c.peerAvatar ?? null} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.peerName ?? 'Profilo'}
+                    </span>
+                    <span style={{ fontSize: 11.5, color: C.hint, flexShrink: 0 }}>{timeAgo(c.updatedAt)}</span>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.lastMessage ?? '—'}
+                  </div>
+                </div>
+                {c.status === 'closed' && (
+                  <span style={{
+                    fontSize: 10.5, fontWeight: 500, padding: '3px 9px', borderRadius: 9999,
+                    background: C.surfaceAlt, color: C.muted,
+                  }}>
+                    Chiusa
                   </span>
-                  <span style={{ fontSize: 11, color: C.hint, flexShrink: 0 }}>{timeAgo(c.updatedAt)}</span>
-                </div>
-                <div style={{ fontSize: 12, color: C.muted, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {c.lastMessage ?? '—'}
-                </div>
+                )}
               </div>
-              {c.status === 'closed' && (
-                <span style={{
-                  fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
-                  background: C.surface, color: C.hint,
-                }}>
-                  CHIUSA
-                </span>
-              )}
             </div>
           ))}
         </div>
@@ -190,8 +188,6 @@ function DMThread({ meId, peer, onBack, onClose }: {
     if (IS_DEMO) { setText(''); return }
     setSending(true)
     setText('')
-    // Task 17 — lazy-create happens inside sendDirectMessage when no conv yet.
-    // Task 18 — sendDirectMessage reopens a closed conv before insert.
     const { conversationId, error } = await sendDirectMessage(meId, peer.profileId, t)
     setSending(false)
     if (error) { alert(`Invio fallito: ${error}`); return }
@@ -211,19 +207,21 @@ function DMThread({ meId, peer, onBack, onClose }: {
     <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 50, display: 'flex', flexDirection: 'column' }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
-        padding: '12px 16px', borderBottom: `0.5px solid ${C.border}`, flexShrink: 0,
+        padding: '12px 16px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
       }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-          <i className="ti ti-arrow-left" style={{ fontSize: 20, color: C.muted }} />
+        <button onClick={onBack} aria-label="Indietro" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+          <i className="ph-thin ph-arrow-left" style={{ fontSize: 20, color: C.muted }} />
         </button>
-        {peer.avatarUrl
-          ? <img src={peer.avatarUrl} style={{ width: 34, height: 34, borderRadius: 17, objectFit: 'cover' }} />
-          : <Avatar initials={initials(peer.displayName)} size={34} accent={peer.role === 'barber' ? C.green : C.muted} />
-        }
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{peer.displayName ?? 'Profilo'}</div>
-          <div style={{ fontSize: 11, color: status === 'open' ? C.green : C.hint }}>
-            {status === 'open' ? 'Conversazione aperta' : 'Conversazione chiusa'}
+        <Avatar initials={initials(peer.displayName)} size={36} photo={peer.avatarUrl ?? null} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
+            {peer.displayName ?? 'Profilo'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: status === 'open' ? C.green : C.hint }} />
+            <span style={{ fontSize: 11, color: status === 'open' ? C.green : C.hint }}>
+              {status === 'open' ? 'Aperta' : 'Chiusa'}
+            </span>
           </div>
         </div>
         {convId && (
@@ -231,32 +229,34 @@ function DMThread({ meId, peer, onBack, onClose }: {
             onClick={toggleClose}
             title={status === 'open' ? 'Chiudi conversazione' : 'Riapri conversazione'}
             style={{
-              background: 'none', border: `1px solid ${C.borderMed}`,
-              padding: '4px 10px', borderRadius: 8,
-              color: C.muted, fontSize: 11, fontWeight: 500,
+              background: C.bg, border: `1px solid ${C.borderMed}`,
+              padding: '6px 10px', borderRadius: 'var(--r-md)',
+              color: C.text, fontSize: 11.5, fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
             {status === 'open' ? 'Chiudi' : 'Riapri'}
           </button>
         )}
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-          <i className="ti ti-x" style={{ fontSize: 20, color: C.muted }} />
+        <button onClick={onClose} aria-label="Chiudi" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+          <i className="ph-thin ph-x" style={{ fontSize: 20, color: C.muted }} />
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {!loaded || loading ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="ti ti-loader-2" style={{ fontSize: 24, color: C.muted, animation: 'spin 0.8s linear infinite' }} />
+            <i className="ph-thin ph-spinner-gap" style={{ fontSize: 24, color: C.muted, animation: 'spin .8s linear infinite' }} />
           </div>
         ) : messages.length === 0 ? (
-          <div style={{ textAlign: 'center', paddingTop: 40, color: C.hint, fontSize: 13, padding: '40px 24px' }}>
-            <i className="ti ti-message-2" style={{ fontSize: 32, opacity: 0.5, marginBottom: 8 }} />
-            <div style={{ marginTop: 6 }}>
-              Nessun messaggio ancora.<br />
-              Scrivi qui sotto per iniziare la conversazione — sarà visibile solo a te e a {peer.displayName ?? 'questo profilo'}.
+          <div style={{ textAlign: 'center', padding: '60px 32px', color: C.muted, fontSize: 13.5, lineHeight: 1.55 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+              <i className="ph-thin ph-chat-circle" style={{ fontSize: 20, color: C.hint }} />
             </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, letterSpacing: '-0.015em', color: C.text, marginBottom: 6 }}>
+              Nessun messaggio.
+            </div>
+            Scrivi qui sotto per iniziare la conversazione — sarà visibile solo a te e a {peer.displayName ?? 'questo profilo'}.
           </div>
         ) : (
           messages.map(m => {
@@ -265,15 +265,15 @@ function DMThread({ meId, peer, onBack, onClose }: {
             return (
               <div key={m.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
                 <div style={{
-                  maxWidth: '78%', padding: '8px 12px',
+                  maxWidth: '78%', padding: '9px 13px',
                   borderRadius: mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                  background: mine ? C.accent : C.surface,
+                  background: mine ? C.text : C.surface,
                   border: mine ? 'none' : `1px solid ${C.border}`,
                 }}>
-                  <div style={{ fontSize: 13, color: mine ? '#fff' : C.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  <div style={{ fontSize: 13.5, color: mine ? C.bg : C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {m.body}
                   </div>
-                  <div style={{ fontSize: 10, color: mine ? 'rgba(255,255,255,0.65)' : C.hint, marginTop: 3, textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: mine ? 'rgba(255,255,255,0.6)' : C.hint, marginTop: 4, textAlign: 'right' }}>
                     {time}
                   </div>
                 </div>
@@ -285,9 +285,9 @@ function DMThread({ meId, peer, onBack, onClose }: {
       </div>
 
       <div style={{
-        flexShrink: 0, padding: '8px 12px 16px',
-        borderTop: `0.5px solid ${C.border}`,
-        display: 'flex', gap: 8, alignItems: 'flex-end',
+        flexShrink: 0, padding: '10px 16px 16px',
+        borderTop: `1px solid ${C.border}`,
+        display: 'flex', gap: 10, alignItems: 'flex-end',
       }}>
         <textarea
           value={text}
@@ -296,9 +296,9 @@ function DMThread({ meId, peer, onBack, onClose }: {
           placeholder={status === 'closed' ? 'Scrivi per riaprire la conversazione…' : 'Scrivi un messaggio…'}
           rows={1}
           style={{
-            flex: 1, borderRadius: 16,
-            border: `1.5px solid ${C.borderMed}`, background: C.surface,
-            padding: '9px 13px', fontSize: 13, color: C.text, fontFamily: 'inherit',
+            flex: 1, borderRadius: 'var(--r-pill)',
+            border: `1px solid ${C.border}`, background: C.surfaceAlt,
+            padding: '10px 14px', fontSize: 13.5, color: C.text, fontFamily: 'inherit',
             outline: 'none', resize: 'none', maxHeight: 80, lineHeight: 1.4,
             boxSizing: 'border-box',
           }}
@@ -306,17 +306,18 @@ function DMThread({ meId, peer, onBack, onClose }: {
         <button
           onClick={handleSend}
           disabled={!text.trim() || sending}
+          aria-label="Invia"
           style={{
             width: 36, height: 36, borderRadius: '50%',
-            background: text.trim() ? C.accent : C.surface,
+            background: text.trim() ? C.text : C.surface,
             border: 'none', cursor: text.trim() ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, transition: 'background .15s',
+            flexShrink: 0, transition: 'background 120ms var(--ease)',
           }}
         >
           {sending
-            ? <i className="ti ti-loader-2" style={{ fontSize: 16, color: '#fff', animation: 'spin 0.8s linear infinite' }} />
-            : <i className="ti ti-send" style={{ fontSize: 16, color: text.trim() ? '#fff' : C.hint }} />
+            ? <i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, color: C.bg, animation: 'spin .8s linear infinite' }} />
+            : <i className="ph-thin ph-paper-plane-tilt" style={{ fontSize: 16, color: text.trim() ? C.bg : C.hint }} />
           }
         </button>
       </div>
@@ -324,9 +325,7 @@ function DMThread({ meId, peer, onBack, onClose }: {
   )
 }
 
-// Helper used elsewhere to deep-link to a barber profile's chat without
-// duplicating the DM screen's mount/open logic.
 export async function openDmFromBarber(_meId: string, _peerProfileId: string): Promise<void> {
   if (IS_DEMO) return
-  await supabase  // no-op: kept for symmetry / future hooks
+  await supabase
 }

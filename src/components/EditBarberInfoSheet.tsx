@@ -2,26 +2,22 @@ import { useState, useEffect } from 'react'
 import { C } from '../lib/colors'
 import type { BarberInfo } from '../hooks/useBarberInfo'
 
-const FIELDS: [keyof BarberInfo, string, string, string][] = [
-  ['shop_name',            'ti-building-store',   'Nome del salone',     'es. Barber & Co.'],
-  ['address',              'ti-map-pin',          'Indirizzo',           'es. Via Roma 1, Milano'],
-  ['phone',                'ti-phone',            'Telefono',            'es. +39 02 1234567'],
-  ['social_link',          'ti-brand-instagram',  'Link social',         'https://instagram.com/...'],
-  ['default_slot_minutes', 'ti-clock',            'Durata slot (min)',   '30'],
-  ['default_price',        'ti-cash',             'Prezzo medio (€)',    '25'],
+const FIELDS: [keyof BarberInfo, string, string][] = [
+  ['shop_name',            'Nome del salone',   'es. Barber & Co.'],
+  ['address',              'Indirizzo',         'es. Via Roma 1, Cagliari'],
+  ['phone',                'Telefono',          'es. +39 02 1234567'],
+  ['social_link',          'Link social',       'https://instagram.com/...'],
+  ['default_slot_minutes', 'Durata slot (min)', '30'],
+  ['default_price',        'Prezzo medio (€)',  '25'],
 ]
 
 export function EditBarberInfoSheet({
-  initial,
-  saving,
-  saveError,
-  onSave,
-  onClose,
+  initial, saving, saveError, onSave, onClose,
 }: {
   initial: BarberInfo
-  saving: boolean
+  saving:  boolean
   saveError?: string | null
-  onSave: (info: BarberInfo) => Promise<string | null>
+  onSave:  (info: BarberInfo) => Promise<string | null>
   onClose: () => void
 }) {
   const [form, setForm] = useState<BarberInfo>(initial)
@@ -41,53 +37,45 @@ export function EditBarberInfoSheet({
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      style={{
-        position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'flex-end',
-        zIndex: 200,
-      }}
+      style={{ position: 'absolute', inset: 0, background: 'var(--scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 200, animation: 'scrimIn 200ms var(--ease)' }}
     >
       <div style={{
-        background: C.bg, borderRadius: '20px 20px 0 0',
-        width: '100%', animation: 'sheetUp .3s ease-out',
+        background: C.bg, borderRadius: '20px 20px 0 0', width: '100%',
+        boxShadow: 'var(--shadow-sheet)',
+        animation: 'sheetUp 260ms var(--ease)',
+        maxHeight: '92%', overflowY: 'auto',
       }}>
-        <div style={{ width: 40, height: 4, background: C.borderMed, borderRadius: 2, margin: '12px auto 0' }} />
+        <div style={{ width: 36, height: 4, background: C.border, borderRadius: 9999, margin: '10px auto 0' }} />
 
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          padding: '12px 16px 10px',
-          borderBottom: `0.5px solid ${C.border}`,
-        }}>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>Info salone</span>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 20px 12px', borderBottom: `1px solid ${C.border}` }}>
+          <span style={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
+            Info salone
+          </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ti ti-x" style={{ fontSize: 18, color: C.muted }} />
+            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
           </button>
         </div>
 
-        <div style={{ padding: '16px 16px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {FIELDS.map(([key, icon, label, placeholder]) => (
-            <div key={key}>
-              <div style={{ fontSize: 11, color: C.muted, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <i className={`ti ${icon}`} style={{ fontSize: 13 }} />
-                {label}
-              </div>
+        <div style={{ padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {FIELDS.map(([key, label, placeholder]) => (
+            <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.muted }}>{label}</span>
               <input
                 value={form[key]}
                 onChange={e => set(key, e.target.value)}
                 placeholder={placeholder}
                 style={{
-                  width: '100%', padding: '9px 14px', borderRadius: 10,
-                  border: `0.5px solid ${C.borderMed}`,
-                  fontSize: 13, background: C.surface, color: C.text,
+                  width: '100%', padding: '11px 14px', borderRadius: 'var(--r-md)',
+                  border: `1px solid ${C.border}`,
+                  fontSize: 14, background: C.bg, color: C.text,
                   outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
                 }}
               />
-            </div>
+            </label>
           ))}
 
           {saveError && (
-            <div style={{ fontSize: 12, color: '#E53935', padding: '8px 12px', borderRadius: 8, background: '#FFEBEE' }}>
+            <div style={{ fontSize: 12.5, color: C.red, padding: '10px 12px', borderRadius: 'var(--r-md)', background: C.redSoft }}>
               {saveError}
             </div>
           )}
@@ -96,18 +84,19 @@ export function EditBarberInfoSheet({
             onClick={handleSave}
             disabled={saving}
             style={{
-              marginTop: 2, padding: 13, borderRadius: 12,
-              background: saving ? C.borderMed : C.text,
-              color: C.bg, fontSize: 14, fontWeight: 500,
-              border: 'none', cursor: saving ? 'default' : 'pointer',
+              marginTop: 4, padding: 13, borderRadius: 'var(--r-md)',
+              background: saving ? C.surface : C.text,
+              color:      saving ? C.muted : C.bg,
+              border: `1px solid ${saving ? C.border : C.text}`,
+              fontSize: 14, fontWeight: 500,
+              cursor: saving ? 'default' : 'pointer',
               fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
             {saving
-              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Salvataggio…</>
-              : 'Salva'
-            }
+              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
+              : 'Salva'}
           </button>
         </div>
       </div>

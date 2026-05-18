@@ -5,6 +5,7 @@ import { useProfile } from '../hooks/useProfile'
 import { useClientBookings } from '../hooks/useBooking'
 import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
 import { LocationSettingsSheet } from '../components/LocationSettingsSheet'
+import { Avatar } from '../components/Avatar'
 import { IS_DEMO } from '../lib/supabase'
 import type { ToastEvent } from '../components/Toast'
 
@@ -13,21 +14,15 @@ const TODAY = new Date().toISOString().split('T')[0]
 type MenuAction = 'appointments' | 'saved' | 'support' | 'notifications' | 'invite' | 'location' | 'messages'
 type MenuItem = { icon: string; label: string; badge?: string; action?: MenuAction }
 
-function buildSections(upcomingCount: number): MenuItem[][] {
+function buildItems(upcomingCount: number): MenuItem[] {
   return [
-    [
-      { icon: 'ti-calendar',       label: 'I miei appuntamenti', action: 'appointments' as const, badge: upcomingCount > 0 ? String(upcomingCount) : undefined },
-      { icon: 'ti-message-circle', label: 'Messaggi',             action: 'messages' as const },
-      { icon: 'ti-bookmark',       label: 'Post salvati',          action: 'saved' as const },
-      { icon: 'ti-bell',           label: 'Notifiche',             action: 'notifications' as const },
-      { icon: 'ti-map-pin',        label: 'Impostazioni posizione', action: 'location' as const },
-    ],
-    [
-      { icon: 'ti-share', label: 'Invita un amico', action: 'invite' as const },
-    ],
-    [
-      { icon: 'ti-headset', label: 'Aiuto e supporto', action: 'support' as const },
-    ],
+    { icon: 'ph-thin ph-calendar',          label: 'I miei appuntamenti', action: 'appointments', badge: upcomingCount > 0 ? String(upcomingCount) : undefined },
+    { icon: 'ph-thin ph-chat-circle',       label: 'Messaggi',             action: 'messages' },
+    { icon: 'ph-thin ph-bookmark-simple',   label: 'Post salvati',         action: 'saved' },
+    { icon: 'ph-thin ph-bell',              label: 'Notifiche',            action: 'notifications' },
+    { icon: 'ph-thin ph-map-pin',           label: 'Posizione',            action: 'location' },
+    { icon: 'ph-thin ph-share-network',     label: 'Invita un amico',      action: 'invite' },
+    { icon: 'ph-thin ph-question',          label: 'Aiuto e supporto',     action: 'support' },
   ]
 }
 
@@ -39,27 +34,28 @@ async function handleInvite(setToast: (t: ToastEvent) => void) {
     try { await navigator.share({ title, text, url }) } catch { /* user cancelled */ }
     return
   }
-  // Fallback: copy URL to clipboard
   try {
     await navigator.clipboard.writeText(`${text} — ${url}`)
-    setToast({ kind: 'success', title: 'Link copiato', message: 'L’invito è negli appunti' })
+    setToast({ kind: 'success', title: 'Link copiato.', message: 'L\'invito è negli appunti.' })
   } catch {
     setToast({ kind: 'info', title: 'Condividi questo link', message: url })
   }
 }
 
-export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onAppointments, onMessages, onToast, isBarber, barberId, userId }: {
-  onLogout?: () => void
-  onSavedPosts?: () => void
-  onSupport?: () => void
+interface Props {
+  onLogout?:        () => void
+  onSavedPosts?:    () => void
+  onSupport?:       () => void
   onNotifications?: () => void
-  onAppointments?: () => void
-  onMessages?: () => void
-  onToast?: (t: ToastEvent | null) => void
-  isBarber?: boolean
-  barberId?: string
-  userId?: string
-}) {
+  onAppointments?:  () => void
+  onMessages?:      () => void
+  onToast?:         (t: ToastEvent | null) => void
+  isBarber?:        boolean
+  barberId?:        string
+  userId?:          string
+}
+
+export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onAppointments, onMessages, onToast, isBarber, barberId, userId }: Props) {
   const [showEdit, setShowEdit]         = useState(false)
   const [showLocation, setShowLocation] = useState(false)
   const { info, saving, saveError, saveInfo } = useBarberInfo(
@@ -69,40 +65,40 @@ export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onApp
   const { profile, updateProfile } = useProfile(userId)
   const { bookings } = useClientBookings(isBarber ? undefined : userId)
   const upcomingCount = bookings.filter(b => b.date >= TODAY && b.status !== 'cancelled' && b.status !== 'done').length
-  const sections = buildSections(upcomingCount)
+  const items = buildItems(upcomingCount)
+
+  function initialsOf(name?: string | null) {
+    if (!name) return 'TU'
+    return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
-      {/* Top bar */}
-      <div style={{ padding: '14px 16px 8px' }}>
-        <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>Menu</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 16px' }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, letterSpacing: '-0.025em', color: C.text }}>
+          Menu
+        </span>
       </div>
 
       {/* User card */}
-      <div style={{ padding: '12px 16px 16px', display: 'flex', alignItems: 'center', gap: 14, borderBottom: `0.5px solid ${C.border}` }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: '50%',
-          background: C.accentLight,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 20, fontWeight: 500, color: C.accent,
-          border: `2px solid ${C.accent}`,
-        }}>
-          AG
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 500, color: C.text }}>Andrea G.</div>
-          <div style={{ fontSize: 12, color: C.muted }}>
-            {isBarber && info.shop_name ? info.shop_name : 'andrea@email.com'}
+      <div style={{ margin: '0 20px 16px', padding: '14px 16px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Avatar initials={initialsOf(profile.display_name)} size={48} photo={profile.avatar_url ?? null} ring />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
+            {profile.display_name ?? 'Utente'}
+          </div>
+          <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {isBarber && info.shop_name ? info.shop_name : (profile.bio ?? (IS_DEMO ? 'Modalità demo' : ''))}
           </div>
         </div>
         {isBarber && (
           <button
             onClick={() => setShowEdit(true)}
             style={{
-              padding: '6px 12px', borderRadius: 8,
-              border: `0.5px solid ${C.borderMed}`,
-              background: 'none', fontSize: 12, color: C.muted,
-              cursor: 'pointer', fontFamily: 'inherit',
+              padding: '7px 12px', borderRadius: 'var(--r-md)',
+              border: `1px solid ${C.borderMed}`,
+              background: C.bg, fontSize: 12.5, color: C.text,
+              cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500,
             }}
           >
             Modifica
@@ -110,44 +106,67 @@ export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onApp
         )}
       </div>
 
-      {/* Menu sections */}
-      {sections.map((group, gi) => (
-        <div key={gi}>
-          <div style={{ height: 8, background: C.surface }} />
-          {group.map(({ icon, label, badge, action }) => (
-            <div key={label} onClick={() => {
-              if (action === 'appointments' && !IS_DEMO && userId) onAppointments?.()
-              if (action === 'appointments' && (IS_DEMO || !userId)) onToast?.({ kind: 'info', title: 'Accesso richiesto', message: 'Accedi per vedere i tuoi appuntamenti' })
-              if (action === 'saved')         onSavedPosts?.()
-              if (action === 'support')       onSupport?.()
-              if (action === 'notifications') onNotifications?.()
-              if (action === 'messages' && !IS_DEMO && userId) onMessages?.()
-              if (action === 'messages' && (IS_DEMO || !userId)) onToast?.({ kind: 'info', title: 'Accesso richiesto', message: 'Accedi per inviare messaggi' })
-              if (action === 'invite')        handleInvite(t => onToast?.(t))
-              if (action === 'location' && !IS_DEMO && userId) setShowLocation(true)
-              if (action === 'location' && (IS_DEMO || !userId)) onToast?.({ kind: 'info', title: 'Accesso richiesto', message: 'Accedi per impostare la tua posizione' })
-            }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer', borderBottom: `0.5px solid ${C.border}` }}>
-              <i className={`ti ${icon}`} style={{ fontSize: 20, color: C.muted }} />
-              <span style={{ flex: 1, fontSize: 14, color: C.text }}>{label}</span>
+      <div style={{ height: 1, background: C.border }} />
+
+      {/* Menu list */}
+      <div style={{ padding: '4px 0' }}>
+        {items.map(({ icon, label, badge, action }, i) => (
+          <div key={label}>
+            <div
+              onClick={() => {
+                if (action === 'appointments' && !IS_DEMO && userId) onAppointments?.()
+                if (action === 'appointments' && (IS_DEMO || !userId)) onToast?.({ kind: 'info', title: 'Accesso richiesto', message: 'Accedi per vedere i tuoi appuntamenti.' })
+                if (action === 'saved')         onSavedPosts?.()
+                if (action === 'support')       onSupport?.()
+                if (action === 'notifications') onNotifications?.()
+                if (action === 'messages' && !IS_DEMO && userId) onMessages?.()
+                if (action === 'messages' && (IS_DEMO || !userId)) onToast?.({ kind: 'info', title: 'Accesso richiesto', message: 'Accedi per inviare messaggi.' })
+                if (action === 'invite')        handleInvite(t => onToast?.(t))
+                if (action === 'location' && !IS_DEMO && userId) setShowLocation(true)
+                if (action === 'location' && (IS_DEMO || !userId)) onToast?.({ kind: 'info', title: 'Accesso richiesto', message: 'Accedi per impostare la tua posizione.' })
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                padding: '16px 20px', cursor: 'pointer',
+              }}
+            >
+              <i className={icon} style={{ fontSize: 22, color: C.muted, width: 24 }} />
+              <span style={{ flex: 1, fontSize: 14.5, color: C.text }}>{label}</span>
               {badge && (
-                <span style={{ fontSize: 11, background: C.text, color: C.bg, padding: '1px 7px', borderRadius: 20, fontWeight: 500 }}>
+                <span style={{
+                  minWidth: 22, height: 20, padding: '0 7px',
+                  borderRadius: 9999, background: C.accent, color: C.bg,
+                  fontSize: 11, fontWeight: 600,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}>
                   {badge}
                 </span>
               )}
-              <i className="ti ti-chevron-right" style={{ fontSize: 16, color: C.hint }} />
+              <i className="ph-thin ph-caret-right" style={{ fontSize: 16, color: C.hint }} />
             </div>
-          ))}
-        </div>
-      ))}
+            {i < items.length - 1 && <div style={{ height: 1, background: C.border, marginLeft: 20 }} />}
+          </div>
+        ))}
+      </div>
 
-      {/* Sign out */}
-      <div style={{ height: 8, background: C.surface }} />
-      <div
-        onClick={onLogout}
-        style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer' }}
-      >
-        <i className="ti ti-logout" style={{ fontSize: 20, color: C.red }} />
-        <span style={{ flex: 1, fontSize: 14, color: C.red }}>Esci</span>
+      <div style={{ padding: '24px 20px 12px' }}>
+        <button
+          onClick={onLogout}
+          style={{
+            width: '100%', padding: '12px 0',
+            borderRadius: 'var(--r-md)',
+            border: `1px solid ${C.red}`,
+            background: C.bg, color: C.red,
+            fontSize: 14, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          Esci
+        </button>
+      </div>
+
+      <div style={{ textAlign: 'center', padding: '16px 20px 24px', fontSize: 11, color: C.hint }}>
+        CutBook · v1.0
       </div>
 
       {showEdit && (

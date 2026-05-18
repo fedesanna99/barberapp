@@ -4,8 +4,8 @@ import { C } from '../lib/colors'
 interface Props {
   initialLat: number | null
   initialLng: number | null
-  onSave: (lat: number | null, lng: number | null) => Promise<void>
-  onClose: () => void
+  onSave:     (lat: number | null, lng: number | null) => Promise<void>
+  onClose:    () => void
 }
 
 export function LocationSettingsSheet({ initialLat, initialLng, onSave, onClose }: Props) {
@@ -56,34 +56,38 @@ export function LocationSettingsSheet({ initialLat, initialLng, onSave, onClose 
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }}
+      style={{ position: 'absolute', inset: 0, background: 'var(--scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 200, animation: 'scrimIn 200ms var(--ease)' }}
     >
-      <div style={{ background: C.bg, borderRadius: '20px 20px 0 0', width: '100%', animation: 'sheetUp .3s ease-out' }}>
-        <div style={{ width: 40, height: 4, background: C.borderMed, borderRadius: 2, margin: '12px auto 0' }} />
+      <div style={{
+        background: C.bg, borderRadius: '20px 20px 0 0', width: '100%',
+        boxShadow: 'var(--shadow-sheet)',
+        animation: 'sheetUp 260ms var(--ease)',
+      }}>
+        <div style={{ width: 36, height: 4, background: C.border, borderRadius: 9999, margin: '10px auto 0' }} />
 
-        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px 10px', borderBottom: `0.5px solid ${C.border}` }}>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>Impostazioni posizione</span>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 20px 12px', borderBottom: `1px solid ${C.border}` }}>
+          <span style={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
+            Posizione
+          </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ti ti-x" style={{ fontSize: 18, color: C.muted }} />
+            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
           </button>
         </div>
 
-        <div style={{ padding: '16px 16px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.45 }}>
+        <div style={{ padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.55 }}>
             La tua posizione viene usata per ordinare i barbieri vicini in Esplora. Resta privata e non viene mostrata ad altri utenti.
           </div>
 
-          <div style={{ padding: '10px 12px', borderRadius: 10, background: C.surface, border: `0.5px solid ${C.border}` }}>
+          <div style={{ padding: '12px 14px', borderRadius: 'var(--r-md)', background: C.surface, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Posizione salvata</div>
-            <div style={{ fontSize: 13, color: C.text, fontFamily: 'monospace' }}>
-              {hasLocation
-                ? `${lat!.toFixed(4)}, ${lng!.toFixed(4)}`
-                : 'Non impostata'}
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: C.text }}>
+              {hasLocation ? `${lat!.toFixed(4)}, ${lng!.toFixed(4)}` : 'Non impostata'}
             </div>
           </div>
 
           {error && (
-            <div style={{ fontSize: 12, color: '#E53935', padding: '8px 12px', borderRadius: 8, background: '#FFEBEE' }}>
+            <div style={{ fontSize: 12.5, color: C.red, padding: '10px 12px', borderRadius: 'var(--r-md)', background: C.redSoft }}>
               {error}
             </div>
           )}
@@ -92,18 +96,18 @@ export function LocationSettingsSheet({ initialLat, initialLng, onSave, onClose 
             onClick={useCurrentLocation}
             disabled={loading || saving}
             style={{
-              padding: 12, borderRadius: 12,
-              border: `1.5px solid ${C.accent}`,
-              background: C.accentLight,
-              color: C.accent, fontSize: 14, fontWeight: 600,
+              padding: 12, borderRadius: 'var(--r-md)',
+              border: `1px solid ${C.borderMed}`,
+              background: C.bg, color: C.text,
+              fontSize: 14, fontWeight: 500,
               cursor: loading || saving ? 'default' : 'pointer',
               fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
             {loading
-              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Rilevamento…</>
-              : <><i className="ti ti-current-location" style={{ fontSize: 16 }} /> Usa la mia posizione attuale</>
+              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Rilevamento…</>
+              : <><i className="ph-thin ph-crosshair-simple" style={{ fontSize: 16 }} /> Usa la mia posizione attuale</>
             }
           </button>
 
@@ -112,8 +116,8 @@ export function LocationSettingsSheet({ initialLat, initialLng, onSave, onClose 
               onClick={() => handleSave(null, null)}
               disabled={saving}
               style={{
-                padding: 12, borderRadius: 12,
-                border: `1px solid ${C.borderMed}`,
+                padding: 12, borderRadius: 'var(--r-md)',
+                border: `1px solid ${C.red}`,
                 background: 'transparent',
                 color: C.red, fontSize: 13, fontWeight: 500,
                 cursor: saving ? 'default' : 'pointer',
@@ -128,19 +132,19 @@ export function LocationSettingsSheet({ initialLat, initialLng, onSave, onClose 
             onClick={() => handleSave(lat, lng)}
             disabled={saving || (lat === initialLat && lng === initialLng)}
             style={{
-              padding: 13, borderRadius: 12,
-              background: (saving || (lat === initialLat && lng === initialLng)) ? C.borderMed : C.text,
-              color: C.bg, fontSize: 14, fontWeight: 500,
-              border: 'none',
+              padding: 13, borderRadius: 'var(--r-md)',
+              background: (saving || (lat === initialLat && lng === initialLng)) ? C.surface : C.text,
+              color:      (saving || (lat === initialLat && lng === initialLng)) ? C.muted : C.bg,
+              border: `1px solid ${(saving || (lat === initialLat && lng === initialLng)) ? C.border : C.text}`,
+              fontSize: 14, fontWeight: 500,
               cursor: (saving || (lat === initialLat && lng === initialLng)) ? 'default' : 'pointer',
               fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
             {saving
-              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Salvataggio…</>
-              : 'Salva'
-            }
+              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
+              : 'Salva'}
           </button>
         </div>
       </div>

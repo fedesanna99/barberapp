@@ -7,24 +7,19 @@ export interface EditProfileForm {
 }
 
 export function EditProfileSheet({
-  initial,
-  onSave,
-  onClose,
+  initial, onSave, onClose,
 }: {
   initial: EditProfileForm
-  onSave: (form: EditProfileForm) => Promise<void>
+  onSave:  (form: EditProfileForm) => Promise<void>
   onClose: () => void
 }) {
-  const [form, setForm]       = useState<EditProfileForm>(initial)
-  const [saving, setSaving]   = useState(false)
+  const [form, setForm]   = useState<EditProfileForm>(initial)
+  const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   async function handleSave() {
     if (saving) return
-    if (!form.display_name.trim()) {
-      setSaveError('Inserisci un nome visualizzato')
-      return
-    }
+    if (!form.display_name.trim()) { setSaveError('Inserisci un nome visualizzato'); return }
     setSaving(true)
     setSaveError(null)
     try {
@@ -40,49 +35,35 @@ export function EditProfileSheet({
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      style={{
-        position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'flex-end',
-        zIndex: 200,
-      }}
+      style={{ position: 'absolute', inset: 0, background: 'var(--scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 200, animation: 'scrimIn 200ms var(--ease)' }}
     >
       <div style={{
-        background: C.bg, borderRadius: '20px 20px 0 0',
-        width: '100%', animation: 'sheetUp .3s ease-out',
+        background: C.bg, borderRadius: '20px 20px 0 0', width: '100%',
+        boxShadow: 'var(--shadow-sheet)',
+        animation: 'sheetUp 260ms var(--ease)',
       }}>
-        <div style={{ width: 40, height: 4, background: C.borderMed, borderRadius: 2, margin: '12px auto 0' }} />
+        <div style={{ width: 36, height: 4, background: C.border, borderRadius: 9999, margin: '10px auto 0' }} />
 
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          padding: '12px 16px 10px',
-          borderBottom: `0.5px solid ${C.border}`,
-        }}>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>Modifica profilo</span>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 20px 12px', borderBottom: `1px solid ${C.border}` }}>
+          <span style={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
+            Modifica profilo
+          </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ti ti-x" style={{ fontSize: 18, color: C.muted }} />
+            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
           </button>
         </div>
 
-        <div style={{ padding: '16px 16px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <i className="ti ti-user" style={{ fontSize: 13 }} />
-              Nome visualizzato
-            </div>
+        <div style={{ padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Field label="Nome visualizzato">
             <input
               value={form.display_name}
               onChange={e => setForm(prev => ({ ...prev, display_name: e.target.value }))}
               placeholder="es. Mario Rossi"
               style={inputStyle}
             />
-          </div>
+          </Field>
 
-          <div>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <i className="ti ti-quote" style={{ fontSize: 13 }} />
-              Bio
-            </div>
+          <Field label="Bio">
             <textarea
               value={form.bio}
               onChange={e => setForm(prev => ({ ...prev, bio: e.target.value }))}
@@ -90,10 +71,10 @@ export function EditProfileSheet({
               rows={3}
               style={{ ...inputStyle, resize: 'none' }}
             />
-          </div>
+          </Field>
 
           {saveError && (
-            <div style={{ fontSize: 12, color: '#E53935', padding: '8px 12px', borderRadius: 8, background: '#FFEBEE' }}>
+            <div style={{ fontSize: 12.5, color: C.red, padding: '10px 12px', borderRadius: 'var(--r-md)', background: C.redSoft }}>
               {saveError}
             </div>
           )}
@@ -101,19 +82,11 @@ export function EditProfileSheet({
           <button
             onClick={handleSave}
             disabled={saving}
-            style={{
-              marginTop: 2, padding: 13, borderRadius: 12,
-              background: saving ? C.borderMed : C.text,
-              color: C.bg, fontSize: 14, fontWeight: 500,
-              border: 'none', cursor: saving ? 'default' : 'pointer',
-              fontFamily: 'inherit',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}
+            style={primaryBtn(saving)}
           >
             {saving
-              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Salvataggio…</>
-              : 'Salva'
-            }
+              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
+              : 'Salva'}
           </button>
         </div>
       </div>
@@ -121,9 +94,32 @@ export function EditProfileSheet({
   )
 }
 
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ fontSize: 12.5, fontWeight: 500, color: C.muted }}>{label}</span>
+      {children}
+    </label>
+  )
+}
+
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '9px 14px', borderRadius: 10,
-  border: `0.5px solid ${C.borderMed}`,
-  fontSize: 13, background: C.surface, color: C.text,
+  width: '100%', padding: '11px 14px', borderRadius: 'var(--r-md)',
+  border: `1px solid ${C.border}`,
+  fontSize: 14, background: C.bg, color: C.text,
   outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+  transition: 'border-color 120ms var(--ease)',
+}
+
+function primaryBtn(loading: boolean): React.CSSProperties {
+  return {
+    marginTop: 4, padding: 13, borderRadius: 'var(--r-md)',
+    background: loading ? C.surface : C.text,
+    color:      loading ? C.muted : C.bg,
+    border: `1px solid ${loading ? C.border : C.text}`,
+    fontSize: 14, fontWeight: 500,
+    cursor: loading ? 'default' : 'pointer',
+    fontFamily: 'inherit',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+  }
 }

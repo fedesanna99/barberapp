@@ -1,28 +1,86 @@
+/* ============================================================
+   CutBook · Modern Minimal design system
+   White surfaces, near-black ink, one coral accent, one sans.
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
 *, *::before, *::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
 :root {
-  --color-background-primary: #ffffff;
-  --color-background-secondary: #f3f3f3;
-  --color-text-primary: #1a1a1a;
-  --color-text-secondary: #6b6b6b;
-  --color-text-tertiary: #a0a0a0;
-  --color-border-secondary: #d4d4d4;
-  --color-border-tertiary: #ebebeb;
+  /* ---- Surfaces ---- */
+  --carta:            #FFFFFF;
+  --carta-2:          #FAFAFA;
+  --carta-3:          #F5F5F5;
+
+  /* ---- Ink ---- */
+  --inchiostro:       #0A0A0A;
+  --inchiostro-80:    rgba(10, 10, 10, 0.86);
+  --inchiostro-60:    rgba(10, 10, 10, 0.58);
+  --inchiostro-40:    rgba(10, 10, 10, 0.42);
+  --inchiostro-20:    rgba(10, 10, 10, 0.18);
+  --inchiostro-12:    rgba(10, 10, 10, 0.10);
+  --inchiostro-04:    rgba(10, 10, 10, 0.04);
+
+  /* ---- Accent: warm coral. One pop in an otherwise quiet UI. ---- */
+  --ottone:           #FF5C39;
+  --ottone-deep:      #E63E1B;
+  --ottone-soft:      #FFE7E0;
+
+  /* ---- Semantic ---- */
+  --sangue:           #DC2626;
+  --sangue-soft:      #FEE2E2;
+
+  --muschio:          #16A34A;
+  --muschio-soft:     #DCFCE7;
+
+  --scrim:            rgba(10, 10, 10, 0.46);
+
+  /* ---- Legacy aliases (drive existing inline `C.*` references) ---- */
+  --color-background-primary:    var(--carta);
+  --color-background-secondary:  var(--carta-2);
+  --color-text-primary:          var(--inchiostro);
+  --color-text-secondary:        var(--inchiostro-60);
+  --color-text-tertiary:         var(--inchiostro-40);
+  --color-border-secondary:      var(--inchiostro-20);
+  --color-border-tertiary:       var(--inchiostro-12);
+
+  /* ---- Type ---- */
+  --font-display:     "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body:        "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:        "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+
+  /* ---- Radii (only these — nothing in between) ---- */
+  --r-sm:             6px;
+  --r-md:             10px;
+  --r-lg:             16px;
+  --r-pill:           9999px;
+
+  /* ---- Shadow ---- */
+  --shadow-card:      0 1px 2px rgba(10,10,10,0.04), 0 0 0 1px rgba(10,10,10,0.06);
+  --shadow-sheet:     0 -8px 28px -10px rgba(10,10,10,0.12);
+  --shadow-toast:     0 12px 30px -10px rgba(10,10,10,0.18);
+
+  /* ---- Motion ---- */
+  --ease:             cubic-bezier(.2, .8, .2, 1);
+  --ease-spring:      cubic-bezier(.34, 1.4, .64, 1);
 }
 
-html,
-body {
+html, body {
   height: 100%;
   overflow: hidden;
-}
-
-body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--color-background-secondary);
+  background: var(--carta-3);
+  color: var(--inchiostro);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -34,14 +92,22 @@ body {
 ::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; }
 
+/* ============================================================
+   Animations (kept from previous build, retuned to new easing)
+   ============================================================ */
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(-10px) scale(.95); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(-10px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
 @keyframes sheetUp {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
+}
+
+@keyframes scrimIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes spin {
@@ -59,8 +125,22 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Task 14 — skeleton shimmer */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 @keyframes shimmer {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* ============================================================
+   Phosphor icon defaults
+   Tabler-style `<i class="ti ti-foo">` is migrated; remaining
+   `ti` selectors here just normalise size and line-height.
+   ============================================================ */
+i[class*="ph-"] {
+  line-height: 1;
+  display: inline-block;
 }

@@ -18,8 +18,6 @@ const MapView = lazy(() => import('../components/MapView').then(m => ({ default:
 interface DiscoverProps {
   onBook:        (barber: DemoBarber) => void
   onViewProfile: (barber: DemoBarber) => void
-  // Current user's own barbers.id (if logged in as barber). Used so the
-  // preview card / list can hide the Prenota button on the user's own pin.
   myBarberId?:   string
 }
 
@@ -57,7 +55,6 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
   const { coords, denied, unavailable, fallback, locate } = useGeolocation()
   const { barbers: realBarbers, loading } = useBarbers(sort, coords?.lat, coords?.lng, search)
 
-  // One-time snackbar when geolocation falls back
   useEffect(() => {
     if ((denied || unavailable) && !snackbarShown.shown) {
       snackbarShown.shown = true
@@ -67,7 +64,6 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
     }
   }, [denied, unavailable, snackbarShown])
 
-  // If the map fails to load its style, switch to list automatically.
   useEffect(() => {
     if (mapErrored && view === 'map') {
       setView('list')
@@ -77,14 +73,12 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
     }
   }, [mapErrored, view])
 
-  // Reset selected when view or search changes
   useEffect(() => { setSelected(null) }, [view])
 
   const sourceBarbers: DemoBarber[] = IS_DEMO
     ? BARBERS
     : realBarbers.map(b => toDisplayBarber(b, coords?.lat, coords?.lng))
 
-  // Apply search in demo mode (real mode already filters via the hook)
   const q = search.trim().toLowerCase()
   const filtered: DemoBarber[] = IS_DEMO && q
     ? sourceBarbers.filter(b =>
@@ -94,7 +88,6 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
       )
     : sourceBarbers
 
-  // Sort for demo mode (real mode already sorted by hook)
   const sortedList: DemoBarber[] = IS_DEMO
     ? [...filtered].sort((a, b) => {
         if (sort === 'nearby')   return a.dist - b.dist
@@ -104,7 +97,6 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
       })
     : filtered
 
-  // Map markers: any barber with coords (regardless of sort order)
   const mapBarbers = filtered.filter(b => b.lat != null && b.lng != null)
 
   return (
@@ -113,7 +105,7 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
         <div style={{ position: 'absolute', inset: 0 }}>
           <Suspense fallback={
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.surface }}>
-              <i className="ti ti-loader-2" style={{ fontSize: 28, color: C.muted, animation: 'spin 0.8s linear infinite' }} />
+              <i className="ph-thin ph-spinner-gap" style={{ fontSize: 28, color: C.muted, animation: 'spin .8s linear infinite' }} />
             </div>
           }>
             <MapView
@@ -129,29 +121,20 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
           <MapSearchBar value={search} onChange={setSearch} />
           <MapListToggle value={view} onChange={setView} />
 
-          {/* Locate-me button */}
           <button
             onClick={locate}
             aria-label="Trova la mia posizione"
             style={{
-              position:     'absolute',
-              right:        12,
-              bottom:       12,
-              zIndex:       10,
-              width:        44,
-              height:       44,
-              borderRadius: '50%',
-              background:   C.bg,
-              border:       `0.5px solid ${C.border}`,
-              cursor:       'pointer',
-              display:      'flex',
-              alignItems:   'center',
-              justifyContent: 'center',
-              color:        C.text,
-              boxShadow:    '0 2px 10px rgba(0,0,0,0.12)',
+              position: 'absolute', right: 12, bottom: 12, zIndex: 10,
+              width: 44, height: 44, borderRadius: '50%',
+              background: C.bg, border: `1px solid ${C.border}`,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: C.text,
+              boxShadow: '0 4px 14px rgba(10,10,10,0.10)',
             }}
           >
-            <i className="ti ti-current-location" style={{ fontSize: 20 }} />
+            <i className="ph-thin ph-crosshair-simple" style={{ fontSize: 20 }} />
           </button>
 
           {selected && (
@@ -164,20 +147,23 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
             />
           )}
 
-          {/* Empty state when there are 0 markers */}
           {!loading && mapBarbers.length === 0 && (
             <div style={{
               position: 'absolute', left: 16, right: 16, top: '50%', transform: 'translateY(-50%)',
-              zIndex: 5, background: 'rgba(255,255,255,0.94)', padding: '14px 16px',
-              borderRadius: 12, textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-              border: `0.5px solid ${C.border}`,
+              zIndex: 5, background: C.bg, padding: '16px 18px',
+              borderRadius: 'var(--r-lg)', textAlign: 'center',
+              boxShadow: '0 8px 24px rgba(10,10,10,0.12), 0 0 0 1px rgba(10,10,10,0.06)',
             }}>
-              <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>Nessun barbiere in zona</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, color: C.text, letterSpacing: '-0.015em' }}>
+                Nessun barbiere in zona
+              </div>
+              <div style={{ marginTop: 4, fontSize: 12.5, color: C.muted }}>Prova ad allargare il raggio.</div>
               <button
                 onClick={() => setView('list')}
                 style={{
-                  marginTop: 8, padding: '6px 14px', borderRadius: 16, border: 'none',
-                  background: C.text, color: C.bg, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                  marginTop: 12, padding: '8px 16px', borderRadius: 'var(--r-md)', border: 'none',
+                  background: C.text, color: C.bg, fontSize: 13, fontWeight: 500,
+                  cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
                 Vai alla lista
@@ -186,14 +172,21 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
           )}
         </div>
       ) : (
-        // List view
         <>
-          <div style={{ position: 'relative', padding: '14px 16px 0', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>Esplora</span>
+          <div style={{ padding: '18px 20px 0', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 500 }}>Cerca a</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <i className="ph-thin ph-map-pin" style={{ fontSize: 16, color: C.accent }} />
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 22, letterSpacing: '-0.025em', color: C.text }}>
+                    Cagliari
+                  </span>
+                </div>
+              </div>
               <MapListToggleInline value={view} onChange={setView} />
             </div>
-            <div style={{ marginTop: 10 }}>
+            <div style={{ marginTop: 14 }}>
               <InlineSearch value={search} onChange={setSearch} />
             </div>
           </div>
@@ -211,18 +204,10 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
 
       {snackbar && (
         <div style={{
-          position:  'absolute',
-          left:      12,
-          right:     12,
-          bottom:    72,
-          zIndex:    30,
-          padding:   '10px 14px',
-          background: 'rgba(20,20,20,0.92)',
-          color:     '#fff',
-          fontSize:  12,
-          borderRadius: 10,
-          textAlign: 'center',
-          boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+          position: 'absolute', left: 14, right: 14, bottom: 72, zIndex: 30,
+          padding: '12px 16px', background: C.text, color: C.bg,
+          fontSize: 12.5, borderRadius: 'var(--r-md)', textAlign: 'center',
+          boxShadow: 'var(--shadow-toast)',
         }}>
           {snackbar}
         </div>
@@ -231,19 +216,16 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
   )
 }
 
-// Inline (non-floating) toggle for list view header
 function MapListToggleInline({ value, onChange }: { value: DiscoverView; onChange: (v: DiscoverView) => void }) {
   const items: { id: DiscoverView; icon: string; label: string }[] = [
-    { id: 'map',  icon: 'ti-map',  label: 'Mappa' },
-    { id: 'list', icon: 'ti-list', label: 'Lista' },
+    { id: 'map',  icon: 'ph-thin ph-map-trifold', label: 'Mappa' },
+    { id: 'list', icon: 'ph-thin ph-list',        label: 'Lista' },
   ]
   return (
     <div style={{
-      display:   'flex',
-      padding:   3,
-      borderRadius: 22,
-      background: C.surface,
-      border:    `0.5px solid ${C.border}`,
+      display: 'flex', padding: 3,
+      borderRadius: 'var(--r-md)',
+      background: C.surface, border: `1px solid ${C.border}`,
     }}>
       {items.map(it => {
         const active = value === it.id
@@ -254,14 +236,15 @@ function MapListToggleInline({ value, onChange }: { value: DiscoverView; onChang
             aria-label={it.label}
             aria-pressed={active}
             style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              padding: '5px 10px', borderRadius: 18, border: 'none',
-              background: active ? C.text : 'transparent',
-              color: active ? C.bg : C.muted,
-              fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', borderRadius: 8, border: 'none',
+              background: active ? C.bg : 'transparent',
+              color:      active ? C.text : C.muted,
+              fontSize: 12.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+              boxShadow: active ? '0 1px 2px rgba(10,10,10,0.06)' : 'none',
             }}
           >
-            <i className={`ti ${it.icon}`} style={{ fontSize: 13 }} />
+            <i className={it.icon} style={{ fontSize: 14 }} />
             {it.label}
           </button>
         )
@@ -270,22 +253,21 @@ function MapListToggleInline({ value, onChange }: { value: DiscoverView; onChang
   )
 }
 
-// Inline search box for the list view
 function InlineSearch({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '8px 12px', borderRadius: 10,
-      background: C.surface, border: `0.5px solid ${C.borderMed}`,
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '11px 14px', borderRadius: 'var(--r-md)',
+      background: C.surfaceAlt, border: `1px solid ${C.border}`,
     }}>
-      <i className="ti ti-search" style={{ fontSize: 14, color: C.muted }} />
+      <i className="ph-thin ph-magnifying-glass" style={{ fontSize: 18, color: C.muted }} />
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder="Cerca barbieri, città o stili…"
+        placeholder="Cerca un barbiere, una via, uno stile…"
         style={{
           flex: 1, minWidth: 0, border: 'none', background: 'transparent',
-          outline: 'none', fontSize: 13, color: C.text, fontFamily: 'inherit',
+          outline: 'none', fontSize: 14, color: C.text, fontFamily: 'inherit',
         }}
       />
       {value && (
@@ -294,7 +276,7 @@ function InlineSearch({ value, onChange }: { value: string; onChange: (v: string
           aria-label="Cancella"
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, padding: 2, display: 'flex' }}
         >
-          <i className="ti ti-x" style={{ fontSize: 13 }} />
+          <i className="ph-thin ph-x" style={{ fontSize: 14 }} />
         </button>
       )}
     </div>

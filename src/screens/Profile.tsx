@@ -27,23 +27,23 @@ type PostLike = {
 
 function timeAgoStr(iso: string): string {
   const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000)
-  if (h < 1) return 'Adesso'
-  if (h < 24) return `${h}h fa`
-  return `${Math.floor(h / 24)}g fa`
+  if (h < 1)  return 'adesso'
+  if (h < 24) return `${h} h fa`
+  return `${Math.floor(h / 24)} g fa`
 }
 
 interface Props {
-  userId?: string
+  userId?:   string
   isBarber?: boolean
   barberId?: string
-  onToast?: (t: ToastEvent | null) => void
+  onToast?:  (t: ToastEvent | null) => void
 }
 
 const TODAY = new Date().toISOString().split('T')[0]
 
 function fmtDate(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  return new Date(y, m - 1, d).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function initials(name: string | null | undefined): string {
@@ -60,19 +60,15 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
   const [showNewUserPost,  setShowNewUserPost]  = useState(false)
   const [showEditProfile,  setShowEditProfile]  = useState(false)
   const [selectedPostIdx, setSelectedPostIdx] = useState<number | null>(null)
-  // Tabs shown only on the barber's own profile (Post / Recensioni)
   const [barberTab, setBarberTab] = useState<'posts' | 'reviews'>('posts')
 
   const { profile, updateAvatarUrl, updateProfile } = useProfile(userId)
   const follows  = useFollows(userId)
   const { bookings } = useClientBookings(isBarber ? undefined : userId)
   const { info: barberInfo } = useBarberInfo(isBarber ? barberId : undefined, isBarber ? userId : undefined)
-  // Reviews on the barber's own profile (read-only view: no "leave review" CTA
-  // since you can't review yourself; just shows what clients wrote).
   const { reviews: barberReviews, aggregate: reviewAggregate } =
     useReviews(isBarber ? barberId : undefined, undefined)
 
-  // Barber: load own posts on mount
   useEffect(() => {
     if (!isBarber || !barberId || IS_DEMO) return
     supabase
@@ -83,7 +79,6 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
       .then(({ data }) => setOwnPosts((data ?? []) as Post[]))
   }, [isBarber, barberId])
 
-  // Client: load own user posts on mount
   useEffect(() => {
     if (isBarber || !userId || IS_DEMO) return
     supabase
@@ -95,14 +90,8 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
   }, [isBarber, userId])
 
   const upcoming = bookings.filter(b => b.date >= TODAY && b.status !== 'cancelled')
-  const past     = bookings.filter(b => b.date <  TODAY && b.status === 'done')
 
-  // In demo mode (no real session) fall back to demo counts
   const isDemo = IS_DEMO || !userId
-  // Task 12 — three counters under the name:
-  //  • Fresh cuts = completed bookings (status='done', includes today's already-done)
-  //  • Barbers    = followed profiles whose role is 'barber'
-  //  • Follower   = profiles following me (followee_id = me)
   const freshCutsCount = isDemo
     ? CUT_LOG.length
     : bookings.filter(b => b.status === 'done').length
@@ -126,14 +115,12 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
   const avatarUrl   = profile.avatar_url
   const ini         = initials(displayName)
 
-  // "Following" subtitle: real names in production, demo string otherwise
   const followingLine = isDemo
     ? 'Stai seguendo Marco, Fadi, Nico'
     : follows.length > 0
       ? `Stai seguendo ${follows.map(f => f.displayName?.split(' ')[0] ?? '?').join(', ')}`
       : (profile.bio ?? '')
 
-  // Pill tags: followed barber names in production, style tags in demo
   const pills: string[] = isDemo
     ? ['Skin fade', 'Beard', 'Line up']
     : follows.slice(0, 4).map(f => f.displayName?.split(' ')[0] ?? '?').filter(Boolean)
@@ -145,9 +132,9 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
     try {
       const url = await uploadAvatar(file, userId)
       await updateAvatarUrl(url)
-      onToast?.({ kind: 'success', title: 'Foto profilo aggiornata' })
+      onToast?.({ kind: 'success', title: 'Foto profilo aggiornata.' })
     } catch (err) {
-      onToast?.({ kind: 'error', title: 'Caricamento foto fallito', message: err instanceof Error ? err.message : undefined })
+      onToast?.({ kind: 'error', title: 'Caricamento foto fallito.', message: err instanceof Error ? err.message : undefined })
     }
     setUploading(false)
     e.target.value = ''
@@ -155,27 +142,28 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
 
   async function handlePostChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file || !isBarber || !barberId) return
+    if (!file || !isBarber || !barberId || !userId) return
     setUploading(true)
     try {
       const url = await uploadPostPhoto(file, barberId)
       if (!IS_DEMO) {
         const { data } = await supabase
           .from('posts')
-          .insert({ barber_id: barberId, image_url: url, caption: null })
+          .insert({ author_id: userId, barber_id: barberId, image_url: url, caption: null })
           .select()
           .single()
         if (data) setOwnPosts(prev => [data as Post, ...prev])
       } else {
         setOwnPosts(prev => [{
-          id: crypto.randomUUID(), barber_id: barberId,
+          id: crypto.randomUUID(), author_id: userId, barber_id: barberId,
           image_url: url, caption: null, label: null, likes_count: 0, comments_count: 0,
+          tagged_profile_id: null,
           created_at: new Date().toISOString(),
         }, ...prev])
       }
-      onToast?.({ kind: 'success', title: 'Post pubblicato' })
+      onToast?.({ kind: 'success', title: 'Post pubblicato.' })
     } catch (err) {
-      onToast?.({ kind: 'error', title: 'Pubblicazione fallita', message: err instanceof Error ? err.message : undefined })
+      onToast?.({ kind: 'error', title: 'Pubblicazione fallita.', message: err instanceof Error ? err.message : undefined })
     }
     setUploading(false)
     e.target.value = ''
@@ -211,158 +199,153 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
   return (
     <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
     <div style={{ flex: 1, overflowY: 'auto' }}>
-      {/* Top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
-        <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>I miei tagli</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 16px' }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, letterSpacing: '-0.025em', color: C.text }}>
+          Profilo
+        </span>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           {!isBarber && (
-            <i
-              className="ti ti-camera-plus"
-              onClick={() => !uploading && setShowNewUserPost(true)}
-              style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }}
-            />
+            <button onClick={() => !uploading && setShowNewUserPost(true)} aria-label="Nuovo post" style={iconBtn()}>
+              <i className="ph-thin ph-camera-plus" style={{ fontSize: 22, color: C.muted }} />
+            </button>
           )}
           {!isDemo && (
-            <i
-              className="ti ti-settings"
-              onClick={() => setShowEditProfile(true)}
-              style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }}
-              aria-label="Modifica profilo"
-            />
+            <button onClick={() => setShowEditProfile(true)} aria-label="Impostazioni profilo" style={iconBtn()}>
+              <i className="ph-thin ph-gear" style={{ fontSize: 22, color: C.muted }} />
+            </button>
           )}
         </div>
       </div>
 
-      {/* Hero with tappable avatar */}
-      <div style={{ padding: '16px 16px 12px', textAlign: 'center' }}>
-        <div
-          style={{ position: 'relative', width: 80, margin: '0 auto 12px', cursor: 'pointer' }}
-          onClick={() => !uploading && avatarInputRef.current?.click()}
-        >
-          <div style={{
-            width: 80, height: 80, borderRadius: '50%',
-            background: avatarUrl ? 'transparent' : C.accentLight,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 26, fontWeight: 500, color: C.accent,
-            border: `2px solid ${C.accent}`, overflow: 'hidden',
-          }}>
-            {avatarUrl
-              ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <span>{ini}</span>
-            }
+      {/* Hero card */}
+      <div style={{ margin: '0 20px 16px', padding: 18, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 'var(--r-lg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div
+            style={{ position: 'relative', cursor: 'pointer' }}
+            onClick={() => !uploading && avatarInputRef.current?.click()}
+          >
+            <Avatar initials={ini} size={72} ring photo={avatarUrl ?? null} />
+            <div style={{
+              position: 'absolute', bottom: 0, right: 0,
+              width: 22, height: 22, borderRadius: '50%',
+              background: C.text, border: `2px solid ${C.bg}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <i className="ph-thin ph-camera" style={{ fontSize: 11, color: C.bg }} />
+            </div>
           </div>
-          <div style={{
-            position: 'absolute', bottom: 0, right: 0,
-            width: 22, height: 22, borderRadius: '50%',
-            background: C.accent, border: `2px solid ${C.bg}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <i className="ti ti-camera" style={{ fontSize: 11, color: '#fff' }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{
+                padding: '3px 9px', borderRadius: 9999,
+                background: isBarber ? C.accentLight : C.surfaceAlt,
+                color: isBarber ? C.accentDeep : C.muted,
+                fontSize: 11, fontWeight: 500,
+              }}>
+                {isBarber ? 'Barbiere' : 'Cliente'}
+              </span>
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 22, letterSpacing: '-0.02em', color: C.text }}>
+              {displayName}
+            </div>
+            {followingLine !== '' && (
+              <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {followingLine}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Task 7 — pencil icon removed. Edit profile is still reachable
-            from the top-right ⚙ (ti-settings) button. */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 18, fontWeight: 500, color: C.text }}>{displayName}</span>
-        </div>
-        {followingLine !== '' && (
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{followingLine}</div>
-        )}
         {pills.length > 0 && (
-          <div style={{ marginTop: 10, display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ marginTop: 14, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {pills.map(p => (
-              <span key={p} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: C.surface, color: C.muted, border: `0.5px solid ${C.border}` }}>
+              <span key={p} style={{
+                fontSize: 11, fontWeight: 500,
+                padding: '3px 9px', borderRadius: 9999,
+                background: C.bg, color: C.muted,
+                border: `1px solid ${C.border}`,
+              }}>
                 {p}
               </span>
             ))}
           </div>
         )}
 
-        {isBarber && (
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            {barberInfo.shop_name && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: C.muted }}>
-                <i className="ti ti-building-store" style={{ fontSize: 13 }} />
-                <span>{barberInfo.shop_name}</span>
-              </div>
-            )}
-            {barberInfo.address && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: C.hint }}>
-                <i className="ti ti-map-pin" style={{ fontSize: 12 }} />
-                <span>{barberInfo.address}</span>
-              </div>
-            )}
-            {(barberInfo.phone || barberInfo.social_link) && (
-              <div style={{ display: 'flex', gap: 14, marginTop: 2 }}>
-                {barberInfo.phone && (
-                  <a href={`tel:${barberInfo.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.accent, textDecoration: 'none' }}>
-                    <i className="ti ti-phone" style={{ fontSize: 13 }} />
-                    <span>{barberInfo.phone}</span>
-                  </a>
-                )}
-                {barberInfo.social_link && (
-                  <a href={barberInfo.social_link} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.accent, textDecoration: 'none' }}>
-                    <i className={`ti ${barberInfo.social_link.includes('instagram') ? 'ti-brand-instagram' : barberInfo.social_link.includes('tiktok') ? 'ti-brand-tiktok' : 'ti-world'}`} style={{ fontSize: 13 }} />
-                    <span>Social</span>
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Stats row */}
+        <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 18, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+          <Stat value={String(freshCutsCount)} label="Tagli" />
+          <Stat value={String(barbersFollowedCount)} label="Barbieri" />
+          <Stat value={String(followerCount)} label="Follower" />
+        </div>
       </div>
 
-      {/* Stats — Task 12 */}
-      <div style={{ display: 'flex', borderBottom: `0.5px solid ${C.border}`, marginBottom: 16 }}>
-        {([
-          [String(freshCutsCount),       'Fresh cuts', 'ti-scissors'],
-          [String(barbersFollowedCount), 'Barbers',    'ti-mustache'],
-          [String(followerCount),        'Follower',   'ti-heart'],
-        ] as [string, string, string][]).map(([val, label, icon]) => (
-          <div key={label} style={{ flex: 1, textAlign: 'center', padding: '14px 0 12px' }}>
-            <div style={{ fontSize: 20, fontWeight: 600, color: C.text }}>{val}</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, marginTop: 4 }}>
-              <i className={`ti ${icon}`} style={{ fontSize: 10, color: C.muted }} />
-              <div style={{ fontSize: 11, color: C.muted }}>{label}</div>
+      {/* Barber info row */}
+      {isBarber && (barberInfo.shop_name || barberInfo.address || barberInfo.phone || barberInfo.social_link) && (
+        <div style={{ margin: '0 20px 16px', padding: '12px 14px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 'var(--r-md)' }}>
+          {barberInfo.shop_name && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.text, marginBottom: 4 }}>
+              <i className="ph-thin ph-storefront" style={{ fontSize: 14, color: C.muted }} />
+              <span style={{ fontWeight: 600 }}>{barberInfo.shop_name}</span>
             </div>
-          </div>
-        ))}
-      </div>
+          )}
+          {barberInfo.address && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: C.muted, marginBottom: 4 }}>
+              <i className="ph-thin ph-map-pin" style={{ fontSize: 14 }} />
+              <span>{barberInfo.address}</span>
+            </div>
+          )}
+          {(barberInfo.phone || barberInfo.social_link) && (
+            <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
+              {barberInfo.phone && (
+                <a href={`tel:${barberInfo.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: C.accent, textDecoration: 'none' }}>
+                  <i className="ph-thin ph-phone" style={{ fontSize: 14 }} />
+                  <span>{barberInfo.phone}</span>
+                </a>
+              )}
+              {barberInfo.social_link && (
+                <a href={barberInfo.social_link} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: C.accent, textDecoration: 'none' }}>
+                  <i className={`ph-thin ${barberInfo.social_link.includes('instagram') ? 'ph-instagram-logo' : barberInfo.social_link.includes('tiktok') ? 'ph-tiktok-logo' : 'ph-globe'}`} style={{ fontSize: 14 }} />
+                  <span>Social</span>
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Barber-only tab bar — clients keep the simple post grid */}
+      {/* Barber-only tab bar */}
       {isBarber && (
-        <div style={{ display: 'flex', borderBottom: `0.5px solid ${C.border}`, marginTop: -16, marginBottom: 0 }}>
+        <div style={{ display: 'flex', padding: '0 20px', borderBottom: `1px solid ${C.border}` }}>
           {([
-            ['posts',   'ti-layout-grid', 'Post'],
-            ['reviews', 'ti-star',        `Recensioni${reviewAggregate.count > 0 ? ` · ${reviewAggregate.count}` : ''}`],
-          ] as ['posts' | 'reviews', string, string][]).map(([id, icon, label]) => {
+            ['posts',   'Post'],
+            ['reviews', `Recensioni${reviewAggregate.count > 0 ? ` · ${reviewAggregate.count}` : ''}`],
+          ] as ['posts' | 'reviews', string][]).map(([id, label]) => {
             const active = barberTab === id
             return (
               <button
                 key={id}
                 onClick={() => setBarberTab(id)}
                 style={{
-                  flex: 1, padding: '10px 0',
+                  flex: 1, padding: '12px 0',
                   background: 'none', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   fontFamily: 'inherit',
-                  borderBottom: active ? `2px solid ${C.text}` : '2px solid transparent',
-                  color: active ? C.text : C.hint,
-                  fontSize: 12, fontWeight: 500,
+                  color: active ? C.text : C.muted,
+                  fontSize: 13, fontWeight: active ? 600 : 500,
+                  position: 'relative',
                 }}
               >
-                <i className={`ti ${icon}`} style={{ fontSize: 14 }} />
                 {label}
+                {active && (
+                  <div style={{ position: 'absolute', left: 0, right: 0, bottom: -1, height: 2, background: C.accent, borderRadius: 9999 }} />
+                )}
               </button>
             )
           })}
         </div>
       )}
 
-      {/* Cut / post photo grid (hidden on barber when Recensioni tab is active) */}
       {(!isBarber || barberTab === 'posts') && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, marginTop: isBarber ? 0 : 4 }}>
           {showBarberPosts     && <OwnPostGrid posts={ownPosts} onPostClick={setSelectedPostIdx} />}
           {showDemoBarberPosts && <DemoBarberPostGrid onPostClick={setSelectedPostIdx} />}
           {showClientPosts     && <UserPostGrid posts={userPosts} onPostClick={setSelectedPostIdx} />}
@@ -370,23 +353,19 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
         </div>
       )}
 
-      {/* Reviews tab content (barber only) */}
       {isBarber && barberTab === 'reviews' && (
         <ReviewsList
           reviews={barberReviews}
           aggregate={reviewAggregate}
-          accent={C.accent}
         />
       )}
 
-      {/* Your appointment */}
       {(isDemo || upcoming.length > 0) && (
-        <div style={{ padding: '16px 16px 0' }}>
-          <div style={{ padding: '0 0 8px', fontSize: 13, fontWeight: 500, color: C.text }}>Il tuo appuntamento</div>
-          {isDemo
-            ? <DemoUpcoming />
-            : <RealUpcoming bookings={upcoming.slice(0, 1)} />
-          }
+        <div style={{ padding: '20px 20px 24px' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.015em', color: C.text, marginBottom: 10 }}>
+            Il tuo appuntamento
+          </div>
+          {isDemo ? <DemoUpcoming /> : <RealUpcoming bookings={upcoming.slice(0, 1)} />}
         </div>
       )}
 
@@ -394,7 +373,6 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
       <input ref={postInputRef}   type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handlePostChange} />
     </div>
 
-    {/* Post feed overlay — barbers */}
     {selectedPostIdx !== null && isBarber && (
       <ProfilePostsFeed
         posts={showDemoBarberPosts
@@ -403,24 +381,19 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
         }
         startIdx={selectedPostIdx}
         authorName={displayName}
-        accent={C.accent}
         onClose={() => setSelectedPostIdx(null)}
       />
     )}
-
-    {/* Post feed overlay — clients */}
     {selectedPostIdx !== null && !isBarber && showClientPosts && userPosts.length > 0 && (
       <ProfilePostsFeed
         posts={userPosts}
         startIdx={selectedPostIdx}
         authorName={displayName}
-        accent={C.accent}
-        title="My cuts"
+        title="I miei tagli"
         onClose={() => setSelectedPostIdx(null)}
       />
     )}
 
-    {/* New user post sheet */}
     {showNewUserPost && (
       <NewUserPostSheet
         onAdd={async (caption, label, file) => {
@@ -431,7 +404,6 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
       />
     )}
 
-    {/* Edit profile sheet */}
     {showEditProfile && (
       <EditProfileSheet
         initial={{ display_name: displayName, bio: profile.bio ?? '' }}
@@ -445,36 +417,26 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
   )
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────
+function iconBtn(): React.CSSProperties {
+  return { background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex' }
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 22, lineHeight: 1, color: C.text, letterSpacing: '-0.02em' }}>{value}</span>
+      <span style={{ fontSize: 11, fontWeight: 500, color: C.muted }}>{label}</span>
+    </div>
+  )
+}
+
+/* ---- Post grids -------------------------------------------------------- */
 
 function OwnPostGrid({ posts, onPostClick }: { posts: PostLike[]; onPostClick: (i: number) => void }) {
   return (
     <>
       {posts.map((post, i) => (
-        <div
-          key={post.id}
-          onClick={() => onPostClick(i)}
-          style={{
-            aspectRatio: '1', cursor: 'pointer', overflow: 'hidden',
-            position: 'relative', background: C.surface,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          {post.image_url
-            ? <img src={post.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />
-          }
-          {post.label && (
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              padding: '12px 4px 4px',
-              background: 'linear-gradient(transparent, rgba(0,0,0,0.45))',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{post.label}</div>
-            </div>
-          )}
-        </div>
+        <GridCell key={post.id} src={post.image_url} label={post.label} onClick={() => onPostClick(i)} />
       ))}
     </>
   )
@@ -483,39 +445,23 @@ function OwnPostGrid({ posts, onPostClick }: { posts: PostLike[]; onPostClick: (
 function UserPostGrid({ posts, onPostClick }: { posts: UserPost[]; onPostClick: (i: number) => void }) {
   if (posts.length === 0) {
     return (
-      <div style={{ gridColumn: '1 / -1', padding: '48px 16px', textAlign: 'center' }}>
-        <i className="ti ti-camera-plus" style={{ fontSize: 38, color: C.hint, opacity: 0.35 }} />
-        <div style={{ fontSize: 13, color: C.muted, marginTop: 10 }}>Nessun post — tocca la fotocamera per aggiungere il primo taglio</div>
+      <div style={{ gridColumn: '1 / -1', padding: '48px 28px', textAlign: 'center' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+          <i className="ph-thin ph-camera-plus" style={{ fontSize: 20, color: C.hint }} />
+        </div>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 16, letterSpacing: '-0.015em', color: C.text }}>
+          Nessun post
+        </div>
+        <div style={{ fontSize: 13, color: C.muted, marginTop: 6 }}>
+          Tocca la fotocamera per aggiungere il tuo primo taglio.
+        </div>
       </div>
     )
   }
   return (
     <>
       {posts.map((post, i) => (
-        <div
-          key={post.id}
-          onClick={() => onPostClick(i)}
-          style={{
-            aspectRatio: '1', cursor: 'pointer', overflow: 'hidden',
-            position: 'relative', background: C.surface,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          {post.image_url
-            ? <img src={post.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <i className="ti ti-scissors" style={{ fontSize: 30, color: C.hint, opacity: 0.4 }} />
-          }
-          {post.label && (
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              padding: '12px 4px 4px',
-              background: 'linear-gradient(transparent, rgba(0,0,0,0.45))',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{post.label}</div>
-            </div>
-          )}
-        </div>
+        <GridCell key={post.id} src={post.image_url} label={post.label} onClick={() => onPostClick(i)} />
       ))}
     </>
   )
@@ -524,29 +470,9 @@ function UserPostGrid({ posts, onPostClick }: { posts: UserPost[]; onPostClick: 
 function DemoBarberPostGrid({ onPostClick }: { onPostClick: (i: number) => void }) {
   return (
     <>
-      {POSTS.map((post, i) => {
-        const barber = BARBERS.find(b => b.id === post.barberId)!
-        return (
-          <div key={post.id} onClick={() => onPostClick(i)} style={{
-            aspectRatio: '1', background: barber.accent + '18',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            position: 'relative', cursor: 'pointer', overflow: 'hidden',
-          }}>
-            {post.imageUrl
-              ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <i className="ti ti-scissors" style={{ fontSize: 30, color: barber.accent, opacity: 0.4 }} />
-            }
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              padding: '16px 4px 5px',
-              background: 'linear-gradient(transparent, rgba(0,0,0,0.45))',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{post.label}</div>
-            </div>
-          </div>
-        )
-      })}
+      {POSTS.map((post, i) => (
+        <GridCell key={post.id} src={post.imageUrl ?? null} label={post.label} onClick={() => onPostClick(i)} />
+      ))}
     </>
   )
 }
@@ -554,29 +480,38 @@ function DemoBarberPostGrid({ onPostClick }: { onPostClick: (i: number) => void 
 function DemoPostGrid() {
   return (
     <>
-      {CUT_LOG.map((cut, i) => {
-        const b = BARBERS.find(br => br.name === cut.barber)
-        return (
-          <div key={i} style={{
-            aspectRatio: '1', background: b ? b.accent + '18' : C.surface,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            position: 'relative', cursor: 'pointer', overflow: 'hidden',
-          }}>
-            <i className="ti ti-scissors" style={{ fontSize: 30, color: b ? b.accent : C.hint, opacity: 0.4 }} />
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              padding: '16px 4px 5px',
-              background: 'linear-gradient(transparent, rgba(0,0,0,0.45))',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.9)', fontWeight: 500 }}>{cut.date}</div>
-            </div>
-          </div>
-        )
-      })}
+      {CUT_LOG.map((cut, i) => (
+        <GridCell key={i} src={null} label={cut.date} />
+      ))}
     </>
   )
 }
+
+function GridCell({ src, label, onClick }: { src?: string | null; label?: string | null; onClick?: () => void }) {
+  return (
+    <div onClick={onClick} style={{
+      aspectRatio: '1', cursor: onClick ? 'pointer' : 'default',
+      overflow: 'hidden', position: 'relative', background: C.surfaceAlt,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {src
+        ? <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : <i className="ph-thin ph-scissors" style={{ fontSize: 26, color: C.hint }} />
+      }
+      {label && (
+        <div style={{
+          position: 'absolute', bottom: 6, left: 6, right: 6,
+          fontSize: 10, color: C.bg, fontWeight: 500,
+          background: 'rgba(10,10,10,0.55)',
+          padding: '2px 8px', borderRadius: 9999,
+          textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{label}</div>
+      )}
+    </div>
+  )
+}
+
+/* ---- Upcoming appointments ------------------------------------------- */
 
 function DemoUpcoming() {
   return (
@@ -585,10 +520,10 @@ function DemoUpcoming() {
         const b = BARBERS.find(br => br.name === appt.barber)!
         return (
           <div key={i} style={apptCard}>
-            <Avatar initials={b.initials} size={38} accent={b.accent} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{appt.barber}</div>
-              <div style={{ fontSize: 12, color: C.muted }}>{appt.date} · {appt.time}</div>
+            <Avatar initials={b.initials} size={40} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{appt.barber}</div>
+              <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>{appt.date} · {appt.time}</div>
             </div>
             <StatusPill status="confirmed" tag={appt.tag} />
           </div>
@@ -605,10 +540,10 @@ function RealUpcoming({ bookings }: { bookings: BookingWithBarber[] }) {
         const name = b.barbers?.profile?.display_name ?? 'Barbiere'
         return (
           <div key={b.id} style={apptCard}>
-            <Avatar initials={initials(name)} size={38} accent={C.accent} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{name}</div>
-              <div style={{ fontSize: 12, color: C.muted }}>{fmtDate(b.date)} · {b.time_slot}</div>
+            <Avatar initials={initials(name)} size={40} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{name}</div>
+              <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>{fmtDate(b.date)} · {b.time_slot}</div>
             </div>
             <StatusPill status={b.status} />
           </div>
@@ -620,29 +555,33 @@ function RealUpcoming({ bookings }: { bookings: BookingWithBarber[] }) {
 
 const STATUS_LABEL_IT: Record<string, string> = {
   pending:   'In attesa',
-  confirmed: 'Confermata',
-  done:      'Completata',
-  cancelled: 'Annullata',
+  confirmed: 'Confermato',
+  done:      'Completato',
+  cancelled: 'Annullato',
 }
 
 function StatusPill({ status, tag }: { status: string; tag?: string }) {
   const label = tag ?? STATUS_LABEL_IT[status] ?? status
-  const bg    = status === 'confirmed' ? C.accentLight : status === 'pending' ? 'rgba(29,158,117,0.1)' : C.surface
-  const color = status === 'confirmed' ? C.accent      : status === 'pending' ? C.green               : C.hint
+  const styles = status === 'confirmed'
+    ? { bg: C.greenSoft, fg: C.green }
+    : status === 'pending'
+      ? { bg: C.accentLight, fg: C.accentDeep }
+      : status === 'cancelled'
+        ? { bg: C.redSoft, fg: C.red }
+        : { bg: C.surfaceAlt, fg: C.muted }
   return (
-    <span style={{ fontSize: 10, background: bg, color, padding: '3px 8px', borderRadius: 20 }}>{label}</span>
+    <span style={{ fontSize: 11, background: styles.bg, color: styles.fg, padding: '3px 9px', borderRadius: 9999, fontWeight: 500 }}>{label}</span>
   )
 }
 
-// ── Post feed overlay (barbers) ────────────────────────────────────────────
+/* ---- Posts feed overlay ---------------------------------------------- */
 
-function ProfilePostsFeed({ posts, startIdx, authorName, accent, title = 'I miei post', onClose }: {
-  posts: PostLike[]
+function ProfilePostsFeed({ posts, startIdx, authorName, title = 'I miei post', onClose }: {
+  posts:    PostLike[]
   startIdx: number
   authorName: string
-  accent: string
-  title?: string
-  onClose: () => void
+  title?:   string
+  onClose:  () => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const itemRefs     = useRef<(HTMLDivElement | null)[]>([])
@@ -655,35 +594,35 @@ function ProfilePostsFeed({ posts, startIdx, authorName, accent, title = 'I miei
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 10, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 8px', flexShrink: 0, borderBottom: `0.5px solid ${C.border}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px 12px', flexShrink: 0, borderBottom: `1px solid ${C.border}` }}>
         <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-          <i className="ti ti-arrow-left" style={{ fontSize: 22, color: C.text }} />
+          <i className="ph-thin ph-arrow-left" style={{ fontSize: 22, color: C.text }} />
         </button>
-        <span style={{ fontSize: 16, fontWeight: 500, color: C.text }}>{title}</span>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>{title}</span>
       </div>
       <div ref={containerRef} style={{ flex: 1, overflowY: 'auto' }}>
         {posts.map((post, i) => (
           <div key={post.id} ref={el => { itemRefs.current[i] = el }}>
-            <PostMedia imageUrl={post.image_url ?? undefined} fallbackAccent={accent} fallbackIconSize={56}>
+            <PostMedia imageUrl={post.image_url ?? undefined}>
               {post.label && (
                 <div style={{
-                  position: 'absolute', bottom: 10, left: 12,
-                  background: 'rgba(0,0,0,0.55)', color: '#fff',
-                  fontSize: 11, padding: '3px 10px', borderRadius: 20,
+                  position: 'absolute', bottom: 12, left: 16,
+                  background: 'rgba(10,10,10,0.65)', color: C.bg,
+                  fontSize: 11, padding: '4px 10px', borderRadius: 9999, fontWeight: 500,
                 }}>
                   {post.label}
                 </div>
               )}
             </PostMedia>
-            <div style={{ padding: '10px 16px 14px' }}>
-              <div style={{ fontSize: 13, color: C.text }}>
-                <span style={{ fontWeight: 500 }}>{authorName}</span>{' '}{post.caption ?? ''}
+            <div style={{ padding: '12px 20px 16px' }}>
+              <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.55 }}>
+                <span style={{ fontWeight: 600 }}>{authorName}</span>{' '}{post.caption ?? ''}
               </div>
-              <div style={{ fontSize: 11, color: C.hint, marginTop: 4 }}>
-                {post.likes_count} likes · {timeAgoStr(post.created_at)}
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>
+                {post.likes_count.toLocaleString('it-IT')} mi piace · {timeAgoStr(post.created_at)}
               </div>
             </div>
-            {i < posts.length - 1 && <div style={{ height: 6, background: C.surface }} />}
+            {i < posts.length - 1 && <div style={{ height: 1, background: C.border }} />}
           </div>
         ))}
       </div>
@@ -691,13 +630,12 @@ function ProfilePostsFeed({ posts, startIdx, authorName, accent, title = 'I miei
   )
 }
 
-// ── New user post sheet ────────────────────────────────────────────────────
+/* ---- New user post sheet --------------------------------------------- */
 
 function NewUserPostSheet({
-  onAdd,
-  onClose,
+  onAdd, onClose,
 }: {
-  onAdd: (caption: string, label: string, file?: File) => Promise<void>
+  onAdd:   (caption: string, label: string, file?: File) => Promise<void>
   onClose: () => void
 }) {
   const [caption,   setCaption]   = useState('')
@@ -740,21 +678,28 @@ function NewUserPostSheet({
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}
+      style={{ position: 'absolute', inset: 0, background: 'var(--scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 100, animation: 'scrimIn 200ms var(--ease)' }}
     >
-      <div style={{ background: C.bg, borderRadius: '20px 20px 0 0', width: '100%', display: 'flex', flexDirection: 'column', animation: 'sheetUp .3s ease-out' }}>
-        <div style={{ width: 40, height: 4, background: C.borderMed, borderRadius: 2, margin: '12px auto 0', flexShrink: 0 }} />
-        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px 10px', borderBottom: `0.5px solid ${C.border}`, flexShrink: 0 }}>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.text }}>Nuovo taglio</span>
+      <div style={{
+        background: C.bg, borderRadius: '20px 20px 0 0', width: '100%',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: 'var(--shadow-sheet)',
+        animation: 'sheetUp 260ms var(--ease)',
+      }}>
+        <div style={{ width: 36, height: 4, background: C.border, borderRadius: 9999, margin: '10px auto 0', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 20px 12px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+          <span style={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
+            Nuovo taglio
+          </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ti ti-x" style={{ fontSize: 18, color: C.muted }} />
+            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
           </button>
         </div>
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFile} style={{ display: 'none' }} />
         <div
           onClick={() => fileRef.current?.click()}
           style={{
-            height: 130, background: C.surface, borderBottom: `0.5px solid ${C.border}`,
+            height: 140, background: C.surfaceAlt, borderBottom: `1px solid ${C.border}`,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: 6, flexShrink: 0, cursor: 'pointer', position: 'relative', overflow: 'hidden',
           }}
@@ -762,51 +707,54 @@ function NewUserPostSheet({
           {preview ? (
             <>
               <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                <i className="ti ti-camera" style={{ fontSize: 22, color: '#fff' }} />
-                <span style={{ fontSize: 11, color: '#fff' }}>Tocca per cambiare</span>
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,10,10,0.45)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <i className="ph-thin ph-camera" style={{ fontSize: 22, color: C.bg }} />
+                <span style={{ fontSize: 12, color: C.bg }}>Tocca per cambiare</span>
               </div>
             </>
           ) : (
             <>
-              <i className="ti ti-camera-plus" style={{ fontSize: 30, color: C.hint }} />
-              <span style={{ fontSize: 12, color: C.hint }}>{IS_DEMO ? 'Tocca per aggiungere una foto' : 'Tocca per aggiungere una foto (richiesta)'}</span>
+              <i className="ph-thin ph-camera-plus" style={{ fontSize: 28, color: C.hint }} />
+              <span style={{ fontSize: 12.5, color: C.muted }}>
+                {IS_DEMO ? 'Tocca per aggiungere una foto' : 'Tocca per aggiungere una foto (richiesta)'}
+              </span>
             </>
           )}
         </div>
-        <div style={{ padding: '14px 16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: '14px 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <textarea
             value={caption}
             onChange={e => setCaption(e.target.value)}
             placeholder="Didascalia…"
             rows={3}
-            style={{ padding: '9px 14px', borderRadius: 10, border: `0.5px solid ${C.borderMed}`, fontSize: 13, background: C.surface, color: C.text, outline: 'none', fontFamily: 'inherit', resize: 'none' }}
+            style={{ padding: '11px 14px', borderRadius: 'var(--r-md)', border: `1px solid ${C.border}`, fontSize: 13.5, background: C.surfaceAlt, color: C.text, outline: 'none', fontFamily: 'inherit', resize: 'none' }}
           />
           <input
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="Etichetta stile (es. Skin fade + line up)"
-            style={{ padding: '9px 14px', borderRadius: 10, border: `0.5px solid ${C.borderMed}`, fontSize: 13, background: C.surface, color: C.text, outline: 'none', fontFamily: 'inherit' }}
+            style={{ padding: '11px 14px', borderRadius: 'var(--r-md)', border: `1px solid ${C.border}`, fontSize: 13.5, background: C.surfaceAlt, color: C.text, outline: 'none', fontFamily: 'inherit' }}
           />
           {postError && (
-            <div style={{ fontSize: 12, color: '#e53935', padding: '6px 10px', background: '#ffebee', borderRadius: 8 }}>{postError}</div>
+            <div style={{ fontSize: 12.5, color: C.red, padding: '8px 12px', background: C.redSoft, borderRadius: 'var(--r-md)' }}>{postError}</div>
           )}
           <button
             onClick={handlePost}
             disabled={!canPost || loading}
             style={{
-              padding: 13, borderRadius: 12,
-              background: canPost && !loading ? C.text : C.borderMed,
-              color: C.bg, fontSize: 14, fontWeight: 500,
-              border: 'none', cursor: canPost && !loading ? 'pointer' : 'default',
-              fontFamily: 'inherit', transition: 'background .15s',
+              padding: 13, borderRadius: 'var(--r-md)',
+              background: canPost && !loading ? C.text : C.surface,
+              color:      canPost && !loading ? C.bg : C.hint,
+              border: `1px solid ${canPost && !loading ? C.text : C.border}`,
+              fontSize: 14, fontWeight: 500,
+              cursor: canPost && !loading ? 'pointer' : 'default',
+              fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
             {loading
-              ? <><i className="ti ti-loader-2" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} /> Caricamento…</>
-              : 'Pubblica'
-            }
+              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Pubblicazione…</>
+              : 'Pubblica'}
           </button>
         </div>
       </div>
@@ -815,8 +763,8 @@ function NewUserPostSheet({
 }
 
 const apptCard: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 12,
-  padding: '10px 12px',
-  background: C.surface, borderRadius: 12, marginBottom: 8,
-  border: `0.5px solid ${C.border}`,
+  display: 'flex', alignItems: 'center', gap: 14,
+  padding: '14px',
+  background: C.surface, borderRadius: 'var(--r-md)',
+  border: `1px solid ${C.border}`,
 }

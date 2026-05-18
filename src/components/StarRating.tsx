@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { C } from '../lib/colors'
 
 interface Props {
-  value:        number            // 0..5; fractional values render as a partial last star (read-only mode only)
+  value:        number
   onChange?:    (v: number) => void
   size?:        number
   color?:       string
@@ -12,16 +12,15 @@ interface Props {
 }
 
 /**
- * 1–5 star control. When `onChange` is provided it's interactive (taps set
- * the integer rating, hover previews on desktop). Without `onChange` it's
- * a read-only display that supports half-star precision via clip-path so
- * we can render the barber's average like 4.7 properly.
+ * 1–5 star control — Phosphor `ph-star`. Interactive when `onChange` is
+ * provided; otherwise read-only with half-star precision via a clip overlay.
+ * The active star uses coral by default (the single accent in the system).
  */
 export function StarRating({
   value,
   onChange,
   size = 22,
-  color = '#EF9F27',
+  color = C.accent,
   emptyColor,
   gap = 4,
   disabled = false,
@@ -29,9 +28,7 @@ export function StarRating({
   const [hover, setHover] = useState<number | null>(null)
   const interactive = !!onChange && !disabled
   const display = hover ?? value
-  // Outline (empty) stars: use the muted text color so they're visible in
-  // both light and dark mode. `C.border` was too faint and looked invisible.
-  const outline = emptyColor ?? C.muted
+  const outline = emptyColor ?? C.hint
 
   return (
     <div
@@ -39,7 +36,6 @@ export function StarRating({
       onMouseLeave={() => interactive && setHover(null)}
     >
       {[1, 2, 3, 4, 5].map(i => {
-        // For each star compute how full it should be (0..1)
         const fill = Math.max(0, Math.min(1, display - (i - 1)))
         return (
           <button
@@ -64,11 +60,7 @@ export function StarRating({
               lineHeight: 1,
             }}
           >
-            {/* Empty (outline) star — always visible */}
-            <i className="ti ti-star" style={{ fontSize: size, color: outline, position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
-            {/* Filled overlay, clipped horizontally so we can render half-stars.
-                NB: do NOT use `inset: 0` here — that pins right: 0 too and the
-                explicit `width: fill%` is ignored, so every star looks full. */}
+            <i className="ph-thin ph-star" style={{ fontSize: size, color: outline, position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
             {fill > 0 && (
               <span
                 style={{
@@ -84,7 +76,7 @@ export function StarRating({
                 }}
               >
                 <i
-                  className="ti ti-star-filled"
+                  className="ph-fill ph-star"
                   style={{
                     fontSize: size,
                     color,

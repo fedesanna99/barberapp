@@ -45,6 +45,7 @@ export function useAdminUsers() {
     if (IS_DEMO) {
       const newUser: AdminUser = {
         id: `demo-${Date.now()}`, email, display_name: displayName, role,
+        is_admin: false,
         created_at: new Date().toISOString(),
       }
       setUsers(prev => [newUser, ...prev])
