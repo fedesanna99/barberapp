@@ -39,11 +39,15 @@ Attacca questi prima per il massimo impatto/effort ratio. Stimato 3-4h totali pe
 | Categoria | Iniziale | Chiusi | Rimasti |
 |---|---|---|---|
 | 🔧 STUB | 10 | 10 | 0 |
-| 🟡 PARTIAL | 10 | 2 | 8 |
+| 🟡 PARTIAL | 10 | 5 | 5 |
 | ❌ MISSING | 12 | 1 | 11 |
 
 I 10 STUB e il MISSING #3 sono stati implementati e testati live in browser
 nella sessione del 2026-05-18. Vedi commit `94f1ad1` → `0016f64`.
+
+PARTIAL chiusi successivamente: #2, #3 (badge dinamici, già coperti dai
+commit STUB), #4 (Stories real data), #8, #9 (durata e prezzo per barbiere).
+Vedi commit `f2dd88d` (Stories) e `b45fdbc` (defaults + migration 020).
 
 ---
 
@@ -196,7 +200,7 @@ nella sessione del 2026-05-18. Vedi commit `94f1ad1` → `0016f64`.
   - Se implementato → conteggio unread da DB
 - **Effort:** S (5 min per rimuovere)
 
-### #4 — Stories row (cerchi barbieri in alto al Feed)
+### #4 — Stories row (cerchi barbieri in alto al Feed) ✅ DONE (`f2dd88d`)
 
 - **Cosa l'utente vede:** 5 cerchi con iniziali in alto al Feed, sempre gli stessi
 - **Dove:** [src/screens/Feed.tsx:165-185](src/screens/Feed.tsx:165)
@@ -242,7 +246,7 @@ nella sessione del 2026-05-18. Vedi commit `94f1ad1` → `0016f64`.
 - **Cosa fare:** vedi MISSING #6 (catalogo servizi)
 - **Effort:** L (parte di feature più grande)
 
-### #8 — Durata 30 min hardcoded
+### #8 — Durata 30 min hardcoded ✅ DONE (`b45fdbc`, richiede migration 020 applicata)
 
 - **Cosa l'utente vede:** "30 min" ovunque
 - **Dove:** [src/screens/BookingSheet.tsx:67,188](src/screens/BookingSheet.tsx:67), [src/hooks/useAvailability.ts:5-18](src/hooks/useAvailability.ts:5)
@@ -253,7 +257,7 @@ nella sessione del 2026-05-18. Vedi commit `94f1ad1` → `0016f64`.
 - **File da toccare:** migration, `src/hooks/useAvailability.ts`, `src/types/supabase.ts` (rigenera)
 - **Effort:** M (1-2h breve termine)
 
-### #9 — Prezzo "~€25" hardcoded
+### #9 — Prezzo "~€25" hardcoded ✅ DONE (`b45fdbc`, stessa migration 020 di #8)
 
 - **Cosa l'utente vede:** "~€25" nel summary booking
 - **Dove:** [src/screens/BookingSheet.tsx:67,189](src/screens/BookingSheet.tsx:67)
