@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
 import { useBooking, useClientBookings, type BookingWithBarber } from '../hooks/useBooking'
+import type { ToastEvent } from '../components/Toast'
 
 interface Props {
   userId: string
   onClose: () => void
-  onToast?: (msg: string | null) => void
+  onToast?: (t: ToastEvent | null) => void
 }
 
 const TODAY = new Date().toISOString().split('T')[0]
@@ -51,9 +52,13 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
     const { error } = await cancelBooking(b.id)
     setCancellingId(null)
     if (error) {
-      onToast?.(`Annullamento fallito: ${error.message}`)
+      onToast?.({ kind: 'error', title: 'Annullamento fallito', message: error.message })
     } else {
-      onToast?.('Prenotazione annullata')
+      onToast?.({
+        kind:    'success',
+        title:   'Prenotazione annullata',
+        message: `${name} · ${fmtDate(b.date)} alle ${b.time_slot}`,
+      })
     }
   }
 

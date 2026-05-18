@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
-import { Toast } from '../components/Toast'
+import { Toast, type ToastEvent } from '../components/Toast'
 import { useAdminUsers, type AdminUser } from '../hooks/useAdminUsers'
 import { useAdminLogs } from '../hooks/useAdminLogs'
 import { useSupportAdmin, useSupportAdminChat, type ConvWithUser } from '../hooks/useSupportAdmin'
@@ -241,7 +241,7 @@ function RoleSheet({ user, onPick, onCancel }: { user: AdminUser; onPick: (r: Us
 
 // ── Users Tab ──────────────────────────────────────────────────────────────
 
-function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
+function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
   const { users, loading, error, createUser, deleteUser, changeRole, sendPasswordReset, reload } = useAdminUsers()
   const [search, setSearch]             = useState('')
   const [expanded, setExpanded]         = useState<string | null>(null)
@@ -260,8 +260,8 @@ function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
     setBusy(user.id)
     const { error } = await deleteUser(user.id)
     setBusy(null)
-    if (error) onToast('Errore: ' + error)
-    else onToast(`${user.display_name} eliminato`)
+    if (error) onToast({ kind: 'error', title: 'Eliminazione fallita', message: error })
+    else onToast({ kind: 'success', title: 'Utente eliminato', message: user.display_name })
   }
 
   async function handleRolePick(user: AdminUser, role: UserRole) {
@@ -270,8 +270,8 @@ function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
     setBusy(user.id)
     const { error } = await changeRole(user.id, role)
     setBusy(null)
-    if (error) onToast('Errore: ' + error)
-    else onToast(`Ruolo aggiornato`)
+    if (error) onToast({ kind: 'error', title: 'Cambio ruolo fallito', message: error })
+    else onToast({ kind: 'success', title: 'Ruolo aggiornato', message: `${user.display_name} è ora ${role}` })
   }
 
   async function handleReset(user: AdminUser) {
@@ -279,8 +279,8 @@ function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
     setBusy(user.id)
     const { error } = await sendPasswordReset(user.email)
     setBusy(null)
-    if (error) onToast('Errore: ' + error)
-    else onToast(`Email di reset inviata a ${user.email}`)
+    if (error) onToast({ kind: 'error', title: 'Invio reset fallito', message: error })
+    else onToast({ kind: 'success', title: 'Email di reset inviata', message: user.email })
   }
 
   return (
@@ -419,7 +419,7 @@ function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
           onClose={() => setShowAdd(false)}
           onCreate={async (email, pw, name, role) => {
             const result = await createUser(email, pw, name, role)
-            if (!result.error) onToast(`${name} creato`)
+            if (!result.error) onToast({ kind: 'success', title: 'Utente creato', message: `${name} · ${role}` })
             return result
           }}
         />
@@ -444,7 +444,7 @@ function UsersTab({ onToast }: { onToast: (msg: string) => void }) {
 
 // ── Logs Tab ───────────────────────────────────────────────────────────────
 
-function LogsTab({ onToast }: { onToast: (msg: string) => void }) {
+function LogsTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
   const { logs, loading, error, clearLogs, reload } = useAdminLogs()
   const [filter, setFilter] = useState<LogFilter>('all')
   const [clearing, setClearing] = useState(false)
@@ -462,8 +462,8 @@ function LogsTab({ onToast }: { onToast: (msg: string) => void }) {
     setClearing(true)
     const { error: e } = await clearLogs()
     setClearing(false)
-    if (e) onToast('Errore: ' + e)
-    else onToast('Log cancellati')
+    if (e) onToast({ kind: 'error', title: 'Cancellazione log fallita', message: e })
+    else onToast({ kind: 'success', title: 'Log cancellati' })
   }
 
   return (
@@ -789,7 +789,7 @@ function SupportTab({ adminId }: { adminId: string | undefined }) {
 
 export function AdminPanel({ userId }: { userId?: string }) {
   const [tab, setTab]   = useState<AdminTab>('users')
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<ToastEvent | null>(null)
 
   const tabs: { id: AdminTab; label: string; icon: string }[] = [
     { id: 'users',   label: 'Utenti',    icon: 'ti-users'      },
@@ -833,7 +833,7 @@ export function AdminPanel({ userId }: { userId?: string }) {
         {tab === 'support' && <SupportTab adminId={userId}   />}
       </div>
 
-      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+      {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
     </div>
   )
 }

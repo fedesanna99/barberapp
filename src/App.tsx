@@ -6,7 +6,7 @@ import { writeLog } from './hooks/useAdminLogs'
 import { useBarberByProfile } from './hooks/useBarbers'
 import { useBookingToast } from './hooks/useBookingToast'
 import { useBooking } from './hooks/useBooking'
-import { Toast } from './components/Toast'
+import { Toast, type ToastEvent } from './components/Toast'
 import { Feed } from './screens/Feed'
 import { Discover } from './screens/Discover'
 import { Profile } from './screens/Profile'
@@ -64,7 +64,7 @@ export default function App() {
   const [showSupport, setShowSupport]   = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showMyAppointments, setShowMyAppointments] = useState(false)
-  const [toast, setToast]               = useState<string | null>(null)
+  const [toast, setToast]               = useState<ToastEvent | null>(null)
 
   const barberId = useBarberByProfile(isBarber ? userId : undefined)
   const { createBooking } = useBooking()
@@ -103,11 +103,12 @@ export default function App() {
         timeSlot: time,
       })
       if (error) {
-        const msg = error.message.includes('bookings_no_double')
-          ? 'Quello slot è stato appena occupato — scegli un altro orario.'
-          : `Prenotazione fallita: ${error.message}`
+        const isConflict = error.message.includes('bookings_no_double')
         writeLog('booking.conflict', `Prenotazione fallita: ${error.message}`, 'warning', { userId, metadata: { barber_id: barber.id, time_slot: time } })
-        setToast(msg)
+        setToast(isConflict
+          ? { kind: 'error', title: 'Slot non più disponibile', message: 'Quello slot è stato appena occupato — scegli un altro orario.' }
+          : { kind: 'error', title: 'Prenotazione fallita', message: error.message }
+        )
         return
       }
       writeLog('booking.created', `Nuova prenotazione da ${barber.name} alle ${time}`, 'info', { userId, metadata: { barber_id: barber.id, date: date.date, time_slot: time } })
@@ -116,7 +117,11 @@ export default function App() {
     }
     setBookingBarber(null)
     setProfileBarber(null)
-    setToast(`${barber.name} · ${date.day} ${date.num} ${date.month} alle ${time}`)
+    setToast({
+      kind:    'success',
+      title:   'Prenotazione inviata',
+      message: `${barber.name} · ${date.day} ${date.num} ${date.month} alle ${time}`,
+    })
   }
 
   const showLoading = !IS_DEMO && loading
@@ -217,7 +222,7 @@ export default function App() {
           />
         )}
 
-        {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+        {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
       </div>
 
       {/* Bottom navbar */}

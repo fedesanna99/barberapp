@@ -6,6 +6,7 @@ import { useClientBookings } from '../hooks/useBooking'
 import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
 import { LocationSettingsSheet } from '../components/LocationSettingsSheet'
 import { IS_DEMO } from '../lib/supabase'
+import type { ToastEvent } from '../components/Toast'
 
 const TODAY = new Date().toISOString().split('T')[0]
 
@@ -29,7 +30,7 @@ function buildSections(upcomingCount: number): MenuItem[][] {
   ]
 }
 
-async function handleInvite(setToast: (m: string | null) => void) {
+async function handleInvite(setToast: (t: ToastEvent) => void) {
   const url   = window.location.origin
   const title = 'CutBook'
   const text  = 'Prenota il tuo prossimo taglio con CutBook'
@@ -40,9 +41,9 @@ async function handleInvite(setToast: (m: string | null) => void) {
   // Fallback: copy URL to clipboard
   try {
     await navigator.clipboard.writeText(`${text} — ${url}`)
-    setToast('Link copiato negli appunti')
+    setToast({ kind: 'success', title: 'Link copiato', message: 'L’invito è negli appunti' })
   } catch {
-    setToast(`Condividi questo link: ${url}`)
+    setToast({ kind: 'info', title: 'Condividi questo link', message: url })
   }
 }
 
@@ -52,7 +53,7 @@ export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onApp
   onSupport?: () => void
   onNotifications?: () => void
   onAppointments?: () => void
-  onToast?: (msg: string | null) => void
+  onToast?: (t: ToastEvent | null) => void
   isBarber?: boolean
   barberId?: string
   userId?: string
@@ -114,13 +115,13 @@ export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onApp
           {group.map(({ icon, label, badge, action }) => (
             <div key={label} onClick={() => {
               if (action === 'appointments' && !IS_DEMO && userId) onAppointments?.()
-              if (action === 'appointments' && (IS_DEMO || !userId)) onToast?.('Disponibile dopo il login')
+              if (action === 'appointments' && (IS_DEMO || !userId)) onToast?.({ kind: 'info', title: 'Accesso richiesto', message: 'Accedi per vedere i tuoi appuntamenti' })
               if (action === 'saved')         onSavedPosts?.()
               if (action === 'support')       onSupport?.()
               if (action === 'notifications') onNotifications?.()
-              if (action === 'invite')        handleInvite(msg => onToast?.(msg))
+              if (action === 'invite')        handleInvite(t => onToast?.(t))
               if (action === 'location' && !IS_DEMO && userId) setShowLocation(true)
-              if (action === 'location' && (IS_DEMO || !userId)) onToast?.('Disponibile dopo il login')
+              if (action === 'location' && (IS_DEMO || !userId)) onToast?.({ kind: 'info', title: 'Accesso richiesto', message: 'Accedi per impostare la tua posizione' })
             }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer', borderBottom: `0.5px solid ${C.border}` }}>
               <i className={`ti ${icon}`} style={{ fontSize: 20, color: C.muted }} />
               <span style={{ flex: 1, fontSize: 14, color: C.text }}>{label}</span>

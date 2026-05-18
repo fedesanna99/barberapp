@@ -1,17 +1,18 @@
 import { useEffect, useRef } from 'react'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import type { Booking } from '../types/supabase'
+import type { ToastEvent } from '../components/Toast'
 
 function fmtShort(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  return new Date(y, m - 1, d).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 // Fires a toast when a client's booking status changes to confirmed or cancelled.
 // Only active in production (IS_DEMO → no-op).
 export function useBookingToast(
   userId: string | undefined,
-  onToast: (msg: string) => void,
+  onToast: (e: ToastEvent) => void,
 ) {
   const onToastRef = useRef(onToast)
   useEffect(() => { onToastRef.current = onToast })
@@ -41,13 +42,13 @@ export function useBookingToast(
             .eq('id', booking.barber_id)
             .single()
           const name = (data as unknown as { profile: { display_name: string | null } | null } | null)
-            ?.profile?.display_name ?? 'Your barber'
+            ?.profile?.display_name ?? 'Il tuo barbiere'
 
-          const when = `${fmtShort(booking.date)} · ${booking.time_slot}`
+          const when = `${name} · ${fmtShort(booking.date)} alle ${booking.time_slot}`
           if (status === 'confirmed') {
-            onToastRef.current(`${name} confirmed · ${when}`)
+            onToastRef.current({ kind: 'success', title: 'Prenotazione confermata', message: when })
           } else {
-            onToastRef.current(`${name} cancelled · ${when}`)
+            onToastRef.current({ kind: 'error', title: 'Prenotazione annullata dal barbiere', message: when })
           }
         },
       )
