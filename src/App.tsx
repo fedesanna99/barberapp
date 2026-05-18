@@ -17,6 +17,7 @@ import { BookingSheet } from './screens/BookingSheet'
 import { BarberProfileSheet } from './screens/BarberProfileSheet'
 import { SupportChat } from './screens/SupportChat'
 import { Notifications } from './screens/Notifications'
+import { MyAppointments } from './screens/MyAppointments'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
 import { ResetPassword } from './screens/ResetPassword'
@@ -61,6 +62,7 @@ export default function App() {
   const [showLikedFeed, setShowLikedFeed] = useState(false)
   const [showSupport, setShowSupport]   = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showMyAppointments, setShowMyAppointments] = useState(false)
   const [toast, setToast]               = useState<string | null>(null)
 
   const barberId = useBarberByProfile(isBarber ? userId : undefined)
@@ -184,6 +186,7 @@ export default function App() {
               onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }}
               onSupport={() => setShowSupport(true)}
               onNotifications={() => setShowNotifications(true)}
+              onAppointments={() => setShowMyAppointments(true)}
               onToast={setToast}
             />}
           </>
@@ -203,6 +206,14 @@ export default function App() {
 
         {showNotifications && (
           <Notifications onClose={() => setShowNotifications(false)} />
+        )}
+
+        {showMyAppointments && userId && (
+          <MyAppointments
+            userId={userId}
+            onClose={() => setShowMyAppointments(false)}
+            onToast={setToast}
+          />
         )}
 
         {toast && <Toast message={toast} onClose={() => setToast(null)} />}

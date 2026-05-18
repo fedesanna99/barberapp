@@ -2,27 +2,32 @@ import { useState } from 'react'
 import { C } from '../lib/colors'
 import { useBarberInfo } from '../hooks/useBarberInfo'
 import { useProfile } from '../hooks/useProfile'
+import { useClientBookings } from '../hooks/useBooking'
 import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
 import { LocationSettingsSheet } from '../components/LocationSettingsSheet'
 import { IS_DEMO } from '../lib/supabase'
 
-type MenuAction = 'liked' | 'support' | 'notifications' | 'invite' | 'location'
+const TODAY = new Date().toISOString().split('T')[0]
+
+type MenuAction = 'appointments' | 'liked' | 'support' | 'notifications' | 'invite' | 'location'
 type MenuItem = { icon: string; label: string; badge?: string; action?: MenuAction }
 
-const SECTIONS: MenuItem[][] = [
-  [
-    { icon: 'ti-calendar', label: 'I miei appuntamenti', badge: '2' },
-    { icon: 'ti-heart',    label: 'Post che ti piacciono', action: 'liked' as const },
-    { icon: 'ti-bell',     label: 'Notifiche',           action: 'notifications' as const },
-    { icon: 'ti-map-pin',  label: 'Impostazioni posizione', action: 'location' as const },
-  ],
-  [
-    { icon: 'ti-share', label: 'Invita un amico', action: 'invite' as const },
-  ],
-  [
-    { icon: 'ti-headset', label: 'Aiuto e supporto', action: 'support' as const },
-  ],
-]
+function buildSections(upcomingCount: number): MenuItem[][] {
+  return [
+    [
+      { icon: 'ti-calendar', label: 'I miei appuntamenti', action: 'appointments' as const, badge: upcomingCount > 0 ? String(upcomingCount) : undefined },
+      { icon: 'ti-heart',    label: 'Post che ti piacciono', action: 'liked' as const },
+      { icon: 'ti-bell',     label: 'Notifiche',             action: 'notifications' as const },
+      { icon: 'ti-map-pin',  label: 'Impostazioni posizione', action: 'location' as const },
+    ],
+    [
+      { icon: 'ti-share', label: 'Invita un amico', action: 'invite' as const },
+    ],
+    [
+      { icon: 'ti-headset', label: 'Aiuto e supporto', action: 'support' as const },
+    ],
+  ]
+}
 
 async function handleInvite(setToast: (m: string | null) => void) {
   const url   = window.location.origin
@@ -41,11 +46,12 @@ async function handleInvite(setToast: (m: string | null) => void) {
   }
 }
 
-export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, onToast, isBarber, barberId, userId }: {
+export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, onAppointments, onToast, isBarber, barberId, userId }: {
   onLogout?: () => void
   onLikedPosts?: () => void
   onSupport?: () => void
   onNotifications?: () => void
+  onAppointments?: () => void
   onToast?: (msg: string | null) => void
   isBarber?: boolean
   barberId?: string
@@ -58,6 +64,9 @@ export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, onToa
     isBarber ? userId   : undefined,
   )
   const { profile, updateProfile } = useProfile(userId)
+  const { bookings } = useClientBookings(isBarber ? undefined : userId)
+  const upcomingCount = bookings.filter(b => b.date >= TODAY && b.status !== 'cancelled' && b.status !== 'done').length
+  const sections = buildSections(upcomingCount)
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -99,11 +108,13 @@ export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, onToa
       </div>
 
       {/* Menu sections */}
-      {SECTIONS.map((group, gi) => (
+      {sections.map((group, gi) => (
         <div key={gi}>
           <div style={{ height: 8, background: C.surface }} />
           {group.map(({ icon, label, badge, action }) => (
             <div key={label} onClick={() => {
+              if (action === 'appointments' && !IS_DEMO && userId) onAppointments?.()
+              if (action === 'appointments' && (IS_DEMO || !userId)) onToast?.('Disponibile dopo il login')
               if (action === 'liked')         onLikedPosts?.()
               if (action === 'support')       onSupport?.()
               if (action === 'notifications') onNotifications?.()
