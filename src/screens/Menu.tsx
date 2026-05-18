@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
 import { useBarberInfo } from '../hooks/useBarberInfo'
+import { useProfile } from '../hooks/useProfile'
 import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
+import { LocationSettingsSheet } from '../components/LocationSettingsSheet'
+import { IS_DEMO } from '../lib/supabase'
 
-type MenuAction = 'liked' | 'support' | 'notifications' | 'invite'
+type MenuAction = 'liked' | 'support' | 'notifications' | 'invite' | 'location'
 type MenuItem = { icon: string; label: string; badge?: string; action?: MenuAction }
 
 const SECTIONS: MenuItem[][] = [
@@ -11,7 +14,7 @@ const SECTIONS: MenuItem[][] = [
     { icon: 'ti-calendar', label: 'I miei appuntamenti', badge: '2' },
     { icon: 'ti-heart',    label: 'Post che ti piacciono', action: 'liked' as const },
     { icon: 'ti-bell',     label: 'Notifiche',           action: 'notifications' as const },
-    { icon: 'ti-map-pin',  label: 'Impostazioni posizione' },
+    { icon: 'ti-map-pin',  label: 'Impostazioni posizione', action: 'location' as const },
   ],
   [
     { icon: 'ti-share', label: 'Invita un amico', action: 'invite' as const },
@@ -48,11 +51,13 @@ export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, onToa
   barberId?: string
   userId?: string
 }) {
-  const [showEdit, setShowEdit] = useState(false)
+  const [showEdit, setShowEdit]         = useState(false)
+  const [showLocation, setShowLocation] = useState(false)
   const { info, saving, saveError, saveInfo } = useBarberInfo(
     isBarber ? barberId : undefined,
     isBarber ? userId   : undefined,
   )
+  const { profile, updateProfile } = useProfile(userId)
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -103,6 +108,8 @@ export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, onToa
               if (action === 'support')       onSupport?.()
               if (action === 'notifications') onNotifications?.()
               if (action === 'invite')        handleInvite(msg => onToast?.(msg))
+              if (action === 'location' && !IS_DEMO && userId) setShowLocation(true)
+              if (action === 'location' && (IS_DEMO || !userId)) onToast?.('Disponibile dopo il login')
             }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer', borderBottom: `0.5px solid ${C.border}` }}>
               <i className={`ti ${icon}`} style={{ fontSize: 20, color: C.muted }} />
               <span style={{ flex: 1, fontSize: 14, color: C.text }}>{label}</span>
@@ -134,6 +141,15 @@ export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, onToa
           saveError={saveError}
           onSave={saveInfo}
           onClose={() => setShowEdit(false)}
+        />
+      )}
+
+      {showLocation && (
+        <LocationSettingsSheet
+          initialLat={profile.lat}
+          initialLng={profile.lng}
+          onSave={(lat, lng) => updateProfile({ lat, lng })}
+          onClose={() => setShowLocation(false)}
         />
       )}
     </div>

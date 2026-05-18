@@ -40,7 +40,7 @@ export function useProfile(userId: string | undefined) {
   // Generic editable fields. RLS only allows the owner to update their own row,
   // so we don't need to filter the keys server-side — but we whitelist here to
   // avoid accidentally trying to overwrite id/role/created_at.
-  type EditableFields = Pick<Profile, 'display_name' | 'bio'>
+  type EditableFields = Pick<Profile, 'display_name' | 'bio' | 'lat' | 'lng'>
   async function updateProfile(updates: Partial<EditableFields>) {
     const prev = profile
     setProfile(p => ({ ...p, ...updates }))
