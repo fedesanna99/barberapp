@@ -13,12 +13,10 @@ const SECTIONS: MenuItem[][] = [
     { icon: 'ti-map-pin',  label: 'Impostazioni posizione' },
   ],
   [
-    { icon: 'ti-star',  label: 'Valuta l\'app'      },
     { icon: 'ti-share', label: 'Invita un amico'    },
   ],
   [
     { icon: 'ti-headset', label: 'Aiuto e supporto', action: 'support' as const },
-    { icon: 'ti-shield',  label: 'Privacy policy'   },
   ],
 ]
 
