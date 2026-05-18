@@ -11,6 +11,7 @@ import {
 import { useBarberBookings, useBooking, type BookingWithClient } from '../hooks/useBooking'
 import { useAvailabilitySettings } from '../hooks/useAvailabilitySettings'
 import { useAutoAccept } from '../hooks/useAutoAccept'
+import { useBarberVacation } from '../hooks/useBarberVacation'
 import { useBarberInfo } from '../hooks/useBarberInfo'
 import type { ToastEvent } from '../components/Toast'
 
@@ -28,12 +29,12 @@ interface BookingRow {
 
 const d = new Date()
 const TODAY = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DAY_NAMES_IT = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab']
 const DOW_ORDER = [1, 2, 3, 4, 5, 6, 0]
 
 function fmtDate(s: string): string {
   const [y, m, d] = s.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  return new Date(y, m - 1, d).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function initials(name: string | null | undefined): string {
@@ -42,15 +43,13 @@ function initials(name: string | null | undefined): string {
 }
 
 function toRow(b: BookingWithClient): BookingRow {
-  const name = b.profiles?.display_name ?? 'Client'
+  const name = b.profiles?.display_name ?? 'Cliente'
   return { id: b.id, clientName: name, clientInitials: initials(name), dateLabel: fmtDate(b.date), timeLabel: b.time_slot, status: b.status }
 }
 
 function demoToRow(b: DemoBarberBooking): BookingRow {
   return { id: b.id, clientName: b.client, clientInitials: b.initials, dateLabel: b.date, timeLabel: b.time, tag: b.service, status: b.status }
 }
-
-// ── Main ──────────────────────────────────────────────────────────────────
 
 export function BarberDashboard({ barberId, userId, onToast }: {
   barberId?: string
@@ -63,34 +62,40 @@ export function BarberDashboard({ barberId, userId, onToast }: {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 0', flexShrink: 0 }}>
-        <span style={{ fontSize: 20, fontWeight: 500, color: C.text }}>Dashboard</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 12px', flexShrink: 0 }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, letterSpacing: '-0.025em', color: C.text }}>
+          Bottega
+        </span>
         {barberId && !IS_DEMO && (
-          <i
-            className="ti ti-settings"
-            onClick={() => setShowEditInfo(true)}
-            style={{ fontSize: 22, color: C.muted, cursor: 'pointer' }}
-            aria-label="Impostazioni salone"
-          />
+          <button onClick={() => setShowEditInfo(true)} aria-label="Impostazioni salone" style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex' }}>
+            <i className="ph-thin ph-gear" style={{ fontSize: 22, color: C.muted }} />
+          </button>
         )}
       </div>
 
-      <div style={{ display: 'flex', padding: '10px 16px 0', gap: 8, flexShrink: 0 }}>
-        {(['bookings', 'availability'] as DashTab[]).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{
-              padding: '6px 16px', borderRadius: 20, border: 'none',
-              fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-              background: tab === t ? C.accent : C.surface,
-              color:      tab === t ? '#fff'   : C.muted,
-              transition: 'background .15s, color .15s',
-            }}
-          >
-            {t === 'bookings' ? 'Prenotazioni' : 'Disponibilità'}
-          </button>
-        ))}
+      <div style={{ display: 'flex', padding: '0 20px 14px', gap: 0, flexShrink: 0, background: C.bg }}>
+        <div style={{ display: 'flex', background: C.surface, borderRadius: 'var(--r-md)', padding: 3, flex: 1, border: `1px solid ${C.border}` }}>
+          {(['bookings', 'availability'] as DashTab[]).map(t => {
+            const active = tab === t
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  flex: 1, padding: '8px 0',
+                  background: active ? C.bg : 'transparent',
+                  color:      active ? C.text : C.muted,
+                  border: 'none', borderRadius: 8,
+                  fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+                  cursor: 'pointer',
+                  boxShadow: active ? '0 1px 2px rgba(10,10,10,0.06)' : 'none',
+                }}
+              >
+                {t === 'bookings' ? 'Prenotazioni' : 'Disponibilità'}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {tab === 'bookings'
@@ -111,9 +116,9 @@ export function BarberDashboard({ barberId, userId, onToast }: {
   )
 }
 
-// ── Bookings tab ──────────────────────────────────────────────────────────
+/* ---- Bookings tab ---------------------------------------------------- */
 
-const DEMO_PENDING: DemoBarberBooking = { id: 'b0', client: 'Giulio M.', initials: 'GM', date: 'Mon 19 May', time: '08:30', service: 'Fade', status: 'pending' }
+const DEMO_PENDING: DemoBarberBooking = { id: 'b0', client: 'Giulio M.', initials: 'GM', date: 'lun 19 mag', time: '08:30', service: 'Fade', status: 'pending' }
 
 function BookingsTab({ barberId, onToast }: {
   barberId?: string
@@ -124,6 +129,24 @@ function BookingsTab({ barberId, onToast }: {
   const { cancelBooking, confirmBooking, markDone } = useBooking()
   const [demoList, setDemoList] = useState<DemoBarberBooking[]>([DEMO_PENDING, ...DEMO_BARBER_BOOKINGS])
   const { autoAccept, setAutoAccept } = useAutoAccept(isDemo ? undefined : barberId)
+  const { acceptingBookings, setAcceptingBookings } = useBarberVacation(isDemo ? undefined : barberId)
+  const [demoAccepting, setDemoAccepting] = useState(true)
+  const effectiveAccepting = isDemo ? demoAccepting : acceptingBookings
+
+  async function toggleVacation() {
+    const next = !effectiveAccepting
+    if (isDemo) { setDemoAccepting(next); return }
+    const { error } = await setAcceptingBookings(next)
+    if (error) {
+      onToast?.({ kind: 'error', title: 'Impossibile aggiornare', message: error.message })
+      return
+    }
+    onToast?.({
+      kind:    next ? 'success' : 'info',
+      title:   next ? 'Prenotazioni riattivate.' : 'Prenotazioni in pausa.',
+      message: next ? 'I clienti possono prenotare di nuovo.' : 'Nessuno potrà prenotare finché non riattivi.',
+    })
+  }
 
   const pending = isDemo
     ? demoList.filter(b => b.status === 'pending').map(demoToRow)
@@ -165,15 +188,15 @@ function BookingsTab({ barberId, onToast }: {
     if (action === 'cancel') {
       setDemoList(prev => prev.filter(b => b.id !== id))
       writeLog('booking.cancelled', `Prenotazione di ${clientName} annullata dal barbiere`, 'info', { metadata: { booking_id: id } })
-      onToast?.({ kind: 'info',    title: 'Prenotazione annullata',  message: clientName })
+      onToast?.({ kind: 'info',    title: 'Prenotazione annullata.',  message: clientName })
     } else if (action === 'confirm') {
       setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'confirmed' as const } : b))
       writeLog('booking.confirmed', `Prenotazione di ${clientName} confermata`, 'info', { metadata: { booking_id: id } })
-      onToast?.({ kind: 'success', title: 'Prenotazione confermata', message: clientName })
+      onToast?.({ kind: 'success', title: 'Prenotazione confermata.', message: clientName })
     } else {
       setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'done' as const } : b))
       writeLog('booking.done', `Prenotazione di ${clientName} completata`, 'info', { metadata: { booking_id: id } })
-      onToast?.({ kind: 'success', title: 'Appuntamento completato', message: clientName })
+      onToast?.({ kind: 'success', title: 'Appuntamento completato.', message: clientName })
     }
   }
 
@@ -184,7 +207,7 @@ function BookingsTab({ barberId, onToast }: {
     const actionLabel = action === 'confirm' ? 'booking.confirmed' : action === 'cancel' ? 'booking.cancelled' : 'booking.done'
     const actionMsg   = action === 'confirm' ? 'Prenotazione confermata' : action === 'cancel' ? 'Prenotazione annullata' : 'Prenotazione completata'
     const errorTitle  = action === 'confirm' ? 'Conferma fallita'        : action === 'cancel' ? 'Annullamento fallito'    : 'Aggiornamento fallito'
-    const okTitle     = action === 'confirm' ? 'Prenotazione confermata' : action === 'cancel' ? 'Prenotazione annullata'  : 'Appuntamento completato'
+    const okTitle     = action === 'confirm' ? 'Prenotazione confermata.' : action === 'cancel' ? 'Prenotazione annullata.'  : 'Appuntamento completato.'
     const okKind: 'success' | 'info' = action === 'cancel' ? 'info' : 'success'
     call(id).then(({ error }) => {
       if (error) { onToast?.({ kind: 'error', title: errorTitle, message: error.message }); return }
@@ -195,17 +218,38 @@ function BookingsTab({ barberId, onToast }: {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 20px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 14px' }}>
-        <div>
-          <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Auto-accetta</span>
-          <span style={{ fontSize: 11, color: C.hint, display: 'block', marginTop: 1 }}>Le nuove prenotazioni vengono confermate subito</span>
+    <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
+      {/* Toggles */}
+      <div style={{
+        padding: '12px 16px', borderRadius: 'var(--r-md)',
+        background: effectiveAccepting ? C.greenSoft : C.redSoft,
+        display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12,
+      }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: effectiveAccepting ? C.green : C.red }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+            {effectiveAccepting ? 'Accetti prenotazioni' : 'In pausa'}
+          </div>
+          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 1 }}>
+            {effectiveAccepting
+              ? 'I clienti possono prenotare normalmente.'
+              : 'Nessuno può prenotare finché non riattivi.'}
+          </div>
+        </div>
+        <Toggle on={effectiveAccepting} onChange={toggleVacation} />
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', marginBottom: 18, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 'var(--r-md)' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Auto-accetta</div>
+          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 1 }}>Le nuove prenotazioni vengono confermate subito.</div>
         </div>
         <Toggle on={autoAccept} onChange={() => setAutoAccept(!autoAccept)} />
       </div>
+
       <Section label="In attesa" count={pending.length}>
         {pending.length === 0
-          ? <EmptyState icon="ti-clock" text="Nessuna richiesta in attesa" />
+          ? <EmptyMsg text="Nessuna richiesta in attesa." />
           : pending.map(r => (
               <BookingCard key={r.id} row={r}
                 onConfirm={() => act(r.id, 'confirm')}
@@ -216,7 +260,7 @@ function BookingsTab({ barberId, onToast }: {
       </Section>
       <Section label="In arrivo" count={upcoming.length}>
         {upcoming.length === 0
-          ? <EmptyState icon="ti-calendar-off" text="Nessun appuntamento in arrivo" />
+          ? <EmptyMsg text="Nessun appuntamento in arrivo." />
           : upcoming.map(r => (
               <BookingCard key={r.id} row={r}
                 onMarkDone={r.status === 'confirmed' ? () => act(r.id, 'done') : undefined}
@@ -229,7 +273,7 @@ function BookingsTab({ barberId, onToast }: {
   )
 }
 
-// ── Availability tab ──────────────────────────────────────────────────────
+/* ---- Availability tab ------------------------------------------------- */
 
 function AvailabilityTab({ barberId }: { barberId?: string }) {
   const isDemo = IS_DEMO || !barberId
@@ -264,16 +308,16 @@ function AvailabilityTab({ barberId }: { barberId?: string }) {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 20px' }}>
-      <p style={{ fontSize: 12, color: C.hint, margin: '10px 0 8px' }}>
-        Il tuo orario settimanale — i clienti possono prenotare solo nelle fasce attive.
+    <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
+      <p style={{ fontSize: 12.5, color: C.muted, margin: '6px 0 14px', lineHeight: 1.55 }}>
+        Il tuo orario settimanale. I clienti possono prenotare solo nelle fasce attive.
       </p>
       {DOW_ORDER.map(dow => {
         const row = getRow(dow)
         return (
           <DayRow
             key={dow}
-            dayName={DAY_NAMES[dow]}
+            dayName={DAY_NAMES_IT[dow]}
             active={!!row}
             startTime={row?.start_time ?? '09:00'}
             endTime={row?.end_time ?? '18:00'}
@@ -288,17 +332,17 @@ function AvailabilityTab({ barberId }: { barberId?: string }) {
   )
 }
 
-// ── Shared sub-components ─────────────────────────────────────────────────
+/* ---- Shared sub-components ------------------------------------------- */
 
 function Section({ label, count, children }: { label: string; count: number; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
           {label}
         </span>
         {count > 0 && (
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: C.accent, borderRadius: 20, padding: '1px 7px' }}>
+          <span style={{ fontSize: 11, fontWeight: 500, color: C.accentDeep, background: C.accentLight, borderRadius: 9999, padding: '2px 8px' }}>
             {count}
           </span>
         )}
@@ -308,11 +352,10 @@ function Section({ label, count, children }: { label: string; count: number; chi
   )
 }
 
-function EmptyState({ icon, text }: { icon: string; text: string }) {
+function EmptyMsg({ text }: { text: string }) {
   return (
-    <div style={{ textAlign: 'center', padding: '14px 0', color: C.hint }}>
-      <i className={`ti ${icon}`} style={{ fontSize: 20, display: 'block', marginBottom: 4 }} />
-      <span style={{ fontSize: 12 }}>{text}</span>
+    <div style={{ padding: '20px 0', color: C.muted, fontSize: 13, textAlign: 'center' }}>
+      {text}
     </div>
   )
 }
@@ -329,30 +372,30 @@ function BookingCard({
   const isPending = row.status === 'pending'
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '10px 12px', borderRadius: 12, marginBottom: 8,
-      background: C.surface, border: `0.5px solid ${C.border}`,
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '12px 14px', borderRadius: 'var(--r-md)', marginBottom: 8,
+      background: C.surface, border: `1px solid ${C.border}`,
     }}>
-      <Avatar initials={row.clientInitials} size={36} accent={C.accent} />
+      <Avatar initials={row.clientInitials} size={40} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {row.clientName}
         </div>
-        <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
-          {row.dateLabel} · {row.timeLabel}
-          {row.tag && <span style={{ marginLeft: 6, color: C.accent, fontWeight: 500 }}>{row.tag}</span>}
+        <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>
+          <span style={{ fontFamily: 'var(--font-mono)' }}>{row.timeLabel}</span> · {row.dateLabel}
+          {row.tag && <span style={{ marginLeft: 6, color: C.accentDeep, fontWeight: 500 }}>· {row.tag}</span>}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
         {isPending ? (
           <>
-            <Btn icon="ti-x"     color={C.red}   ghost onClick={onDecline} />
-            <Btn icon="ti-check" color={C.green}       onClick={onConfirm} />
+            <ActionBtn label="Rifiuta" tone="ghost" onClick={onDecline} />
+            <ActionBtn label="Conferma" tone="brass" onClick={onConfirm} />
           </>
         ) : (
           <>
-            <Btn icon="ti-trash" color={C.hint}  ghost onClick={onCancel} />
-            {onMarkDone && <Btn label="Fatto" color={C.green} ghost onClick={onMarkDone} />}
+            {onMarkDone && <ActionBtn label="Fatto" tone="ghost" onClick={onMarkDone} />}
+            <ActionBtn label="Annulla" tone="danger" onClick={onCancel} />
           </>
         )}
       </div>
@@ -360,23 +403,23 @@ function BookingCard({
   )
 }
 
-function Btn({ icon, label, color, ghost, onClick }: {
-  icon?: string; label?: string; color: string; ghost?: boolean; onClick?: () => void
-}) {
+function ActionBtn({ label, tone, onClick }: { label: string; tone: 'brass' | 'ghost' | 'danger'; onClick?: () => void }) {
+  const styles = tone === 'brass'
+    ? { bg: C.accent,    fg: C.bg,    bd: C.accent }
+    : tone === 'danger'
+      ? { bg: C.bg,      fg: C.red,   bd: C.red }
+      : { bg: C.bg,      fg: C.text,  bd: C.borderMed }
   return (
     <button
       onClick={onClick}
       style={{
-        height: 30, minWidth: 30, borderRadius: 8,
-        border: ghost ? `1px solid ${color}` : 'none',
-        background: ghost ? 'transparent' : color,
-        color: ghost ? color : '#fff',
-        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 4, padding: label ? '0 10px' : '0',
-        fontSize: label ? 11 : 14, fontWeight: 600, fontFamily: 'inherit',
+        padding: '7px 12px', borderRadius: 'var(--r-md)',
+        border: `1px solid ${styles.bd}`,
+        background: styles.bg, color: styles.fg,
+        fontSize: 12.5, fontWeight: 500, fontFamily: 'inherit',
+        cursor: 'pointer', whiteSpace: 'nowrap',
       }}
     >
-      {icon  && <i className={`ti ${icon}`} />}
       {label}
     </button>
   )
@@ -387,17 +430,16 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
     <div
       onClick={onChange}
       style={{
-        width: 38, height: 22, borderRadius: 11, flexShrink: 0,
-        background: on ? C.accent : C.borderMed,
+        width: 38, height: 22, borderRadius: 9999, flexShrink: 0,
+        background: on ? C.text : C.borderMed,
         cursor: 'pointer', position: 'relative',
-        transition: 'background .2s',
+        transition: 'background 180ms var(--ease)',
       }}
     >
       <div style={{
-        position: 'absolute', top: 4, left: on ? 20 : 4,
-        width: 14, height: 14, borderRadius: '50%',
-        background: '#fff', transition: 'left .2s',
-        boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+        position: 'absolute', top: 2, left: on ? 18 : 2,
+        width: 18, height: 18, borderRadius: '50%',
+        background: C.bg, transition: 'left 180ms var(--ease)',
       }} />
     </div>
   )
@@ -412,13 +454,13 @@ function DayRow({
   dayName, active, startTime, endTime, breakStart, breakEnd, onToggle, onSave,
 }: {
   dayName: string
-  active: boolean
+  active:  boolean
   startTime: string
-  endTime: string
+  endTime:   string
   breakStart?: string
-  breakEnd?: string
+  breakEnd?:   string
   onToggle: () => void
-  onSave: (start: string, end: string, breakStart?: string, breakEnd?: string) => void
+  onSave:   (start: string, end: string, breakStart?: string, breakEnd?: string) => void
 }) {
   const [start,    setStart]    = useState(startTime)
   const [end,      setEnd]      = useState(endTime)
@@ -446,19 +488,19 @@ function DayRow({
 
   let validationError: string | null = null
   if (sMin >= eMin) {
-    validationError = 'La fine deve essere dopo l\'inizio'
+    validationError = "La fine deve essere dopo l'inizio"
   } else if (hasBreak) {
-    if (bsMin <= sMin)  validationError = 'La pausa deve iniziare dopo l\'apertura'
+    if (bsMin <= sMin)  validationError = "La pausa deve iniziare dopo l'apertura"
     else if (beMin >= eMin) validationError = 'La pausa deve finire prima della chiusura'
-    else if (bsMin >= beMin) validationError = 'La fine della pausa deve essere dopo l\'inizio'
+    else if (bsMin >= beMin) validationError = "La fine della pausa deve essere dopo l'inizio"
   }
 
   const canSave = dirty && !validationError
 
   return (
-    <div style={{ padding: '11px 0', borderBottom: `0.5px solid ${C.border}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ width: 32, fontSize: 13, fontWeight: 500, color: active ? C.text : C.hint, flexShrink: 0 }}>
+    <div style={{ padding: '14px 0', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ width: 36, fontSize: 12.5, fontWeight: 500, color: active ? C.text : C.hint, flexShrink: 0, textTransform: 'lowercase' }}>
           {dayName}
         </span>
         <Toggle on={active} onChange={onToggle} />
@@ -472,13 +514,13 @@ function DayRow({
                 onClick={() => setHasBreak(true)}
                 title="Aggiungi pausa"
                 style={{
-                  width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                  border: `1px solid ${C.borderMed}`, background: 'transparent',
+                  width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                  border: `1px solid ${C.borderMed}`, background: C.bg,
                   color: C.muted, cursor: 'pointer', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', fontSize: 14, padding: 0,
+                  alignItems: 'center', justifyContent: 'center', padding: 0,
                 }}
               >
-                <i className="ti ti-plus" style={{ fontSize: 12 }} />
+                <i className="ph-thin ph-plus" style={{ fontSize: 12 }} />
               </button>
             )}
             {dirty && (
@@ -486,15 +528,14 @@ function DayRow({
                 onClick={() => canSave && onSave(start, end, hasBreak ? bStart : undefined, hasBreak ? bEnd : undefined)}
                 disabled={!canSave}
                 style={{
-                  height: 26, padding: '0 10px', borderRadius: 7,
+                  height: 28, padding: '0 12px', borderRadius: 8,
                   border: 'none',
-                  background: canSave ? C.accent : C.borderMed,
-                  color: '#fff',
-                  fontSize: 11, fontWeight: 600,
+                  background: canSave ? C.text : C.surface,
+                  color:      canSave ? C.bg : C.hint,
+                  fontSize: 11.5, fontWeight: 500,
                   cursor: canSave ? 'pointer' : 'not-allowed',
                   fontFamily: 'inherit',
                   marginLeft: 'auto', flexShrink: 0,
-                  opacity: canSave ? 1 : 0.6,
                 }}
               >
                 Salva
@@ -502,33 +543,34 @@ function DayRow({
             )}
           </>
         ) : (
-          <span style={{ fontSize: 12, color: C.hint }}>Chiuso</span>
+          <span style={{ fontSize: 12.5, color: C.hint }}>Chiuso</span>
         )}
       </div>
 
       {active && hasBreak && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 80 }}>
-          <span style={{ fontSize: 11, color: C.hint, flexShrink: 0 }}>pausa</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, paddingLeft: 84 }}>
+          <button
+            onClick={() => setHasBreak(false)}
+            aria-label="Rimuovi pausa"
+            title="Tocca per rimuovere la pausa"
+            style={{
+              fontSize: 11.5, color: C.muted, flexShrink: 0,
+              border: `1px solid ${C.border}`, background: C.bg,
+              padding: '4px 10px', borderRadius: 9999, cursor: 'pointer',
+              fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            <i className="ph-thin ph-x" style={{ fontSize: 11 }} />
+            Pausa
+          </button>
           <input type="time" value={bStart} onChange={e => setBStart(e.target.value)} style={timeInputStyle} />
           <span style={{ fontSize: 12, color: C.hint }}>–</span>
           <input type="time" value={bEnd}   onChange={e => setBEnd(e.target.value)}   style={timeInputStyle} />
-          <button
-            onClick={() => setHasBreak(false)}
-            title="Rimuovi pausa"
-            style={{
-              width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-              border: `1px solid ${C.borderMed}`, background: 'transparent',
-              color: C.muted, cursor: 'pointer', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', padding: 0,
-            }}
-          >
-            <i className="ti ti-x" style={{ fontSize: 12 }} />
-          </button>
         </div>
       )}
 
       {active && dirty && validationError && (
-        <div style={{ fontSize: 10, color: C.red, marginTop: 4, paddingLeft: 80 }}>
+        <div style={{ fontSize: 11, color: C.red, marginTop: 6, paddingLeft: 84 }}>
           {validationError}
         </div>
       )}
@@ -537,9 +579,10 @@ function DayRow({
 }
 
 const timeInputStyle: React.CSSProperties = {
-  height: 28, width: 76, borderRadius: 8,
-  border: `1px solid ${C.borderMed}`,
+  height: 30, width: 84, borderRadius: 8,
+  border: `1px solid ${C.border}`,
   background: C.surface, color: C.text,
-  fontSize: 12, padding: '0 6px', fontFamily: 'inherit',
+  fontFamily: 'var(--font-mono)', fontSize: 12.5,
+  padding: '0 8px',
   outline: 'none', flexShrink: 0,
 }

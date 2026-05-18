@@ -63,13 +63,19 @@ export function useAvailability(barberId: string | undefined, date: Date | null,
       }
 
       const allRaw = generateSlots(win.start_time, win.end_time, slotMinutes)
+      // Task 4: a slot whose END falls inside the break used to slip through
+      // (we only checked the start). Now a slot is valid only when it ends
+      // before the break starts OR starts at/after the break ends.
       const all = win.break_start && win.break_end
         ? allRaw.filter(slot => {
             const [sh, sm] = slot.split(':').map(Number)
-            const slotMin = sh * 60 + sm
+            const slotStartMin = sh * 60 + sm
+            const slotEndMin   = slotStartMin + slotMinutes
             const bs = win.break_start!.slice(0, 5).split(':').map(Number)
             const be = win.break_end!.slice(0, 5).split(':').map(Number)
-            return slotMin < bs[0] * 60 + bs[1] || slotMin >= be[0] * 60 + be[1]
+            const breakStartMin = bs[0] * 60 + bs[1]
+            const breakEndMin   = be[0] * 60 + be[1]
+            return slotEndMin <= breakStartMin || slotStartMin >= breakEndMin
           })
         : allRaw
       // C4: PostgREST returns time as "HH:MM:SS"; slice to "HH:MM" to match generated slots

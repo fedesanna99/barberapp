@@ -8,6 +8,8 @@ export interface AdminUser {
   email: string
   display_name: string
   role: UserRole
+  // Task 9 — orthogonal flag, the source of truth for admin perms.
+  is_admin: boolean
   created_at: string
 }
 
@@ -43,6 +45,7 @@ export function useAdminUsers() {
     if (IS_DEMO) {
       const newUser: AdminUser = {
         id: `demo-${Date.now()}`, email, display_name: displayName, role,
+        is_admin: false,
         created_at: new Date().toISOString(),
       }
       setUsers(prev => [newUser, ...prev])
@@ -90,6 +93,22 @@ export function useAdminUsers() {
     return { error: null }
   }
 
+  // Task 9 — toggle the orthogonal admin flag. Admin perms are no longer
+  // expressed via `role` but via this boolean (a user can be barber AND admin).
+  async function setIsAdmin(userId: string, value: boolean) {
+    if (IS_DEMO) {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_admin: value } : u))
+      return { error: null }
+    }
+    const { error: e } = await supabase
+      .from('profiles')
+      .update({ is_admin: value })
+      .eq('id', userId)
+    if (e) return { error: e.message }
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_admin: value } : u))
+    return { error: null }
+  }
+
   async function sendPasswordReset(email: string) {
     if (IS_DEMO) return { error: null }
 
@@ -99,5 +118,5 @@ export function useAdminUsers() {
     return { error: e?.message ?? null }
   }
 
-  return { users, loading, error, createUser, deleteUser, changeRole, sendPasswordReset, reload: load }
+  return { users, loading, error, createUser, deleteUser, changeRole, setIsAdmin, sendPasswordReset, reload: load }
 }

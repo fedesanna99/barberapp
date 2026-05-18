@@ -7,7 +7,7 @@ import { useReviews } from '../hooks/useReviews'
 import type { ToastEvent } from '../components/Toast'
 
 interface Props {
-  userId: string
+  userId:  string
   onClose: () => void
   onToast?: (t: ToastEvent | null) => void
 }
@@ -26,24 +26,22 @@ function initials(name: string | null | undefined): string {
 
 const STATUS_LABEL: Record<string, string> = {
   pending:   'In attesa',
-  confirmed: 'Confermata',
-  done:      'Completata',
-  cancelled: 'Annullata',
+  confirmed: 'Confermato',
+  done:      'Completato',
+  cancelled: 'Annullato',
 }
 
 const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
-  pending:   { bg: 'rgba(29,158,117,0.1)', fg: C.green },
-  confirmed: { bg: C.accentLight,          fg: C.accent },
-  done:      { bg: C.surface,              fg: C.hint },
-  cancelled: { bg: 'rgba(226,75,74,0.08)', fg: C.red },
+  pending:   { bg: C.accentLight, fg: C.accentDeep },
+  confirmed: { bg: C.greenSoft,   fg: C.green },
+  done:      { bg: C.surfaceAlt,  fg: C.muted },
+  cancelled: { bg: C.redSoft,     fg: C.red },
 }
 
 export function MyAppointments({ userId, onClose, onToast }: Props) {
   const { bookings } = useClientBookings(userId)
   const { cancelBooking } = useBooking()
   const [cancellingId, setCancellingId] = useState<string | null>(null)
-  // Booking whose "Recensisci/Modifica" button was tapped.
-  // We open ReviewSheet bound to the booking's barber.
   const [reviewBooking, setReviewBooking] = useState<BookingWithBarber | null>(null)
 
   const upcoming = bookings.filter(b => b.date >= TODAY && b.status !== 'cancelled' && b.status !== 'done')
@@ -61,37 +59,31 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
     } else {
       onToast?.({
         kind:    'success',
-        title:   'Prenotazione annullata',
+        title:   'Prenotazione annullata.',
         message: `${name} · ${fmtDate(b.date)} alle ${b.time_slot}`,
       })
     }
   }
 
   return (
-    <div style={{
-      position: 'absolute', inset: 0, background: C.bg, zIndex: 50,
-      display: 'flex', flexDirection: 'column',
-    }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '14px 16px 8px', flexShrink: 0,
-        borderBottom: `0.5px solid ${C.border}`,
-      }}>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-          <i className="ti ti-arrow-left" style={{ fontSize: 22, color: C.text }} />
+    <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 50, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px 12px', flexShrink: 0, borderBottom: `1px solid ${C.border}` }}>
+        <button onClick={onClose} aria-label="Indietro" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+          <i className="ph-thin ph-arrow-left" style={{ fontSize: 22, color: C.text }} />
         </button>
-        <span style={{ fontSize: 16, fontWeight: 500, color: C.text }}>I miei appuntamenti</span>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
+          I miei appuntamenti
+        </span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
         {bookings.length === 0 ? (
           <EmptyState />
         ) : (
           <>
             <Section title="Prossimi" count={upcoming.length}>
               {upcoming.length === 0
-                ? <div style={{ fontSize: 12, color: C.hint, padding: '8px 0' }}>Nessun appuntamento futuro</div>
+                ? <div style={{ fontSize: 12.5, color: C.muted, padding: '12px 0' }}>Nessun appuntamento futuro.</div>
                 : upcoming.map(b => (
                     <BookingCard
                       key={b.id}
@@ -104,7 +96,7 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
             </Section>
 
             {past.length > 0 && (
-              <Section title="Storia" count={past.length}>
+              <Section title="Cronologia" count={past.length}>
                 {past.map(b => (
                   <BookingCard
                     key={b.id}
@@ -130,9 +122,6 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
   )
 }
 
-// Thin wrapper that re-uses useReviews to mount the ReviewSheet
-// scoped to a specific (barber, current user) pair. Kept as a child
-// component so the hook only runs while the sheet is open.
 function ReviewSheetForBooking({
   userId, booking, onClose, onToast,
 }: {
@@ -156,14 +145,14 @@ function ReviewSheetForBooking({
         const res = await upsertReview(rating, comment)
         if (!res.error) onToast?.({
           kind:    'success',
-          title:   myReview ? 'Recensione aggiornata' : 'Recensione pubblicata',
+          title:   myReview ? 'Recensione aggiornata.' : 'Recensione pubblicata.',
           message: barberName,
         })
         return res
       }}
       onDelete={myReview ? async () => {
         const res = await removeReview()
-        if (!res.error) onToast?.({ kind: 'success', title: 'Recensione eliminata', message: barberName })
+        if (!res.error) onToast?.({ kind: 'success', title: 'Recensione eliminata.', message: barberName })
         return res
       } : undefined}
     />
@@ -176,9 +165,13 @@ function EmptyState() {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       gap: 10, padding: '60px 32px', textAlign: 'center',
     }}>
-      <i className="ti ti-calendar-off" style={{ fontSize: 44, color: C.hint, opacity: 0.5 }} />
-      <div style={{ fontSize: 15, fontWeight: 500, color: C.text }}>Nessun appuntamento</div>
-      <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.45 }}>
+      <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <i className="ph-thin ph-calendar-x" style={{ fontSize: 20, color: C.hint }} />
+      </div>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
+        Nessun appuntamento
+      </div>
+      <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.55, maxWidth: 260 }}>
         Vai su Esplora per trovare un barbiere e prenotare il tuo primo taglio.
       </div>
     </div>
@@ -187,13 +180,13 @@ function EmptyState() {
 
 function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
           {title}
         </span>
         {count > 0 && (
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: C.accent, borderRadius: 20, padding: '1px 7px' }}>
+          <span style={{ fontSize: 11, fontWeight: 500, color: C.accentDeep, background: C.accentLight, borderRadius: 9999, padding: '2px 8px' }}>
             {count}
           </span>
         )}
@@ -204,7 +197,7 @@ function Section({ title, count, children }: { title: string; count: number; chi
 }
 
 function BookingCard({ booking, cancelling, onCancel, onReview }: {
-  booking: BookingWithBarber
+  booking:   BookingWithBarber
   cancelling?: boolean
   onCancel?: () => void
   onReview?: () => void
@@ -215,20 +208,20 @@ function BookingCard({ booking, cancelling, onCancel, onReview }: {
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '10px 12px', borderRadius: 12, marginBottom: 8,
-      background: C.surface, border: `0.5px solid ${C.border}`,
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '12px 14px', borderRadius: 'var(--r-md)', marginBottom: 8,
+      background: C.surface, border: `1px solid ${C.border}`,
     }}>
-      <Avatar initials={initials(name)} size={36} accent={C.accent} />
+      <Avatar initials={initials(name)} size={40} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {name}
         </div>
-        <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
-          {fmtDate(booking.date)} · {booking.time_slot}
+        <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>
+          {fmtDate(booking.date)} · <span style={{ fontFamily: 'var(--font-mono)' }}>{booking.time_slot}</span>
         </div>
       </div>
-      <span style={{ fontSize: 10, background: color.bg, color: color.fg, padding: '3px 8px', borderRadius: 20, flexShrink: 0 }}>
+      <span style={{ fontSize: 11, background: color.bg, color: color.fg, padding: '3px 9px', borderRadius: 9999, flexShrink: 0, fontWeight: 500 }}>
         {STATUS_LABEL[status] ?? status}
       </span>
       {onCancel && (
@@ -236,10 +229,10 @@ function BookingCard({ booking, cancelling, onCancel, onReview }: {
           onClick={onCancel}
           disabled={cancelling}
           style={{
-            height: 28, padding: '0 10px', borderRadius: 8,
+            padding: '7px 12px', borderRadius: 'var(--r-md)',
             border: `1px solid ${C.red}`,
-            background: 'transparent',
-            color: C.red, fontSize: 11, fontWeight: 500,
+            background: C.bg, color: C.red,
+            fontSize: 12, fontWeight: 500,
             cursor: cancelling ? 'default' : 'pointer',
             fontFamily: 'inherit', flexShrink: 0,
             opacity: cancelling ? 0.6 : 1,
@@ -252,14 +245,13 @@ function BookingCard({ booking, cancelling, onCancel, onReview }: {
         <button
           onClick={onReview}
           style={{
-            height: 28, padding: '0 10px', borderRadius: 8,
-            border: `1px solid ${C.accent}`, background: 'transparent',
-            color: C.accent, fontSize: 11, fontWeight: 500,
+            padding: '7px 12px', borderRadius: 'var(--r-md)',
+            border: `1px solid ${C.borderMed}`,
+            background: C.bg, color: C.text,
+            fontSize: 12, fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-            display: 'inline-flex', alignItems: 'center', gap: 4,
           }}
         >
-          <i className="ti ti-star" style={{ fontSize: 12 }} />
           Recensisci
         </button>
       )}

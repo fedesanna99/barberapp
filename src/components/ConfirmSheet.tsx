@@ -6,15 +6,14 @@ interface Props {
   confirmLabel?: string
   cancelLabel?:  string
   destructive?: boolean
-  icon?:        string
+  icon?:        string  // Phosphor icon name without prefix, e.g. "trash"
   onConfirm:    () => void
   onCancel:     () => void
 }
 
 /**
- * Bottom-sheet confirmation dialog. Replaces window.confirm() for
- * destructive in-app actions (delete comment, cancel booking, etc.)
- * with a styled prompt that matches the rest of the bottom sheets.
+ * Bottom-sheet confirmation dialog. Modern Minimal: flat scrim, ink primary
+ * button, coral isn't used here — destructive maps to red.
  */
 export function ConfirmSheet({
   title,
@@ -27,26 +26,29 @@ export function ConfirmSheet({
   onCancel,
 }: Props) {
   const confirmBg = destructive ? C.red : C.text
-  const iconBg    = destructive ? `${C.red}1F` : C.surface
+  const iconBg    = destructive ? C.redSoft : C.surface
   const iconColor = destructive ? C.red : C.text
 
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onCancel() }}
       style={{
-        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)',
+        position: 'absolute', inset: 0, background: 'var(--scrim)',
         display: 'flex', alignItems: 'flex-end', zIndex: 200,
+        animation: 'scrimIn 200ms var(--ease)',
       }}
     >
       <div style={{
-        background: C.bg, borderRadius: '20px 20px 0 0', width: '100%',
-        padding: '8px 0 24px', animation: 'sheetUp .25s ease-out',
+        background: C.bg,
+        borderRadius: '20px 20px 0 0',
+        width: '100%',
+        padding: '8px 0 24px',
+        boxShadow: 'var(--shadow-sheet)',
+        animation: 'sheetUp 260ms var(--ease)',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
       }}>
-        {/* Handle */}
-        <div style={{ width: 40, height: 4, background: C.borderMed, borderRadius: 2, margin: '4px 0 18px' }} />
+        <div style={{ width: 36, height: 4, background: C.border, borderRadius: 9999, margin: '10px 0 18px' }} />
 
-        {/* Icon */}
         {icon && (
           <div style={{
             width: 52, height: 52, borderRadius: '50%',
@@ -54,35 +56,35 @@ export function ConfirmSheet({
             alignItems: 'center', justifyContent: 'center',
             marginBottom: 14,
           }}>
-            <i className={`ti ${icon}`} style={{ fontSize: 24, color: iconColor }} />
+            <i className={`ph-thin ph-${icon}`} style={{ fontSize: 24, color: iconColor }} />
           </div>
         )}
 
-        {/* Title */}
         <div style={{
-          fontSize: 16, fontWeight: 600, color: C.text,
-          textAlign: 'center', padding: '0 24px', marginBottom: 4,
+          fontFamily: 'var(--font-display)', fontWeight: 600,
+          fontSize: 18, letterSpacing: '-0.02em',
+          color: C.text, textAlign: 'center',
+          padding: '0 24px', marginBottom: 6,
         }}>
           {title}
         </div>
 
-        {/* Message */}
         {message && (
           <div style={{
             fontSize: 13, color: C.muted, textAlign: 'center',
-            padding: '0 32px', lineHeight: 1.4, marginBottom: 4,
+            padding: '0 28px', lineHeight: 1.5, marginBottom: 4,
           }}>
             {message}
           </div>
         )}
 
-        {/* Buttons */}
-        <div style={{ display: 'flex', gap: 10, width: '100%', padding: '18px 16px 0' }}>
+        <div style={{ display: 'flex', gap: 10, width: '100%', padding: '18px 20px 0' }}>
           <button
             onClick={onCancel}
             style={{
-              flex: 1, padding: '12px 0', borderRadius: 12,
-              background: C.surface, color: C.text, border: 'none',
+              flex: 1, padding: '12px 0', borderRadius: 'var(--r-md)',
+              background: C.bg, color: C.text,
+              border: `1px solid ${C.borderMed}`,
               fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -91,8 +93,9 @@ export function ConfirmSheet({
           <button
             onClick={onConfirm}
             style={{
-              flex: 1, padding: '12px 0', borderRadius: 12,
-              background: confirmBg, color: C.bg, border: 'none',
+              flex: 1, padding: '12px 0', borderRadius: 'var(--r-md)',
+              background: confirmBg, color: C.bg,
+              border: `1px solid ${confirmBg}`,
               fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
             }}
           >

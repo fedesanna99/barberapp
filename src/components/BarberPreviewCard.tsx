@@ -2,13 +2,13 @@ import { C } from '../lib/colors'
 import { Avatar } from './Avatar'
 import { haversineKm, formatKm, type LatLng } from '../lib/geo'
 import type { DemoBarber } from '../lib/demoData'
+import { ratingDisplay } from '../lib/rating'
 
 interface Props {
   barber:     DemoBarber
   userCoords: LatLng | null
   onBook:     (barber: DemoBarber) => void
   onClose:    () => void
-  // Marker belongs to the current barber-user → don't offer Prenota.
   isSelf?:    boolean
 }
 
@@ -16,61 +16,57 @@ export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf 
   const dist = userCoords && barber.lat != null && barber.lng != null
     ? haversineKm(userCoords, { lat: barber.lat, lng: barber.lng })
     : null
+  const rd = ratingDisplay({ rating: barber.rating, reviewsCount: barber.reviewsCount })
 
   return (
     <div
       style={{
-        position:  'absolute',
-        left:      12,
-        right:     12,
-        bottom:    12,
-        zIndex:    20,
-        background: C.bg,
-        borderRadius: 16,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-        border:    `0.5px solid ${C.border}`,
-        padding:   '14px 14px 12px',
-        animation: 'sheetUp .25s ease-out',
+        position:    'absolute',
+        left:        12,
+        right:       12,
+        bottom:      12,
+        zIndex:      20,
+        background:  C.bg,
+        borderRadius: 'var(--r-lg)',
+        boxShadow:   '0 8px 24px rgba(10,10,10,0.12), 0 0 0 1px rgba(10,10,10,0.04)',
+        padding:     '14px',
+        animation:   'sheetUp 260ms var(--ease)',
       }}
     >
       <button
         onClick={onClose}
         aria-label="Chiudi"
         style={{
-          position:  'absolute',
-          top:       8,
-          right:     8,
-          background: 'none',
-          border:    'none',
-          cursor:    'pointer',
-          padding:   4,
-          color:     C.muted,
+          position: 'absolute', top: 8, right: 8,
+          background: 'none', border: 'none',
+          cursor: 'pointer', padding: 4, color: C.muted,
         }}
       >
-        <i className="ti ti-x" style={{ fontSize: 16 }} />
+        <i className="ph-thin ph-x" style={{ fontSize: 16 }} />
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Avatar initials={barber.initials} size={48} accent={barber.accent} />
+        <Avatar initials={barber.initials} size={48} ring={rd.hasReviews && rd.numeric >= 4.9} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, color: C.text, letterSpacing: '-0.015em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {barber.name}
             </span>
-            {barber.rating >= 4.9 && (
-              <span style={{ fontSize: 9, background: C.accentLight, color: C.accent, padding: '2px 6px', borderRadius: 20, fontWeight: 500 }}>TOP</span>
+            {rd.hasReviews && rd.numeric >= 4.9 && (
+              <span style={{ fontSize: 10.5, background: C.accentLight, color: C.accentDeep, padding: '2px 8px', borderRadius: 9999, fontWeight: 500 }}>Top</span>
             )}
           </div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 12, color: C.muted }}>
+            <i className="ph-thin ph-map-pin" style={{ fontSize: 13, color: C.accent }} />
             {barber.city}{dist != null ? ` · ${formatKm(dist)}` : ''}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-            <i className="ti ti-star-filled" style={{ fontSize: 11, color: '#EF9F27' }} />
-            <span style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>{barber.rating}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, color: C.muted }}>
+            <i className={`${rd.hasReviews ? 'ph-fill' : 'ph-thin'} ph-star`} style={{ fontSize: 12, color: rd.hasReviews ? C.accent : C.hint }} />
+            <span style={{ fontWeight: 600, color: C.text }}>{rd.label}</span>
             {barber.tags.length > 0 && (
               <>
-                <span style={{ fontSize: 11, color: C.hint }}>·</span>
-                <span style={{ fontSize: 11, color: C.hint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ color: C.borderMed }}>·</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {barber.tags.join(' · ')}
                 </span>
               </>
@@ -81,26 +77,36 @@ export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf 
 
       {isSelf ? (
         <div style={{
-          marginTop: 12, padding: '10px 12px', borderRadius: 10,
-          background: C.surface, border: `0.5px dashed ${C.borderMed}`,
+          marginTop: 12, padding: '10px 12px', borderRadius: 'var(--r-md)',
+          background: C.surface, border: `1px dashed ${C.borderMed}`,
           fontSize: 12, color: C.muted, textAlign: 'center',
         }}>
           Questo è il tuo profilo
         </div>
+      ) : barber.acceptingBookings === false ? (
+        <button
+          disabled
+          aria-disabled
+          title="Il barbiere è in pausa"
+          style={{
+            marginTop: 12, width: '100%', padding: '11px 0',
+            borderRadius: 'var(--r-md)',
+            background: C.surface, color: C.muted,
+            border: `1px solid ${C.border}`,
+            fontSize: 13, fontWeight: 500, cursor: 'not-allowed',
+            fontFamily: 'inherit',
+          }}
+        >
+          In pausa
+        </button>
       ) : (
         <button
           onClick={() => onBook(barber)}
           style={{
-            marginTop: 12,
-            width:     '100%',
-            padding:   '10px 0',
-            borderRadius: 10,
-            background: C.text,
-            color:     C.bg,
-            border:    'none',
-            fontSize:  13,
-            fontWeight: 500,
-            cursor:    'pointer',
+            marginTop: 12, width: '100%', padding: '11px 0',
+            borderRadius: 'var(--r-md)',
+            background: C.text, color: C.bg, border: `1px solid ${C.text}`,
+            fontSize: 13, fontWeight: 500, cursor: 'pointer',
             fontFamily: 'inherit',
           }}
         >

@@ -9,23 +9,20 @@ interface Props {
 
 export function MapListToggle({ value, onChange }: Props) {
   const items: { id: DiscoverView; icon: string; label: string }[] = [
-    { id: 'map',  icon: 'ti-map',  label: 'Mappa' },
-    { id: 'list', icon: 'ti-list', label: 'Lista' },
+    { id: 'map',  icon: 'ph-thin ph-map-trifold', label: 'Mappa' },
+    { id: 'list', icon: 'ph-thin ph-list',        label: 'Lista' },
   ]
   return (
     <div style={{
       position:  'absolute',
-      top:       64,
+      top:       70,
       right:     12,
       zIndex:    10,
       display:   'flex',
       padding:   3,
-      borderRadius: 22,
-      background: 'rgba(255,255,255,0.92)',
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
-      border:    `0.5px solid ${C.border}`,
+      borderRadius: 'var(--r-md)',
+      background: C.bg,
+      boxShadow: '0 4px 14px rgba(10,10,10,0.10), 0 0 0 1px rgba(10,10,10,0.06)',
     }}>
       {items.map(it => {
         const active = value === it.id
@@ -36,22 +33,15 @@ export function MapListToggle({ value, onChange }: Props) {
             aria-label={it.label}
             aria-pressed={active}
             style={{
-              display:        'flex',
-              alignItems:     'center',
-              gap:            4,
-              padding:        '6px 12px',
-              borderRadius:   18,
-              border:         'none',
-              background:     active ? C.text : 'transparent',
-              color:          active ? C.bg   : C.muted,
-              fontSize:       12,
-              fontWeight:     500,
-              cursor:         'pointer',
-              fontFamily:     'inherit',
-              transition:     'all .15s',
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 12px', borderRadius: 8, border: 'none',
+              background: active ? C.text : 'transparent',
+              color:      active ? C.bg   : C.muted,
+              fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              fontFamily: 'inherit', transition: 'all 120ms var(--ease)',
             }}
           >
-            <i className={`ti ${it.icon}`} style={{ fontSize: 14 }} />
+            <i className={it.icon} style={{ fontSize: 16 }} />
             {it.label}
           </button>
         )

@@ -5,6 +5,7 @@ import type { Profile } from '../types/supabase'
 const DEMO_PROFILE: Profile = {
   id: 'demo',
   role: 'client',
+  is_admin: false,
   display_name: 'Andrea G.',
   avatar_url: null,
   bio: null,

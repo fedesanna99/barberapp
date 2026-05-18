@@ -10,6 +10,16 @@ export interface DemoBarber {
   accent: string
   lat?: number
   lng?: number
+  // Task 1 — when false the barber is on pause (no bookings). Optional so existing
+  // demo data (which never goes through the DB) defaults to "available".
+  acceptingBookings?: boolean
+  // Task 3 — the underlying `profiles.id` of the barber. Needed for follow operations
+  // which now reference profiles directly (followee_id) rather than `barbers.id`.
+  profileId?: string
+  // Task 8 — number of reviews. When 0 (or missing) the rating is shown as
+  // "Nuovo" instead of a number, so a brand-new barber doesn't display the
+  // 4.8 seed fallback.
+  reviewsCount?: number
 }
 
 export interface DemoPost {
@@ -124,18 +134,20 @@ export interface DemoAdminUser {
   id: string
   email: string
   display_name: string
-  role: 'client' | 'barber' | 'admin'
+  // Task 9 — `admin` removed from role; admin is the orthogonal `is_admin` flag.
+  role: 'client' | 'barber'
+  is_admin: boolean
   created_at: string
 }
 
 export const DEMO_ADMIN_USERS: DemoAdminUser[] = [
-  { id: 'u0', email: 'admin@cutbook.it',    display_name: 'Admin',        role: 'admin',  created_at: '2026-01-01T10:00:00Z' },
-  { id: 'u1', email: 'marco@cutbook.it',    display_name: 'Marco Barba',  role: 'barber', created_at: '2026-02-15T09:30:00Z' },
-  { id: 'u2', email: 'fadi@cutbook.it',     display_name: 'Fadi Nour',    role: 'barber', created_at: '2026-02-20T11:00:00Z' },
-  { id: 'u3', email: 'nico@cutbook.it',     display_name: 'Nico Testa',   role: 'barber', created_at: '2026-03-01T08:00:00Z' },
-  { id: 'u4', email: 'andrea@cutbook.it',   display_name: 'Andrea G.',    role: 'client', created_at: '2026-03-10T14:00:00Z' },
-  { id: 'u5', email: 'luca.r@cutbook.it',   display_name: 'Luca R.',      role: 'client', created_at: '2026-03-12T16:30:00Z' },
-  { id: 'u6', email: 'marco.t@cutbook.it',  display_name: 'Marco T.',     role: 'client', created_at: '2026-04-01T08:00:00Z' },
-  { id: 'u7', email: 'davide@cutbook.it',   display_name: 'Davide M.',    role: 'client', created_at: '2026-04-15T10:00:00Z' },
+  { id: 'u0', email: 'admin@cutbook.it',    display_name: 'Admin',        role: 'client', is_admin: true,  created_at: '2026-01-01T10:00:00Z' },
+  { id: 'u1', email: 'marco@cutbook.it',    display_name: 'Marco Barba',  role: 'barber', is_admin: false, created_at: '2026-02-15T09:30:00Z' },
+  { id: 'u2', email: 'fadi@cutbook.it',     display_name: 'Fadi Nour',    role: 'barber', is_admin: false, created_at: '2026-02-20T11:00:00Z' },
+  { id: 'u3', email: 'nico@cutbook.it',     display_name: 'Nico Testa',   role: 'barber', is_admin: false, created_at: '2026-03-01T08:00:00Z' },
+  { id: 'u4', email: 'andrea@cutbook.it',   display_name: 'Andrea G.',    role: 'client', is_admin: false, created_at: '2026-03-10T14:00:00Z' },
+  { id: 'u5', email: 'luca.r@cutbook.it',   display_name: 'Luca R.',      role: 'client', is_admin: false, created_at: '2026-03-12T16:30:00Z' },
+  { id: 'u6', email: 'marco.t@cutbook.it',  display_name: 'Marco T.',     role: 'client', is_admin: false, created_at: '2026-04-01T08:00:00Z' },
+  { id: 'u7', email: 'davide@cutbook.it',   display_name: 'Davide M.',    role: 'client', is_admin: false, created_at: '2026-04-15T10:00:00Z' },
 ]
 
