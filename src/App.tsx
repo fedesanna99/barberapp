@@ -16,6 +16,7 @@ import { AdminPanel } from './screens/AdminPanel'
 import { BookingSheet } from './screens/BookingSheet'
 import { BarberProfileSheet } from './screens/BarberProfileSheet'
 import { SupportChat } from './screens/SupportChat'
+import { Notifications } from './screens/Notifications'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
 import { ResetPassword } from './screens/ResetPassword'
@@ -59,6 +60,7 @@ export default function App() {
   const [profileBarber, setProfileBarber] = useState<DemoBarber | null>(null)
   const [showLikedFeed, setShowLikedFeed] = useState(false)
   const [showSupport, setShowSupport]   = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
   const [toast, setToast]               = useState<string | null>(null)
 
   const barberId = useBarberByProfile(isBarber ? userId : undefined)
@@ -181,6 +183,7 @@ export default function App() {
               }}
               onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }}
               onSupport={() => setShowSupport(true)}
+              onNotifications={() => setShowNotifications(true)}
             />}
           </>
         )}
@@ -195,6 +198,10 @@ export default function App() {
 
         {showSupport && userId && (
           <SupportChat userId={userId} onClose={() => setShowSupport(false)} />
+        )}
+
+        {showNotifications && (
+          <Notifications onClose={() => setShowNotifications(false)} />
         )}
 
         {toast && <Toast message={toast} onClose={() => setToast(null)} />}

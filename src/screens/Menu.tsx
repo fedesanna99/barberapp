@@ -3,13 +3,14 @@ import { C } from '../lib/colors'
 import { useBarberInfo } from '../hooks/useBarberInfo'
 import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
 
-type MenuItem = { icon: string; label: string; badge?: string; action?: 'liked' | 'support' }
+type MenuAction = 'liked' | 'support' | 'notifications'
+type MenuItem = { icon: string; label: string; badge?: string; action?: MenuAction }
 
 const SECTIONS: MenuItem[][] = [
   [
     { icon: 'ti-calendar', label: 'I miei appuntamenti', badge: '2' },
     { icon: 'ti-heart',    label: 'Post che ti piacciono', action: 'liked' as const },
-    { icon: 'ti-bell',     label: 'Notifiche',           badge: '3' },
+    { icon: 'ti-bell',     label: 'Notifiche',           action: 'notifications' as const },
     { icon: 'ti-map-pin',  label: 'Impostazioni posizione' },
   ],
   [
@@ -20,10 +21,11 @@ const SECTIONS: MenuItem[][] = [
   ],
 ]
 
-export function Menu({ onLogout, onLikedPosts, onSupport, isBarber, barberId, userId }: {
+export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, isBarber, barberId, userId }: {
   onLogout?: () => void
   onLikedPosts?: () => void
   onSupport?: () => void
+  onNotifications?: () => void
   isBarber?: boolean
   barberId?: string
   userId?: string
@@ -79,8 +81,9 @@ export function Menu({ onLogout, onLikedPosts, onSupport, isBarber, barberId, us
           <div style={{ height: 8, background: C.surface }} />
           {group.map(({ icon, label, badge, action }) => (
             <div key={label} onClick={() => {
-              if (action === 'liked')   onLikedPosts?.()
-              if (action === 'support') onSupport?.()
+              if (action === 'liked')         onLikedPosts?.()
+              if (action === 'support')       onSupport?.()
+              if (action === 'notifications') onNotifications?.()
             }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer', borderBottom: `0.5px solid ${C.border}` }}>
               <i className={`ti ${icon}`} style={{ fontSize: 20, color: C.muted }} />
               <span style={{ flex: 1, fontSize: 14, color: C.text }}>{label}</span>
