@@ -184,6 +184,7 @@ export default function App() {
               onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }}
               onSupport={() => setShowSupport(true)}
               onNotifications={() => setShowNotifications(true)}
+              onToast={setToast}
             />}
           </>
         )}

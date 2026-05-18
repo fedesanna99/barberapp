@@ -3,7 +3,7 @@ import { C } from '../lib/colors'
 import { useBarberInfo } from '../hooks/useBarberInfo'
 import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
 
-type MenuAction = 'liked' | 'support' | 'notifications'
+type MenuAction = 'liked' | 'support' | 'notifications' | 'invite'
 type MenuItem = { icon: string; label: string; badge?: string; action?: MenuAction }
 
 const SECTIONS: MenuItem[][] = [
@@ -14,18 +14,36 @@ const SECTIONS: MenuItem[][] = [
     { icon: 'ti-map-pin',  label: 'Impostazioni posizione' },
   ],
   [
-    { icon: 'ti-share', label: 'Invita un amico'    },
+    { icon: 'ti-share', label: 'Invita un amico', action: 'invite' as const },
   ],
   [
     { icon: 'ti-headset', label: 'Aiuto e supporto', action: 'support' as const },
   ],
 ]
 
-export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, isBarber, barberId, userId }: {
+async function handleInvite(setToast: (m: string | null) => void) {
+  const url   = window.location.origin
+  const title = 'CutBook'
+  const text  = 'Prenota il tuo prossimo taglio con CutBook'
+  if (navigator.share) {
+    try { await navigator.share({ title, text, url }) } catch { /* user cancelled */ }
+    return
+  }
+  // Fallback: copy URL to clipboard
+  try {
+    await navigator.clipboard.writeText(`${text} — ${url}`)
+    setToast('Link copiato negli appunti')
+  } catch {
+    setToast(`Condividi questo link: ${url}`)
+  }
+}
+
+export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, onToast, isBarber, barberId, userId }: {
   onLogout?: () => void
   onLikedPosts?: () => void
   onSupport?: () => void
   onNotifications?: () => void
+  onToast?: (msg: string | null) => void
   isBarber?: boolean
   barberId?: string
   userId?: string
@@ -84,6 +102,7 @@ export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, isBar
               if (action === 'liked')         onLikedPosts?.()
               if (action === 'support')       onSupport?.()
               if (action === 'notifications') onNotifications?.()
+              if (action === 'invite')        handleInvite(msg => onToast?.(msg))
             }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer', borderBottom: `0.5px solid ${C.border}` }}>
               <i className={`ti ${icon}`} style={{ fontSize: 20, color: C.muted }} />
               <span style={{ flex: 1, fontSize: 14, color: C.text }}>{label}</span>
