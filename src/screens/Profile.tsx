@@ -14,6 +14,7 @@ import { uploadAvatar, uploadPostPhoto, uploadUserPostPhoto, validateImageType }
 import { supabase, IS_DEMO } from '../lib/supabase'
 import type { BookingWithBarber } from '../hooks/useBooking'
 import type { Post, UserPost } from '../types/supabase'
+import type { ToastEvent } from '../components/Toast'
 
 type PostLike = {
   id: string
@@ -35,6 +36,7 @@ interface Props {
   userId?: string
   isBarber?: boolean
   barberId?: string
+  onToast?: (t: ToastEvent | null) => void
 }
 
 const TODAY = new Date().toISOString().split('T')[0]
@@ -49,11 +51,10 @@ function initials(name: string | null | undefined): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
-export function Profile({ userId, isBarber, barberId }: Props) {
+export function Profile({ userId, isBarber, barberId, onToast }: Props) {
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const postInputRef   = useRef<HTMLInputElement>(null)
   const [uploading,        setUploading]        = useState(false)
-  const [uploadError,      setUploadError]      = useState<string | null>(null)
   const [ownPosts,         setOwnPosts]         = useState<Post[]>([])
   const [userPosts,        setUserPosts]        = useState<UserPost[]>([])
   const [showNewUserPost,  setShowNewUserPost]  = useState(false)
@@ -122,12 +123,12 @@ export function Profile({ userId, isBarber, barberId }: Props) {
     const file = e.target.files?.[0]
     if (!file || !userId) return
     setUploading(true)
-    setUploadError(null)
     try {
       const url = await uploadAvatar(file, userId)
       await updateAvatarUrl(url)
+      onToast?.({ kind: 'success', title: 'Foto profilo aggiornata' })
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Caricamento fallito')
+      onToast?.({ kind: 'error', title: 'Caricamento foto fallito', message: err instanceof Error ? err.message : undefined })
     }
     setUploading(false)
     e.target.value = ''
@@ -137,7 +138,6 @@ export function Profile({ userId, isBarber, barberId }: Props) {
     const file = e.target.files?.[0]
     if (!file || !isBarber || !barberId) return
     setUploading(true)
-    setUploadError(null)
     try {
       const url = await uploadPostPhoto(file, barberId)
       if (!IS_DEMO) {
@@ -154,8 +154,9 @@ export function Profile({ userId, isBarber, barberId }: Props) {
           created_at: new Date().toISOString(),
         }, ...prev])
       }
+      onToast?.({ kind: 'success', title: 'Post pubblicato' })
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Caricamento fallito')
+      onToast?.({ kind: 'error', title: 'Pubblicazione fallita', message: err instanceof Error ? err.message : undefined })
     }
     setUploading(false)
     e.target.value = ''
@@ -263,12 +264,6 @@ export function Profile({ userId, isBarber, barberId }: Props) {
                 {p}
               </span>
             ))}
-          </div>
-        )}
-
-        {uploadError && (
-          <div style={{ marginTop: 8, fontSize: 12, color: '#e53e3e', textAlign: 'center', padding: '0 24px', cursor: 'pointer' }} onClick={() => setUploadError(null)}>
-            {uploadError}
           </div>
         )}
 

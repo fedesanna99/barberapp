@@ -12,6 +12,7 @@ import { useBarberBookings, useBooking, type BookingWithClient } from '../hooks/
 import { useAvailabilitySettings } from '../hooks/useAvailabilitySettings'
 import { useAutoAccept } from '../hooks/useAutoAccept'
 import { useBarberInfo } from '../hooks/useBarberInfo'
+import type { ToastEvent } from '../components/Toast'
 
 type DashTab = 'bookings' | 'availability'
 
@@ -51,7 +52,11 @@ function demoToRow(b: DemoBarberBooking): BookingRow {
 
 // ── Main ──────────────────────────────────────────────────────────────────
 
-export function BarberDashboard({ barberId, userId }: { barberId?: string; userId?: string }) {
+export function BarberDashboard({ barberId, userId, onToast }: {
+  barberId?: string
+  userId?:   string
+  onToast?:  (t: ToastEvent | null) => void
+}) {
   const [tab, setTab] = useState<DashTab>('bookings')
   const [showEditInfo, setShowEditInfo] = useState(false)
   const { info, saving, saveError, saveInfo } = useBarberInfo(barberId, userId)
@@ -89,7 +94,7 @@ export function BarberDashboard({ barberId, userId }: { barberId?: string; userI
       </div>
 
       {tab === 'bookings'
-        ? <BookingsTab barberId={barberId} />
+        ? <BookingsTab barberId={barberId} onToast={onToast} />
         : <AvailabilityTab barberId={barberId} />
       }
 
@@ -110,12 +115,14 @@ export function BarberDashboard({ barberId, userId }: { barberId?: string; userI
 
 const DEMO_PENDING: DemoBarberBooking = { id: 'b0', client: 'Giulio M.', initials: 'GM', date: 'Mon 19 May', time: '08:30', service: 'Fade', status: 'pending' }
 
-function BookingsTab({ barberId }: { barberId?: string }) {
+function BookingsTab({ barberId, onToast }: {
+  barberId?: string
+  onToast?:  (t: ToastEvent | null) => void
+}) {
   const isDemo = IS_DEMO || !barberId
   const { bookings: real, refetch } = useBarberBookings(barberId)
   const { cancelBooking, confirmBooking, markDone } = useBooking()
   const [demoList, setDemoList] = useState<DemoBarberBooking[]>([DEMO_PENDING, ...DEMO_BARBER_BOOKINGS])
-  const [actionError, setActionError] = useState<string | null>(null)
   const { autoAccept, setAutoAccept } = useAutoAccept(isDemo ? undefined : barberId)
 
   const pending = isDemo
@@ -132,7 +139,7 @@ function BookingsTab({ barberId }: { barberId?: string }) {
       setDemoList(prev => prev.map(b => b.status === 'pending' ? { ...b, status: 'confirmed' as const } : b))
     } else {
       real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id).then(({ error }) => {
-        if (error) setActionError(`Auto-accept fallito: ${error.message}`)
+        if (error) onToast?.({ kind: 'error', title: 'Auto-accept fallito', message: error.message })
         else refetch()
       }))
     }
@@ -142,47 +149,53 @@ function BookingsTab({ barberId }: { barberId?: string }) {
   useEffect(() => {
     if (!autoAccept || isDemo) return
     real.filter(b => b.status === 'pending').forEach(b => confirmBooking(b.id).then(({ error }) => {
-      if (error) setActionError(`Auto-accept fallito: ${error.message}`)
+      if (error) onToast?.({ kind: 'error', title: 'Auto-accept fallito', message: error.message })
       else refetch()
     }))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [real])
 
+  function clientNameFor(id: string): string {
+    if (isDemo) return demoList.find(b => b.id === id)?.client ?? 'cliente'
+    return real.find(b => b.id === id)?.profiles?.display_name ?? 'cliente'
+  }
+
   function demoAction(id: string, action: 'done' | 'cancel' | 'confirm') {
-    const booking = demoList.find(b => b.id === id)
-    const clientName = booking?.client ?? 'cliente'
+    const clientName = clientNameFor(id)
     if (action === 'cancel') {
       setDemoList(prev => prev.filter(b => b.id !== id))
       writeLog('booking.cancelled', `Prenotazione di ${clientName} annullata dal barbiere`, 'info', { metadata: { booking_id: id } })
+      onToast?.({ kind: 'info',    title: 'Prenotazione annullata',  message: clientName })
     } else if (action === 'confirm') {
       setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'confirmed' as const } : b))
       writeLog('booking.confirmed', `Prenotazione di ${clientName} confermata`, 'info', { metadata: { booking_id: id } })
+      onToast?.({ kind: 'success', title: 'Prenotazione confermata', message: clientName })
     } else {
       setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'done' as const } : b))
       writeLog('booking.done', `Prenotazione di ${clientName} completata`, 'info', { metadata: { booking_id: id } })
+      onToast?.({ kind: 'success', title: 'Appuntamento completato', message: clientName })
     }
   }
 
   function act(id: string, action: 'confirm' | 'cancel' | 'done') {
     if (isDemo) { demoAction(id, action); return }
+    const clientName = clientNameFor(id)
     const call = action === 'confirm' ? confirmBooking : action === 'cancel' ? cancelBooking : markDone
     const actionLabel = action === 'confirm' ? 'booking.confirmed' : action === 'cancel' ? 'booking.cancelled' : 'booking.done'
     const actionMsg   = action === 'confirm' ? 'Prenotazione confermata' : action === 'cancel' ? 'Prenotazione annullata' : 'Prenotazione completata'
-    setActionError(null)
+    const errorTitle  = action === 'confirm' ? 'Conferma fallita'        : action === 'cancel' ? 'Annullamento fallito'    : 'Aggiornamento fallito'
+    const okTitle     = action === 'confirm' ? 'Prenotazione confermata' : action === 'cancel' ? 'Prenotazione annullata'  : 'Appuntamento completato'
+    const okKind: 'success' | 'info' = action === 'cancel' ? 'info' : 'success'
     call(id).then(({ error }) => {
-      if (error) { setActionError(error.message); return }
+      if (error) { onToast?.({ kind: 'error', title: errorTitle, message: error.message }); return }
       writeLog(actionLabel, actionMsg, 'info', { metadata: { booking_id: id } })
+      onToast?.({ kind: okKind, title: okTitle, message: clientName })
       refetch()
     })
   }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 20px' }}>
-      {actionError && (
-        <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 10, background: '#FEE2E2', color: '#B91C1C', fontSize: 12 }}>
-          {actionError}
-        </div>
-      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 14px' }}>
         <div>
           <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Auto-accetta</span>

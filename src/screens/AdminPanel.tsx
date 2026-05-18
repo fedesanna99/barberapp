@@ -492,7 +492,7 @@ function LogsTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
       error:   'Log errore nascosti',
     }
     onToast({
-      kind:    'success',
+      kind:    'info',
       title:   titles[filter],
       message: `${ids.length} riga${ids.length === 1 ? '' : 'he'} nascost${ids.length === 1 ? 'a' : 'e'} dalla vista`,
     })

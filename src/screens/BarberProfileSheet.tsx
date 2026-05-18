@@ -9,6 +9,7 @@ import { useReviews } from '../hooks/useReviews'
 import { PostMedia } from '../components/PostMedia'
 import { ReviewsList } from '../components/ReviewsList'
 import { ReviewSheet } from '../components/ReviewSheet'
+import type { ToastEvent } from '../components/Toast'
 
 interface BarberPost {
   id: string
@@ -35,9 +36,10 @@ interface Props {
   // The current user's own barbers.id when logged in as a barber.
   // Used to detect "this is MY profile" and hide Prenota / review CTAs.
   myBarberId?: string
+  onToast?: (t: ToastEvent | null) => void
 }
 
-export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, myBarberId }: Props) {
+export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, myBarberId, onToast }: Props) {
   // True when the currently logged-in barber is looking at their own profile.
   // Server-side triggers already block self-booking / self-review; this is
   // the UI half of the same rule (cleaner UX than waiting for the error).
@@ -347,8 +349,20 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
           barberName={barber.name}
           existing={myReview}
           onClose={() => setReviewOpen(false)}
-          onSubmit={upsertReview}
-          onDelete={myReview ? removeReview : undefined}
+          onSubmit={async (rating, comment) => {
+            const res = await upsertReview(rating, comment)
+            if (!res.error) onToast?.({
+              kind:    'success',
+              title:   myReview ? 'Recensione aggiornata' : 'Recensione pubblicata',
+              message: barber.name,
+            })
+            return res
+          }}
+          onDelete={myReview ? async () => {
+            const res = await removeReview()
+            if (!res.error) onToast?.({ kind: 'success', title: 'Recensione eliminata', message: barber.name })
+            return res
+          } : undefined}
         />
       )}
     </div>
