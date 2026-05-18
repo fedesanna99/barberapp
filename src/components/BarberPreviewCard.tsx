@@ -2,6 +2,7 @@ import { C } from '../lib/colors'
 import { Avatar } from './Avatar'
 import { haversineKm, formatKm, type LatLng } from '../lib/geo'
 import type { DemoBarber } from '../lib/demoData'
+import { ratingDisplay } from '../lib/rating'
 
 interface Props {
   barber:     DemoBarber
@@ -16,6 +17,7 @@ export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf 
   const dist = userCoords && barber.lat != null && barber.lng != null
     ? haversineKm(userCoords, { lat: barber.lat, lng: barber.lng })
     : null
+  const rd = ratingDisplay({ rating: barber.rating, reviewsCount: barber.reviewsCount })
 
   return (
     <div
@@ -57,7 +59,7 @@ export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf 
             <span style={{ fontSize: 14, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {barber.name}
             </span>
-            {barber.rating >= 4.9 && (
+            {rd.hasReviews && rd.numeric >= 4.9 && (
               <span style={{ fontSize: 9, background: C.accentLight, color: C.accent, padding: '2px 6px', borderRadius: 20, fontWeight: 500 }}>TOP</span>
             )}
           </div>
@@ -65,8 +67,8 @@ export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf 
             {barber.city}{dist != null ? ` · ${formatKm(dist)}` : ''}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-            <i className="ti ti-star-filled" style={{ fontSize: 11, color: '#EF9F27' }} />
-            <span style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>{barber.rating}</span>
+            <i className={`ti ${rd.hasReviews ? 'ti-star-filled' : 'ti-star'}`} style={{ fontSize: 11, color: rd.hasReviews ? '#EF9F27' : C.hint }} />
+            <span style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>{rd.label}</span>
             {barber.tags.length > 0 && (
               <>
                 <span style={{ fontSize: 11, color: C.hint }}>·</span>
@@ -87,6 +89,28 @@ export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf 
         }}>
           Questo è il tuo profilo
         </div>
+      ) : barber.acceptingBookings === false ? (
+        <button
+          disabled
+          aria-disabled
+          title="Il barbiere è in pausa"
+          style={{
+            marginTop: 12,
+            width:     '100%',
+            padding:   '10px 0',
+            borderRadius: 10,
+            background: C.surface,
+            color:     C.muted,
+            border:    `0.5px solid ${C.borderMed}`,
+            fontSize:  13,
+            fontWeight: 500,
+            cursor:    'not-allowed',
+            fontFamily: 'inherit',
+          }}
+        >
+          <i className="ti ti-zzz" style={{ marginRight: 6, fontSize: 13 }} />
+          Non disponibile · in pausa
+        </button>
       ) : (
         <button
           onClick={() => onBook(barber)}

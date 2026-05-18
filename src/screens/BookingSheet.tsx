@@ -6,6 +6,7 @@ import type { DemoBarber, DemoDate } from '../lib/demoData'
 import { useAvailability } from '../hooks/useAvailability'
 import { useBarberDefaults } from '../hooks/useBarberDefaults'
 import { IS_DEMO } from '../lib/supabase'
+import { ratingDisplay } from '../lib/rating'
 
 interface BookingSheetProps {
   barber: DemoBarber
@@ -57,8 +58,15 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
               <div style={{ fontSize: 18, fontWeight: 500, color: C.text }}>Prenota con {barber.name}</div>
               <div style={{ fontSize: 13, color: C.muted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {barber.city} ·{' '}
-                <i className="ti ti-star-filled" style={{ fontSize: 11, color: '#EF9F27' }} />
-                <span style={{ fontSize: 12, fontWeight: 500 }}>{barber.rating}</span>
+                {(() => {
+                  const rd = ratingDisplay({ rating: barber.rating, reviewsCount: barber.reviewsCount })
+                  return (
+                    <>
+                      <i className={`ti ${rd.hasReviews ? 'ti-star-filled' : 'ti-star'}`} style={{ fontSize: 11, color: rd.hasReviews ? '#EF9F27' : C.hint }} />
+                      <span style={{ fontSize: 12, fontWeight: 500 }}>{rd.label}</span>
+                    </>
+                  )
+                })()}
               </div>
             </div>
 

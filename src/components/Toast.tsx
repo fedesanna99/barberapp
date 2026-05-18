@@ -22,7 +22,8 @@ const STYLE: Record<ToastKind, { bg: string; icon: string }> = {
 
 export function Toast({ toast, onClose }: ToastProps) {
   useEffect(() => {
-    const t = setTimeout(onClose, 5000)
+    // Task 15 — durata ridotta da 5s a 3s (−2 s) per ridurre l'attesa visiva.
+    const t = setTimeout(onClose, 3000)
     return () => clearTimeout(t)
   }, [onClose])
 

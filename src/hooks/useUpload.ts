@@ -61,7 +61,12 @@ export async function uploadAvatar(file: File, userId: string): Promise<string> 
     .from('avatars')
     .upload(path, compressed, { contentType: 'image/jpeg' })
   if (error) throw error
-  return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
+  // Task 6 — cache-bust. The path is always `{uid}/avatar.jpg`, so the public URL
+  // is byte-identical across uploads and the browser kept showing the old image
+  // until a hard reload. Appending `?v=<timestamp>` forces a fresh fetch and the
+  // stored value (with the suffix) survives reload, so other surfaces that read
+  // `profiles.avatar_url` (Feed avatars, BarberProfileSheet, etc.) all update too.
+  return `${supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`
 }
 
 export async function uploadPostPhoto(file: File, barberId: string): Promise<string> {

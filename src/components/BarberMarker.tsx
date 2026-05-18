@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { Marker } from 'react-map-gl/maplibre'
 import { C } from '../lib/colors'
+import { ratingDisplay } from '../lib/rating'
 
 interface Props {
   id:        string
@@ -8,6 +9,7 @@ interface Props {
   initials:  string
   accent:    string
   rating:    number
+  reviewsCount?: number
   lat:       number
   lng:       number
   selected:  boolean
@@ -15,15 +17,16 @@ interface Props {
 }
 
 export const BarberMarker = memo(function BarberMarker({
-  id, name, initials, accent, rating, lat, lng, selected, onClick,
+  id, name, initials, accent, rating, reviewsCount, lat, lng, selected, onClick,
 }: Props) {
   const scale = selected ? 1.18 : 1
-  const isTop = rating >= 4.9
+  const rd = ratingDisplay({ rating, reviewsCount })
+  const isTop = rd.hasReviews && rd.numeric >= 4.9
   return (
     <Marker longitude={lng} latitude={lat} anchor="bottom" style={{ zIndex: selected ? 10 : 1 }}>
       <button
         type="button"
-        aria-label={`${name}, ${rating} stelle`}
+        aria-label={rd.hasReviews ? `${name}, ${rd.label} stelle` : `${name}, nuovo (nessuna recensione)`}
         onClick={e => { e.stopPropagation(); onClick(id) }}
         style={{
           position:  'relative',
@@ -89,8 +92,8 @@ export const BarberMarker = memo(function BarberMarker({
           border:       `0.5px solid ${isTop ? C.accent : C.border}`,
           lineHeight:   1,
         }}>
-          <i className="ti ti-star-filled" style={{ fontSize: 8, color: isTop ? '#fff' : '#EF9F27' }} />
-          {rating.toFixed(1)}
+          <i className={`ti ${rd.hasReviews ? 'ti-star-filled' : 'ti-sparkles'}`} style={{ fontSize: 8, color: isTop ? '#fff' : rd.hasReviews ? '#EF9F27' : C.muted }} />
+          {rd.label}
         </div>
       </button>
     </Marker>

@@ -99,9 +99,28 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
 
   // In demo mode (no real session) fall back to demo counts
   const isDemo = IS_DEMO || !userId
-  const cutsCount     = isDemo ? CUT_LOG.length        : past.length
-  const barbersCount  = isDemo ? 3                     : follows.length
-  const upcomingCount = isDemo ? DEMO_UPCOMING.length  : upcoming.length
+  // Task 12 — three counters under the name:
+  //  • Fresh cuts = completed bookings (status='done', includes today's already-done)
+  //  • Barbers    = followed profiles whose role is 'barber'
+  //  • Follower   = profiles following me (followee_id = me)
+  const freshCutsCount = isDemo
+    ? CUT_LOG.length
+    : bookings.filter(b => b.status === 'done').length
+  const barbersFollowedCount = isDemo
+    ? 3
+    : follows.filter(f => f.role === 'barber').length
+
+  const [followerCount, setFollowerCount] = useState<number>(0)
+  useEffect(() => {
+    if (isDemo || !userId) { setFollowerCount(0); return }
+    let cancelled = false
+    supabase
+      .from('follows')
+      .select('follower_id', { count: 'exact', head: true })
+      .eq('followee_id', userId)
+      .then(({ count }) => { if (!cancelled) setFollowerCount(count ?? 0) })
+    return () => { cancelled = true }
+  }, [userId, isDemo, follows.length])
 
   const displayName = profile.display_name ?? 'Utente'
   const avatarUrl   = profile.avatar_url
@@ -242,17 +261,10 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
           </div>
         </div>
 
+        {/* Task 7 — pencil icon removed. Edit profile is still reachable
+            from the top-right ⚙ (ti-settings) button. */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 18, fontWeight: 500, color: C.text }}>{displayName}</span>
-          {!isDemo && (
-            <button
-              onClick={() => setShowEditProfile(true)}
-              aria-label="Modifica profilo"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: C.hint, display: 'inline-flex' }}
-            >
-              <i className="ti ti-pencil" style={{ fontSize: 14 }} />
-            </button>
-          )}
         </div>
         {followingLine !== '' && (
           <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{followingLine}</div>
@@ -301,12 +313,12 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
         )}
       </div>
 
-      {/* Stats */}
+      {/* Stats — Task 12 */}
       <div style={{ display: 'flex', borderBottom: `0.5px solid ${C.border}`, marginBottom: 16 }}>
         {([
-          [String(cutsCount),     'Tagli',    'ti-scissors'],
-          [String(upcomingCount), 'Follower', 'ti-heart'],
-          [String(barbersCount),  'Stelle',   'ti-star'],
+          [String(freshCutsCount),       'Fresh cuts', 'ti-scissors'],
+          [String(barbersFollowedCount), 'Barbers',    'ti-mustache'],
+          [String(followerCount),        'Follower',   'ti-heart'],
         ] as [string, string, string][]).map(([val, label, icon]) => (
           <div key={label} style={{ flex: 1, textAlign: 'center', padding: '14px 0 12px' }}>
             <div style={{ fontSize: 20, fontWeight: 600, color: C.text }}>{val}</div>

@@ -81,7 +81,9 @@ export function useAuth() {
   const signOut = () => supabase.auth.signOut()
 
   const isBarber = profile?.role === 'barber'
-  const isAdmin  = profile?.role === 'admin'
+  // Task 9: admin is now the orthogonal `is_admin` boolean; an admin can also
+  // be a normal client or barber at the same time.
+  const isAdmin  = profile?.is_admin === true
 
   return { session, profile, isBarber, isAdmin, loading, recoveryMode, clearRecoveryMode, signInWithGoogle, signOut }
 }

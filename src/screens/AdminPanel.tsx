@@ -5,9 +5,11 @@ import { Toast, type ToastEvent } from '../components/Toast'
 import { useAdminUsers, type AdminUser } from '../hooks/useAdminUsers'
 import { useAdminLogs } from '../hooks/useAdminLogs'
 import { useSupportAdmin, useSupportAdminChat, type ConvWithUser } from '../hooks/useSupportAdmin'
+import { sendNotification } from '../hooks/useNotifications'
+import { sanitizeNotificationHtml } from '../lib/sanitizeHtml'
 import type { UserRole, LogLevel, SupportMessage } from '../types/supabase'
 
-type AdminTab  = 'users' | 'logs' | 'support'
+type AdminTab  = 'users' | 'logs' | 'support' | 'notify'
 type LogFilter = 'all' | LogLevel
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -24,7 +26,6 @@ function timeAgo(iso: string) {
 
 function roleBadge(role: UserRole) {
   const map: Record<UserRole, { label: string; bg: string; color: string }> = {
-    admin:  { label: 'Admin',     bg: 'rgba(201,150,58,0.15)',  color: C.accent },
     barber: { label: 'Barbiere',  bg: 'rgba(29,158,117,0.13)',  color: C.green  },
     client: { label: 'Cliente',   bg: 'rgba(120,120,140,0.13)', color: C.muted  },
   }
@@ -35,6 +36,21 @@ function roleBadge(role: UserRole) {
       background: s.bg, color: s.color,
     }}>
       {s.label}
+    </span>
+  )
+}
+
+// Task 9 — admin is now orthogonal to role. Show a tiny chip next to the role
+// pill when the user has the admin flag.
+function adminBadge() {
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+      background: 'rgba(201,150,58,0.15)', color: C.accent,
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+    }}>
+      <i className="ti ti-shield-lock" style={{ fontSize: 10 }} />
+      Admin
     </span>
   )
 }
@@ -84,7 +100,7 @@ function AddUserModal({ onClose, onCreate }: AddModalProps) {
     outline: 'none', boxSizing: 'border-box', transition: 'border-color .15s',
   })
 
-  const ROLES: UserRole[] = ['client', 'barber', 'admin']
+  const ROLES: UserRole[] = ['client', 'barber']
 
   return (
     <div style={{
@@ -116,7 +132,7 @@ function AddUserModal({ onClose, onCreate }: AddModalProps) {
 
           <div style={{ display: 'flex', gap: 8 }}>
             {ROLES.map(r => {
-              const labels: Record<UserRole, string> = { client: 'Cliente', barber: 'Barbiere', admin: 'Admin' }
+              const labels: Record<UserRole, string> = { client: 'Cliente', barber: 'Barbiere' }
               const active = role === r
               return (
                 <button key={r} onClick={() => setRole(r)} style={{
@@ -198,10 +214,10 @@ function ConfirmDeleteSheet({ user, onConfirm, onCancel }: { user: AdminUser; on
 // ── Role Picker Sheet ──────────────────────────────────────────────────────
 
 function RoleSheet({ user, onPick, onCancel }: { user: AdminUser; onPick: (r: UserRole) => void; onCancel: () => void }) {
+  // Task 9 — 'admin' rimosso: ora è il toggle is_admin separato (vedi pulsante "Admin" sotto).
   const items: { role: UserRole; label: string; icon: string }[] = [
     { role: 'client', label: 'Cliente',  icon: 'ti-user'         },
     { role: 'barber', label: 'Barbiere', icon: 'ti-scissors'     },
-    { role: 'admin',  label: 'Admin',    icon: 'ti-shield-lock'  },
   ]
   return (
     <div style={{
@@ -242,7 +258,7 @@ function RoleSheet({ user, onPick, onCancel }: { user: AdminUser; onPick: (r: Us
 // ── Users Tab ──────────────────────────────────────────────────────────────
 
 function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
-  const { users, loading, error, createUser, deleteUser, changeRole, sendPasswordReset, reload } = useAdminUsers()
+  const { users, loading, error, createUser, deleteUser, changeRole, setIsAdmin, sendPasswordReset, reload } = useAdminUsers()
   const [search, setSearch]             = useState('')
   const [expanded, setExpanded]         = useState<string | null>(null)
   const [showAdd, setShowAdd]           = useState(false)
@@ -281,6 +297,19 @@ function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
     setBusy(null)
     if (error) onToast({ kind: 'error', title: 'Invio reset fallito', message: error })
     else onToast({ kind: 'success', title: 'Email di reset inviata', message: user.email })
+  }
+
+  async function handleToggleAdmin(user: AdminUser) {
+    setExpanded(null)
+    setBusy(user.id)
+    const { error } = await setIsAdmin(user.id, !user.is_admin)
+    setBusy(null)
+    if (error) onToast({ kind: 'error', title: 'Toggle admin fallito', message: error })
+    else onToast({
+      kind:    'success',
+      title:   user.is_admin ? 'Permessi admin rimossi' : 'Promosso ad admin',
+      message: user.display_name,
+    })
   }
 
   return (
@@ -344,7 +373,7 @@ function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
           const isExpanded = expanded === user.id
           const isBusy = busy === user.id
           const initials = user.display_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'
-          const accent = user.role === 'admin' ? C.accent : user.role === 'barber' ? C.green : C.muted
+          const accent = user.is_admin ? C.accent : user.role === 'barber' ? C.green : C.muted
 
           return (
             <div key={user.id} style={{ marginBottom: 6 }}>
@@ -365,6 +394,7 @@ function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
                   <div style={{ fontSize: 11, color: C.hint, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
                 </div>
                 {roleBadge(user.role)}
+                {user.is_admin && adminBadge()}
                 {isBusy
                   ? <i className="ti ti-loader-2" style={{ fontSize: 16, color: C.muted, animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
                   : <i className={`ti ti-chevron-${isExpanded ? 'up' : 'down'}`} style={{ fontSize: 16, color: C.hint, flexShrink: 0 }} />
@@ -380,6 +410,11 @@ function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
                 }}>
                   {[
                     { icon: 'ti-shield-half', label: 'Ruolo',  action: () => { setExpanded(null); setRoleTarget(user) } },
+                    {
+                      icon: user.is_admin ? 'ti-shield-off' : 'ti-shield-lock',
+                      label: user.is_admin ? 'Togli admin' : 'Admin',
+                      action: () => handleToggleAdmin(user),
+                    },
                     { icon: 'ti-mail',        label: 'Reset',  action: () => handleReset(user) },
                     { icon: 'ti-trash',       label: 'Elimina', action: () => { setExpanded(null); setConfirmDel(user) }, danger: true },
                   ].map(({ icon, label, action, danger }) => (
@@ -817,6 +852,225 @@ function SupportTab({ adminId }: { adminId: string | undefined }) {
   )
 }
 
+// ── Notify Tab ─────────────────────────────────────────────────────────────
+
+function NotifyTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
+  const { users, loading } = useAdminUsers()
+  const [target, setTarget]   = useState<'broadcast' | string>('broadcast')
+  const [search, setSearch]   = useState('')
+  const [title, setTitle]     = useState('')
+  const [body, setBody]       = useState('')
+  const [sending, setSending] = useState(false)
+  const [preview, setPreview] = useState(false)
+
+  const filteredUsers = users.filter(u =>
+    u.display_name.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase()),
+  )
+
+  const canSend = title.trim().length > 0 && !sending
+
+  async function handleSend() {
+    if (!canSend) return
+    setSending(true)
+    const { error } = await sendNotification({
+      recipientId: target === 'broadcast' ? null : target,
+      title:       title.trim(),
+      bodyHtml:    body.trim() || null,
+    })
+    setSending(false)
+    if (error) { onToast({ kind: 'error', title: 'Invio fallito', message: error }); return }
+    onToast({
+      kind:    'success',
+      title:   target === 'broadcast' ? 'Annuncio broadcast inviato' : 'Notifica inviata',
+      message: target === 'broadcast'
+        ? `Visibile a tutti gli utenti`
+        : users.find(u => u.id === target)?.display_name ?? '',
+    })
+    setTitle('')
+    setBody('')
+  }
+
+  const safePreview = sanitizeNotificationHtml(body)
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 80px' }}>
+      <p style={{ margin: '0 0 12px', fontSize: 11, color: C.hint, lineHeight: 1.45 }}>
+        Invia una notifica a un singolo utente o a tutti (broadcast).
+        L'HTML del corpo viene <strong>sanitizzato</strong> (solo tag base: p, br, a, b, i, em, strong, ul/ol/li, h1-h3, blockquote, code).
+      </p>
+
+      {/* Destinatario */}
+      <div style={{ marginBottom: 10 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          Destinatario
+        </label>
+        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+          <button
+            onClick={() => setTarget('broadcast')}
+            style={{
+              padding: '7px 14px', borderRadius: 20, border: 'none',
+              background: target === 'broadcast' ? C.accent : C.surface,
+              color: target === 'broadcast' ? '#fff' : C.muted,
+              fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            <i className="ti ti-broadcast" style={{ fontSize: 13 }} />
+            Broadcast (tutti)
+          </button>
+          <button
+            onClick={() => setTarget(target === 'broadcast' ? (filteredUsers[0]?.id ?? '') : 'broadcast')}
+            style={{
+              padding: '7px 14px', borderRadius: 20,
+              border: `1px solid ${target !== 'broadcast' ? C.accent : C.borderMed}`,
+              background: target !== 'broadcast' ? C.accentLight : C.surface,
+              color: target !== 'broadcast' ? C.accent : C.muted,
+              fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            <i className="ti ti-user" style={{ fontSize: 13 }} />
+            Utente singolo
+          </button>
+        </div>
+      </div>
+
+      {target !== 'broadcast' && (
+        <div style={{ marginBottom: 10 }}>
+          <input
+            placeholder="Cerca utente per nome o email…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%', height: 40, borderRadius: 10,
+              border: `1.5px solid ${C.borderMed}`, background: C.surface,
+              padding: '0 12px', fontSize: 13, color: C.text, fontFamily: 'inherit',
+              outline: 'none', boxSizing: 'border-box', marginBottom: 6,
+            }}
+          />
+          <div style={{ maxHeight: 180, overflowY: 'auto', border: `0.5px solid ${C.border}`, borderRadius: 10 }}>
+            {loading
+              ? <div style={{ padding: 14, textAlign: 'center', color: C.hint, fontSize: 12 }}>Caricamento utenti…</div>
+              : filteredUsers.length === 0
+                ? <div style={{ padding: 14, textAlign: 'center', color: C.hint, fontSize: 12 }}>Nessun utente</div>
+                : filteredUsers.slice(0, 20).map(u => {
+                    const active = target === u.id
+                    return (
+                      <div
+                        key={u.id}
+                        onClick={() => setTarget(u.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '8px 12px',
+                          background: active ? C.accentLight : 'transparent',
+                          borderBottom: `0.5px solid ${C.border}`, cursor: 'pointer',
+                        }}
+                      >
+                        <Avatar
+                          initials={u.display_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                          size={28}
+                          accent={active ? C.accent : C.muted}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, color: C.text, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {u.display_name}
+                          </div>
+                          <div style={{ fontSize: 11, color: C.hint, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {u.email}
+                          </div>
+                        </div>
+                        {active && <i className="ti ti-check" style={{ fontSize: 16, color: C.accent }} />}
+                      </div>
+                    )
+                  })}
+          </div>
+        </div>
+      )}
+
+      {/* Titolo */}
+      <div style={{ marginBottom: 10 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          Titolo
+        </label>
+        <input
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="es. Manutenzione programmata"
+          maxLength={120}
+          style={{
+            width: '100%', marginTop: 6, height: 42, borderRadius: 10,
+            border: `1.5px solid ${C.borderMed}`, background: C.surface,
+            padding: '0 12px', fontSize: 14, color: C.text, fontFamily: 'inherit',
+            outline: 'none', boxSizing: 'border-box',
+          }}
+        />
+      </div>
+
+      {/* Corpo */}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Corpo (HTML semplice, opzionale)
+          </label>
+          <button
+            onClick={() => setPreview(p => !p)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: C.accent, fontSize: 11, fontFamily: 'inherit', padding: 4,
+            }}
+          >
+            {preview ? 'Modifica' : 'Anteprima'}
+          </button>
+        </div>
+        {preview ? (
+          <div
+            style={{
+              marginTop: 6, minHeight: 100,
+              padding: 12, borderRadius: 10,
+              border: `1.5px solid ${C.borderMed}`, background: C.surface,
+              fontSize: 13, color: C.text, lineHeight: 1.5,
+            }}
+            dangerouslySetInnerHTML={{ __html: safePreview || '<em style="color:#999">— vuoto —</em>' }}
+          />
+        ) : (
+          <textarea
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            placeholder="<p>Ciao!</p><p>Domani l'app sarà offline per 30 min.</p>"
+            rows={8}
+            style={{
+              width: '100%', marginTop: 6, borderRadius: 10,
+              border: `1.5px solid ${C.borderMed}`, background: C.surface,
+              padding: '10px 12px', fontSize: 13, color: C.text, fontFamily: 'monospace',
+              outline: 'none', boxSizing: 'border-box', resize: 'vertical',
+            }}
+          />
+        )}
+      </div>
+
+      <button
+        onClick={handleSend}
+        disabled={!canSend}
+        style={{
+          width: '100%', height: 48, borderRadius: 12, border: 'none',
+          background: canSend ? C.accent : C.borderMed,
+          color: canSend ? '#fff' : C.hint,
+          fontSize: 15, fontWeight: 700,
+          cursor: canSend ? 'pointer' : 'default',
+          fontFamily: 'inherit',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}
+      >
+        {sending
+          ? <><i className="ti ti-loader-2" style={{ fontSize: 17, animation: 'spin 0.8s linear infinite' }} /> Invio…</>
+          : <><i className="ti ti-send" style={{ fontSize: 16 }} /> Invia notifica</>
+        }
+      </button>
+    </div>
+  )
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 
 export function AdminPanel({ userId }: { userId?: string }) {
@@ -825,6 +1079,7 @@ export function AdminPanel({ userId }: { userId?: string }) {
 
   const tabs: { id: AdminTab; label: string; icon: string }[] = [
     { id: 'users',   label: 'Utenti',    icon: 'ti-users'      },
+    { id: 'notify',  label: 'Notifiche', icon: 'ti-bell'       },
     { id: 'logs',    label: 'Log',       icon: 'ti-terminal-2' },
     { id: 'support', label: 'Supporto',  icon: 'ti-headset'    },
   ]
@@ -861,6 +1116,7 @@ export function AdminPanel({ userId }: { userId?: string }) {
       {/* Tab content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: 8, position: 'relative' }}>
         {tab === 'users'   && <UsersTab   onToast={setToast} />}
+        {tab === 'notify'  && <NotifyTab  onToast={setToast} />}
         {tab === 'logs'    && <LogsTab    onToast={setToast} />}
         {tab === 'support' && <SupportTab adminId={userId}   />}
       </div>

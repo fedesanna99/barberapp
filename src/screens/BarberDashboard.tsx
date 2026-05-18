@@ -11,6 +11,7 @@ import {
 import { useBarberBookings, useBooking, type BookingWithClient } from '../hooks/useBooking'
 import { useAvailabilitySettings } from '../hooks/useAvailabilitySettings'
 import { useAutoAccept } from '../hooks/useAutoAccept'
+import { useBarberVacation } from '../hooks/useBarberVacation'
 import { useBarberInfo } from '../hooks/useBarberInfo'
 import type { ToastEvent } from '../components/Toast'
 
@@ -124,6 +125,24 @@ function BookingsTab({ barberId, onToast }: {
   const { cancelBooking, confirmBooking, markDone } = useBooking()
   const [demoList, setDemoList] = useState<DemoBarberBooking[]>([DEMO_PENDING, ...DEMO_BARBER_BOOKINGS])
   const { autoAccept, setAutoAccept } = useAutoAccept(isDemo ? undefined : barberId)
+  const { acceptingBookings, setAcceptingBookings } = useBarberVacation(isDemo ? undefined : barberId)
+  const [demoAccepting, setDemoAccepting] = useState(true)
+  const effectiveAccepting = isDemo ? demoAccepting : acceptingBookings
+
+  async function toggleVacation() {
+    const next = !effectiveAccepting
+    if (isDemo) { setDemoAccepting(next); return }
+    const { error } = await setAcceptingBookings(next)
+    if (error) {
+      onToast?.({ kind: 'error', title: 'Impossibile aggiornare', message: error.message })
+      return
+    }
+    onToast?.({
+      kind:    next ? 'success' : 'info',
+      title:   next ? 'Prenotazioni riattivate' : 'Prenotazioni in pausa',
+      message: next ? 'I clienti possono prenotare di nuovo.' : 'Nessuno potrà prenotare finché non riattivi.',
+    })
+  }
 
   const pending = isDemo
     ? demoList.filter(b => b.status === 'pending').map(demoToRow)
@@ -196,6 +215,17 @@ function BookingsTab({ barberId, onToast }: {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 12px' }}>
+        <div>
+          <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Accetto prenotazioni</span>
+          <span style={{ fontSize: 11, color: C.hint, display: 'block', marginTop: 1 }}>
+            {effectiveAccepting
+              ? 'I clienti possono prenotare normalmente'
+              : 'In pausa: nessuno può prenotare (ferie / fuori sede)'}
+          </span>
+        </div>
+        <Toggle on={effectiveAccepting} onChange={toggleVacation} />
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 14px' }}>
         <div>
           <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Auto-accetta</span>
@@ -508,22 +538,25 @@ function DayRow({
 
       {active && hasBreak && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 80 }}>
-          <span style={{ fontSize: 11, color: C.hint, flexShrink: 0 }}>pausa</span>
+          {/* Task 4: la label "Pausa" è ora il bottone che la rimuove
+              (sostituisce la vecchia "x" a destra). */}
+          <button
+            onClick={() => setHasBreak(false)}
+            aria-label="Rimuovi pausa"
+            title="Tocca per rimuovere la pausa"
+            style={{
+              fontSize: 11, color: C.muted, flexShrink: 0,
+              border: `1px solid ${C.borderMed}`, background: 'transparent',
+              padding: '3px 8px', borderRadius: 12, cursor: 'pointer',
+              fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            <i className="ti ti-x" style={{ fontSize: 11 }} />
+            Pausa
+          </button>
           <input type="time" value={bStart} onChange={e => setBStart(e.target.value)} style={timeInputStyle} />
           <span style={{ fontSize: 12, color: C.hint }}>–</span>
           <input type="time" value={bEnd}   onChange={e => setBEnd(e.target.value)}   style={timeInputStyle} />
-          <button
-            onClick={() => setHasBreak(false)}
-            title="Rimuovi pausa"
-            style={{
-              width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-              border: `1px solid ${C.borderMed}`, background: 'transparent',
-              color: C.muted, cursor: 'pointer', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', padding: 0,
-            }}
-          >
-            <i className="ti ti-x" style={{ fontSize: 12 }} />
-          </button>
         </div>
       )}
 

@@ -18,6 +18,7 @@ import { BarberProfileSheet } from './screens/BarberProfileSheet'
 import { SupportChat } from './screens/SupportChat'
 import { Notifications } from './screens/Notifications'
 import { MyAppointments } from './screens/MyAppointments'
+import { DirectMessages } from './screens/DirectMessages'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
 import { ResetPassword } from './screens/ResetPassword'
@@ -64,6 +65,8 @@ export default function App() {
   const [showSupport, setShowSupport]   = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showMyAppointments, setShowMyAppointments] = useState(false)
+  const [dmOpen, setDmOpen] = useState<null | { peerId: string; name: string | null; avatar: string | null; role: 'client' | 'barber' }>(null)
+  const [showDmList, setShowDmList] = useState(false)
   const [toast, setToast]               = useState<ToastEvent | null>(null)
 
   const barberId = useBarberByProfile(isBarber ? userId : undefined)
@@ -163,6 +166,7 @@ export default function App() {
             isBarber={isBarber}
             myBarberId={barberId}
             onToast={setToast}
+            onMessage={peer => { setProfileBarber(null); setDmOpen(peer) }}
           />
         ) : (
           <>
@@ -195,6 +199,7 @@ export default function App() {
               onSupport={() => setShowSupport(true)}
               onNotifications={() => setShowNotifications(true)}
               onAppointments={() => setShowMyAppointments(true)}
+              onMessages={() => setShowDmList(true)}
               onToast={setToast}
             />}
           </>
@@ -213,7 +218,7 @@ export default function App() {
         )}
 
         {showNotifications && (
-          <Notifications onClose={() => setShowNotifications(false)} />
+          <Notifications userId={userId} onClose={() => setShowNotifications(false)} />
         )}
 
         {showMyAppointments && userId && (
@@ -221,6 +226,19 @@ export default function App() {
             userId={userId}
             onClose={() => setShowMyAppointments(false)}
             onToast={setToast}
+          />
+        )}
+
+        {(dmOpen || showDmList) && (
+          <DirectMessages
+            userId={userId}
+            onClose={() => { setDmOpen(null); setShowDmList(false) }}
+            initialPeer={dmOpen ? {
+              profileId:   dmOpen.peerId,
+              displayName: dmOpen.name,
+              avatarUrl:   dmOpen.avatar,
+              role:        dmOpen.role,
+            } : null}
           />
         )}
 
@@ -240,7 +258,20 @@ export default function App() {
               return (
                 <button
                   key={id}
-                  onClick={() => { setScreen(id); setProfileBarber(null); setBookingBarber(null); setShowLikedFeed(false); setShowSavedFeed(false) }}
+                  onClick={() => {
+                    setScreen(id)
+                    setProfileBarber(null)
+                    setBookingBarber(null)
+                    setShowLikedFeed(false)
+                    setShowSavedFeed(false)
+                    // Task 10 — close every overlay so changing tab doesn't leave
+                    // Notifiche / Appuntamenti / Supporto / DM stuck on top of the new tab.
+                    setShowNotifications(false)
+                    setShowMyAppointments(false)
+                    setShowSupport(false)
+                    setDmOpen(null)
+                    setShowDmList(false)
+                  }}
                   style={{
                     flex: 1, display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',

@@ -39,6 +39,9 @@ function toDisplayBarber(b: BarberWithProfile, userLat?: number, userLng?: numbe
     accent:    accentFromId(b.id),
     lat:       b.profile.lat ?? undefined,
     lng:       b.profile.lng ?? undefined,
+    acceptingBookings: b.accepting_bookings,
+    profileId: b.profile_id,
+    reviewsCount: b.reviews_count,
   }
 }
 

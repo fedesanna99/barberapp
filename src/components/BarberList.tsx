@@ -3,6 +3,8 @@ import { Avatar } from './Avatar'
 import { formatKm } from '../lib/geo'
 import type { DemoBarber } from '../lib/demoData'
 import type { SortMode } from '../hooks/useBarbers'
+import { ratingDisplay } from '../lib/rating'
+import { ListRowSkeleton } from './Skeleton'
 
 interface Props {
   barbers:  DemoBarber[]
@@ -47,9 +49,11 @@ export function BarberList({ barbers, loading, sort, onSort, onBook, onView, myB
       </div>
 
       {loading && (
-        <div style={{ textAlign: 'center', padding: '40px 16px', color: C.hint }}>
-          <i className="ti ti-loader-2" style={{ fontSize: 24, animation: 'spin 0.8s linear infinite' }} />
-        </div>
+        <>
+          <ListRowSkeleton avatar={50} />
+          <ListRowSkeleton avatar={50} />
+          <ListRowSkeleton avatar={50} />
+        </>
       )}
 
       {!loading && barbers.length === 0 && (
@@ -60,6 +64,7 @@ export function BarberList({ barbers, loading, sort, onSort, onBook, onView, myB
 
       {barbers.map((barber, idx) => {
         const isSelf = !!myBarberId && String(myBarberId) === String(barber.id)
+        const rd = ratingDisplay({ rating: barber.rating, reviewsCount: barber.reviewsCount })
         return (
           <div key={barber.id}>
             {idx > 0 && <div style={{ height: 0.5, background: C.border, margin: '0 16px' }} />}
@@ -77,7 +82,7 @@ export function BarberList({ barbers, loading, sort, onSort, onBook, onView, myB
                         TU
                       </span>
                     )}
-                    {barber.rating >= 4.9 && (
+                    {rd.hasReviews && rd.numeric >= 4.9 && (
                       <span style={{ fontSize: 9, background: C.accentLight, color: C.accent, padding: '2px 6px', borderRadius: 20, fontWeight: 500 }}>TOP</span>
                     )}
                   </div>
@@ -85,8 +90,8 @@ export function BarberList({ barbers, loading, sort, onSort, onBook, onView, myB
                     {barber.city}{barber.dist > 0 ? ` · ${formatKm(barber.dist)}` : ''}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                    <i className="ti ti-star-filled" style={{ fontSize: 11, color: '#EF9F27' }} />
-                    <span style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>{barber.rating}</span>
+                    <i className={`ti ${rd.hasReviews ? 'ti-star-filled' : 'ti-star'}`} style={{ fontSize: 11, color: rd.hasReviews ? '#EF9F27' : C.hint }} />
+                    <span style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>{rd.label}</span>
                     {barber.tags.length > 0 && (
                       <>
                         <span style={{ fontSize: 11, color: C.hint }}>·</span>
@@ -97,16 +102,35 @@ export function BarberList({ barbers, loading, sort, onSort, onBook, onView, myB
                 </div>
               </div>
               {!isSelf && (
-                <button
-                  onClick={() => onBook(barber)}
-                  style={{
-                    padding: '8px 14px', borderRadius: 8, background: C.text, color: C.bg,
-                    fontSize: 12, border: 'none', cursor: 'pointer', fontWeight: 500,
-                    whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'inherit',
-                  }}
-                >
-                  Prenota
-                </button>
+                barber.acceptingBookings === false ? (
+                  <button
+                    disabled
+                    aria-disabled
+                    title="Il barbiere è in pausa"
+                    style={{
+                      padding: '8px 12px', borderRadius: 8,
+                      background: C.surface, color: C.muted,
+                      fontSize: 11, border: `0.5px solid ${C.borderMed}`,
+                      cursor: 'not-allowed', fontWeight: 500,
+                      whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'inherit',
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                    }}
+                  >
+                    <i className="ti ti-zzz" style={{ fontSize: 12 }} />
+                    In pausa
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onBook(barber)}
+                    style={{
+                      padding: '8px 14px', borderRadius: 8, background: C.text, color: C.bg,
+                      fontSize: 12, border: 'none', cursor: 'pointer', fontWeight: 500,
+                      whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'inherit',
+                    }}
+                  >
+                    Prenota
+                  </button>
+                )
               )}
             </div>
           </div>

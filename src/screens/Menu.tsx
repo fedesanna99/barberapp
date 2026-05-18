@@ -10,16 +10,17 @@ import type { ToastEvent } from '../components/Toast'
 
 const TODAY = new Date().toISOString().split('T')[0]
 
-type MenuAction = 'appointments' | 'saved' | 'support' | 'notifications' | 'invite' | 'location'
+type MenuAction = 'appointments' | 'saved' | 'support' | 'notifications' | 'invite' | 'location' | 'messages'
 type MenuItem = { icon: string; label: string; badge?: string; action?: MenuAction }
 
 function buildSections(upcomingCount: number): MenuItem[][] {
   return [
     [
-      { icon: 'ti-calendar', label: 'I miei appuntamenti', action: 'appointments' as const, badge: upcomingCount > 0 ? String(upcomingCount) : undefined },
-      { icon: 'ti-bookmark', label: 'Post salvati',          action: 'saved' as const },
-      { icon: 'ti-bell',     label: 'Notifiche',             action: 'notifications' as const },
-      { icon: 'ti-map-pin',  label: 'Impostazioni posizione', action: 'location' as const },
+      { icon: 'ti-calendar',       label: 'I miei appuntamenti', action: 'appointments' as const, badge: upcomingCount > 0 ? String(upcomingCount) : undefined },
+      { icon: 'ti-message-circle', label: 'Messaggi',             action: 'messages' as const },
+      { icon: 'ti-bookmark',       label: 'Post salvati',          action: 'saved' as const },
+      { icon: 'ti-bell',           label: 'Notifiche',             action: 'notifications' as const },
+      { icon: 'ti-map-pin',        label: 'Impostazioni posizione', action: 'location' as const },
     ],
     [
       { icon: 'ti-share', label: 'Invita un amico', action: 'invite' as const },
@@ -47,12 +48,13 @@ async function handleInvite(setToast: (t: ToastEvent) => void) {
   }
 }
 
-export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onAppointments, onToast, isBarber, barberId, userId }: {
+export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onAppointments, onMessages, onToast, isBarber, barberId, userId }: {
   onLogout?: () => void
   onSavedPosts?: () => void
   onSupport?: () => void
   onNotifications?: () => void
   onAppointments?: () => void
+  onMessages?: () => void
   onToast?: (t: ToastEvent | null) => void
   isBarber?: boolean
   barberId?: string
@@ -119,6 +121,8 @@ export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onApp
               if (action === 'saved')         onSavedPosts?.()
               if (action === 'support')       onSupport?.()
               if (action === 'notifications') onNotifications?.()
+              if (action === 'messages' && !IS_DEMO && userId) onMessages?.()
+              if (action === 'messages' && (IS_DEMO || !userId)) onToast?.({ kind: 'info', title: 'Accesso richiesto', message: 'Accedi per inviare messaggi' })
               if (action === 'invite')        handleInvite(t => onToast?.(t))
               if (action === 'location' && !IS_DEMO && userId) setShowLocation(true)
               if (action === 'location' && (IS_DEMO || !userId)) onToast?.({ kind: 'info', title: 'Accesso richiesto', message: 'Accedi per impostare la tua posizione' })

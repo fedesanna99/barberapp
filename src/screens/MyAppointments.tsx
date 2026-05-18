@@ -104,7 +104,7 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
             </Section>
 
             {past.length > 0 && (
-              <Section title="Storia" count={past.length}>
+              <Section title="Cronologia" count={past.length}>
                 {past.map(b => (
                   <BookingCard
                     key={b.id}

@@ -10,6 +10,7 @@ import { PostMedia } from '../components/PostMedia'
 import { ReviewsList } from '../components/ReviewsList'
 import { ReviewSheet } from '../components/ReviewSheet'
 import type { ToastEvent } from '../components/Toast'
+import { ratingDisplay } from '../lib/rating'
 
 interface BarberPost {
   id: string
@@ -37,9 +38,11 @@ interface Props {
   // Used to detect "this is MY profile" and hide Prenota / review CTAs.
   myBarberId?: string
   onToast?: (t: ToastEvent | null) => void
+  // Task 16 — open a DM thread with this barber.
+  onMessage?: (peer: { peerId: string; name: string | null; avatar: string | null; role: 'client' | 'barber' }) => void
 }
 
-export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, myBarberId, onToast }: Props) {
+export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, myBarberId, onToast, onMessage }: Props) {
   // True when the currently logged-in barber is looking at their own profile.
   // Server-side triggers already block self-booking / self-review; this is
   // the UI half of the same rule (cleaner UX than waiting for the error).
@@ -49,8 +52,44 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
   const [tab, setTab]                 = useState<'posts' | 'reviews'>('posts')
   const [reviewOpen, setReviewOpen]   = useState(false)
   const { info } = useBarberInfo(IS_DEMO ? undefined : String(barber.id), undefined)
+  // Follow target is the barber's profile id (task 3 generalized follows to profiles).
+  // Falls back to a one-shot lookup when the caller didn't propagate profileId
+  // (e.g. when entering from a post card built via postToBarber).
+  const [followeeProfileId, setFolloweeProfileId] = useState<string | undefined>(
+    barber.profileId,
+  )
+  useEffect(() => {
+    if (IS_DEMO) return
+    if (barber.profileId) { setFolloweeProfileId(barber.profileId); return }
+    let cancelled = false
+    supabase.from('barbers').select('profile_id').eq('id', barber.id).single()
+      .then(({ data }) => { if (!cancelled && data) setFolloweeProfileId(data.profile_id) })
+    return () => { cancelled = true }
+  }, [barber.id, barber.profileId])
   const { isFollowing, followersCount, toggle: toggleFollow, loading: followLoading } =
-    useFollow(userId, IS_DEMO ? undefined : String(barber.id))
+    useFollow(userId, IS_DEMO ? undefined : followeeProfileId)
+  // Task 1: when the barber is on pause, the Book CTA is disabled.
+  // Prefer the value already on `barber` (set by Discover); fall back to a fetch
+  // when entering the sheet from the feed (where the DemoBarber comes from a post).
+  const [acceptingBookings, setAcceptingBookings] = useState<boolean>(
+    barber.acceptingBookings ?? true,
+  )
+  useEffect(() => {
+    if (IS_DEMO || barber.acceptingBookings !== undefined) {
+      setAcceptingBookings(barber.acceptingBookings ?? true)
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('barbers')
+      .select('accepting_bookings')
+      .eq('id', barber.id)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled && data) setAcceptingBookings(data.accepting_bookings)
+      })
+    return () => { cancelled = true }
+  }, [barber.id, barber.acceptingBookings])
   const {
     reviews, aggregate, myReview, canReview,
     upsertReview, removeReview, effectiveUserId,
@@ -132,24 +171,48 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
             ))}
           </div>
 
-          {!isBarber && (
-            <button
-              onClick={toggleFollow}
-              disabled={followLoading}
-              style={{
-                marginTop: 14,
-                padding: '8px 24px', borderRadius: 20,
-                background: isFollowing ? C.surface : barber.accent,
-                color: isFollowing ? C.muted : '#fff',
-                border: isFollowing ? `0.5px solid ${C.borderMed}` : 'none',
-                fontSize: 13, fontWeight: 500, cursor: followLoading ? 'default' : 'pointer',
-                fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 6,
-                transition: 'background .15s, color .15s',
-              }}
-            >
-              <i className={`ti ${isFollowing ? 'ti-user-check' : 'ti-user-plus'}`} style={{ fontSize: 14 }} />
-              {isFollowing ? 'Stai seguendo' : 'Segui'}
-            </button>
+          {!isOwnProfile && (
+            <div style={{ marginTop: 14, display: 'inline-flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {!isBarber && (
+                <button
+                  onClick={toggleFollow}
+                  disabled={followLoading}
+                  style={{
+                    padding: '8px 24px', borderRadius: 20,
+                    background: isFollowing ? C.surface : barber.accent,
+                    color: isFollowing ? C.muted : '#fff',
+                    border: isFollowing ? `0.5px solid ${C.borderMed}` : 'none',
+                    fontSize: 13, fontWeight: 500, cursor: followLoading ? 'default' : 'pointer',
+                    fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 6,
+                    transition: 'background .15s, color .15s',
+                  }}
+                >
+                  <i className={`ti ${isFollowing ? 'ti-user-check' : 'ti-user-plus'}`} style={{ fontSize: 14 }} />
+                  {isFollowing ? 'Stai seguendo' : 'Segui'}
+                </button>
+              )}
+              {/* Task 16 — DM */}
+              {userId && followeeProfileId && onMessage && (
+                <button
+                  onClick={() => onMessage({
+                    peerId: followeeProfileId,
+                    name:   barber.name,
+                    avatar: null,
+                    role:   'barber',
+                  })}
+                  style={{
+                    padding: '8px 18px', borderRadius: 20,
+                    background: C.surface,
+                    color: C.text, border: `0.5px solid ${C.borderMed}`,
+                    fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                    fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  <i className="ti ti-message-circle" style={{ fontSize: 14 }} />
+                  Messaggio
+                </button>
+              )}
+            </div>
           )}
 
           {(info.shop_name || info.address || info.phone || info.social_link) && (
@@ -190,8 +253,13 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
         <div style={{ display: 'flex', borderTop: `0.5px solid ${C.border}`, borderBottom: `0.5px solid ${C.border}`, marginBottom: 2 }}>
           {([
             [followersCount !== null ? String(followersCount) : String(barber.followers), 'Follower'],
-            // Voto = real aggregate when we have reviews, otherwise the seed barber.rating
-            [aggregate.count > 0 ? aggregate.rating.toFixed(1) : barber.rating.toFixed(1), 'Voto'],
+            // Task 8 — single source of truth for the rating label. With 0 reviews
+            // we show "Nuovo" instead of falling back to the seed barber.rating
+            // (which used to surface 4.8 even for unrated barbers).
+            [ratingDisplay({
+              rating:       aggregate.count > 0 ? aggregate.rating : barber.rating,
+              reviewsCount: aggregate.count > 0 ? aggregate.count  : barber.reviewsCount,
+            }).label, 'Voto'],
             [String(posts.length),     'Post'],
           ] as [string, string][]).map(([val, label], i) => (
             <div key={label} style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderLeft: i > 0 ? `0.5px solid ${C.border}` : 'none' }}>
@@ -309,19 +377,38 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
       {/* Book button — hidden when the logged-in barber is viewing their own profile */}
       {!isOwnProfile ? (
         <div style={{ padding: '12px 16px 20px', background: C.bg, borderTop: `0.5px solid ${C.border}`, flexShrink: 0 }}>
-          <button
-            onClick={() => onBook(barber)}
-            style={{
-              width: '100%', padding: 15, borderRadius: 12,
-              background: C.text, color: C.bg,
-              fontSize: 15, fontWeight: 500, border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', gap: 8,
-            }}
-          >
-            <i className="ti ti-calendar-plus" style={{ fontSize: 18 }} />
-            Prenota con {barber.name.split(' ')[0]}
-          </button>
+          {acceptingBookings ? (
+            <button
+              onClick={() => onBook(barber)}
+              style={{
+                width: '100%', padding: 15, borderRadius: 12,
+                background: C.text, color: C.bg,
+                fontSize: 15, fontWeight: 500, border: 'none', cursor: 'pointer',
+                fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: 8,
+              }}
+            >
+              <i className="ti ti-calendar-plus" style={{ fontSize: 18 }} />
+              Prenota con {barber.name.split(' ')[0]}
+            </button>
+          ) : (
+            <button
+              disabled
+              aria-disabled
+              title="Il barbiere è in pausa"
+              style={{
+                width: '100%', padding: 15, borderRadius: 12,
+                background: C.surface, color: C.muted,
+                fontSize: 14, fontWeight: 500,
+                border: `0.5px solid ${C.borderMed}`, cursor: 'not-allowed',
+                fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: 8,
+              }}
+            >
+              <i className="ti ti-zzz" style={{ fontSize: 16 }} />
+              Non disponibile · in pausa
+            </button>
+          )}
         </div>
       ) : (
         <div style={{

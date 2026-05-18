@@ -4,9 +4,12 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
 export type BookingStatus = 'pending' | 'confirmed' | 'done' | 'cancelled'
-export type UserRole = 'client' | 'barber' | 'admin'
+// Task 9 — 'admin' is no longer a value of `profiles.role`; instead `profiles.is_admin`
+// is a separate boolean flag. The union here matches the DB CHECK constraint.
+export type UserRole = 'client' | 'barber'
 export type LogLevel = 'info' | 'warning' | 'error'
 export type ConvStatus = 'open' | 'closed'
+export type NotificationType = 'admin' | 'system' | 'booking'
 
 export type Database = {
   public: {
@@ -15,6 +18,7 @@ export type Database = {
         Row: {
           id: string
           role: UserRole
+          is_admin: boolean
           display_name: string | null
           avatar_url: string | null
           bio: string | null
@@ -25,6 +29,7 @@ export type Database = {
         Insert: {
           id: string
           role?: UserRole
+          is_admin?: boolean
           display_name?: string | null
           avatar_url?: string | null
           bio?: string | null
@@ -34,6 +39,7 @@ export type Database = {
         }
         Update: {
           role?: UserRole
+          is_admin?: boolean
           display_name?: string | null
           avatar_url?: string | null
           bio?: string | null
@@ -41,6 +47,113 @@ export type Database = {
           lng?: number | null
         }
         Relationships: []
+      }
+      conversations: {
+        Row: {
+          id: string
+          participant_a: string
+          participant_b: string
+          status: ConvStatus
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          participant_a: string
+          participant_b: string
+          status?: ConvStatus
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: ConvStatus
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'conversations_participant_a_fkey'
+            columns: ['participant_a']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'conversations_participant_b_fkey'
+            columns: ['participant_b']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      direct_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          sender_id: string
+          body: string
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          sender_id: string
+          body: string
+          read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          read_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'direct_messages_conversation_id_fkey'
+            columns: ['conversation_id']
+            isOneToOne: false
+            referencedRelation: 'conversations'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'direct_messages_sender_id_fkey'
+            columns: ['sender_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      notifications: {
+        Row: {
+          id: string
+          recipient_id: string | null
+          title: string
+          body_html: string | null
+          type: string
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          recipient_id?: string | null
+          title: string
+          body_html?: string | null
+          type?: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          is_read?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_recipient_id_fkey'
+            columns: ['recipient_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
       }
       barbers: {
         Row: {
@@ -53,6 +166,7 @@ export type Database = {
           reviews_count: number
           followers_count: number
           auto_accept: boolean
+          accepting_bookings: boolean
           phone: string | null
           address: string | null
           social_link: string | null
@@ -70,6 +184,7 @@ export type Database = {
           reviews_count?: number
           followers_count?: number
           auto_accept?: boolean
+          accepting_bookings?: boolean
           phone?: string | null
           address?: string | null
           social_link?: string | null
@@ -85,6 +200,7 @@ export type Database = {
           reviews_count?: number
           followers_count?: number
           auto_accept?: boolean
+          accepting_bookings?: boolean
           phone?: string | null
           address?: string | null
           social_link?: string | null
@@ -104,30 +220,42 @@ export type Database = {
       posts: {
         Row: {
           id: string
-          barber_id: string
+          author_id: string
+          barber_id: string | null
           image_url: string
           caption: string | null
           label: string | null
           likes_count: number
           comments_count: number
+          tagged_profile_id: string | null
           created_at: string
         }
         Insert: {
           id?: string
-          barber_id: string
+          author_id: string
+          barber_id?: string | null
           image_url: string
           caption?: string | null
           label?: string | null
           likes_count?: number
           comments_count?: number
+          tagged_profile_id?: string | null
           created_at?: string
         }
         Update: {
           image_url?: string
           caption?: string | null
           label?: string | null
+          tagged_profile_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: 'posts_author_id_fkey'
+            columns: ['author_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'posts_barber_id_fkey'
             columns: ['barber_id']
@@ -140,17 +268,17 @@ export type Database = {
       follows: {
         Row: {
           follower_id: string
-          barber_id: string
+          followee_id: string
           created_at: string
         }
         Insert: {
           follower_id: string
-          barber_id: string
+          followee_id: string
           created_at?: string
         }
         Update: {
           follower_id?: string
-          barber_id?: string
+          followee_id?: string
         }
         Relationships: [
           {
@@ -161,10 +289,10 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'follows_barber_id_fkey'
-            columns: ['barber_id']
+            foreignKeyName: 'follows_followee_id_fkey'
+            columns: ['followee_id']
             isOneToOne: false
-            referencedRelation: 'barbers'
+            referencedRelation: 'profiles'
             referencedColumns: ['id']
           }
         ]
@@ -544,6 +672,7 @@ export type Database = {
           email: string
           display_name: string
           role: string
+          is_admin: boolean
           created_at: string
         }[]
       }
@@ -572,6 +701,9 @@ export type Review       = Database['public']['Tables']['reviews']['Row']
 export type UserPost     = Database['public']['Tables']['user_posts']['Row']
 export type SupportConversation = Database['public']['Tables']['support_conversations']['Row']
 export type SupportMessage      = Database['public']['Tables']['support_messages']['Row']
+export type Notification        = Database['public']['Tables']['notifications']['Row']
+export type Conversation        = Database['public']['Tables']['conversations']['Row']
+export type DirectMessage       = Database['public']['Tables']['direct_messages']['Row']
 
 // Joined shapes used by hooks
 export type BarberWithProfile = Barber & {

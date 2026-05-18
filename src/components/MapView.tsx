@@ -192,6 +192,7 @@ export function MapView({
             initials={barber.initials}
             accent={barber.accent}
             rating={barber.rating}
+            reviewsCount={barber.reviewsCount}
             lat={lat}
             lng={lng}
             selected={selectedId === barber.id}

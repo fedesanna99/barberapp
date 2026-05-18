@@ -75,17 +75,18 @@ export function Login({ onLogin, onGoToRegister }: Props) {
       return
     }
 
-    // Check actual role stored in the profiles table
+    // Check actual role + is_admin stored in the profiles table.
+    // Task 9: admin is now `is_admin boolean`, orthogonal to role.
     let asBarber = false
     let asAdmin  = false
     if (data.user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, is_admin')
         .eq('id', data.user.id)
         .single()
       asBarber = profile?.role === 'barber'
-      asAdmin  = profile?.role === 'admin'
+      asAdmin  = profile?.is_admin === true
     }
     writeLog('auth.login', 'Accesso riuscito', 'info', { userId: data.user?.id, userEmail: email })
     setLoading(false)
@@ -332,6 +333,8 @@ function inputStyle(borderColor: string): React.CSSProperties {
   }
 }
 
+// Local UI helper for the demo role chooser. 'admin' here is just a button
+// variant, not a user role value (see task 9).
 function roleBtn(role: 'client' | 'barber' | 'admin'): React.CSSProperties {
   const outlined = role !== 'client'
   return {
