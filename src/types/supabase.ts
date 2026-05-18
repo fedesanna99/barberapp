@@ -196,6 +196,31 @@ export type Database = {
           }
         ]
       }
+      saved_posts: {
+        Row: {
+          user_id: string
+          post_id: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          post_id: string
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'saved_posts_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       availability: {
         Row: {
           id: string

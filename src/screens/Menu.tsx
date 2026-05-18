@@ -9,14 +9,14 @@ import { IS_DEMO } from '../lib/supabase'
 
 const TODAY = new Date().toISOString().split('T')[0]
 
-type MenuAction = 'appointments' | 'liked' | 'support' | 'notifications' | 'invite' | 'location'
+type MenuAction = 'appointments' | 'saved' | 'support' | 'notifications' | 'invite' | 'location'
 type MenuItem = { icon: string; label: string; badge?: string; action?: MenuAction }
 
 function buildSections(upcomingCount: number): MenuItem[][] {
   return [
     [
       { icon: 'ti-calendar', label: 'I miei appuntamenti', action: 'appointments' as const, badge: upcomingCount > 0 ? String(upcomingCount) : undefined },
-      { icon: 'ti-heart',    label: 'Post che ti piacciono', action: 'liked' as const },
+      { icon: 'ti-bookmark', label: 'Post salvati',          action: 'saved' as const },
       { icon: 'ti-bell',     label: 'Notifiche',             action: 'notifications' as const },
       { icon: 'ti-map-pin',  label: 'Impostazioni posizione', action: 'location' as const },
     ],
@@ -46,9 +46,9 @@ async function handleInvite(setToast: (m: string | null) => void) {
   }
 }
 
-export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, onAppointments, onToast, isBarber, barberId, userId }: {
+export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onAppointments, onToast, isBarber, barberId, userId }: {
   onLogout?: () => void
-  onLikedPosts?: () => void
+  onSavedPosts?: () => void
   onSupport?: () => void
   onNotifications?: () => void
   onAppointments?: () => void
@@ -115,7 +115,7 @@ export function Menu({ onLogout, onLikedPosts, onSupport, onNotifications, onApp
             <div key={label} onClick={() => {
               if (action === 'appointments' && !IS_DEMO && userId) onAppointments?.()
               if (action === 'appointments' && (IS_DEMO || !userId)) onToast?.('Disponibile dopo il login')
-              if (action === 'liked')         onLikedPosts?.()
+              if (action === 'saved')         onSavedPosts?.()
               if (action === 'support')       onSupport?.()
               if (action === 'notifications') onNotifications?.()
               if (action === 'invite')        handleInvite(msg => onToast?.(msg))

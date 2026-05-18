@@ -60,6 +60,7 @@ export default function App() {
   const [bookingBarber, setBookingBarber] = useState<DemoBarber | null>(null)
   const [profileBarber, setProfileBarber] = useState<DemoBarber | null>(null)
   const [showLikedFeed, setShowLikedFeed] = useState(false)
+  const [showSavedFeed, setShowSavedFeed] = useState(false)
   const [showSupport, setShowSupport]   = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showMyAppointments, setShowMyAppointments] = useState(false)
@@ -158,7 +159,7 @@ export default function App() {
           />
         ) : (
           <>
-            {screen === 'feed'      && <Feed     userId={userId} barberId={barberId} onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} />}
+            {screen === 'feed'      && <Feed     userId={userId} barberId={barberId} onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} showSaved={showSavedFeed} onShowSavedChange={setShowSavedFeed} />}
             {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} />}
             {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} />}
             {isBarber && (
@@ -183,7 +184,7 @@ export default function App() {
                 setScreen('feed')
                 setAuthView('login')
               }}
-              onLikedPosts={() => { setScreen('feed'); setShowLikedFeed(true) }}
+              onSavedPosts={() => { setScreen('feed'); setShowSavedFeed(true); setShowLikedFeed(false) }}
               onSupport={() => setShowSupport(true)}
               onNotifications={() => setShowNotifications(true)}
               onAppointments={() => setShowMyAppointments(true)}
@@ -232,7 +233,7 @@ export default function App() {
               return (
                 <button
                   key={id}
-                  onClick={() => { setScreen(id); setProfileBarber(null); setBookingBarber(null); setShowLikedFeed(false) }}
+                  onClick={() => { setScreen(id); setProfileBarber(null); setBookingBarber(null); setShowLikedFeed(false); setShowSavedFeed(false) }}
                   style={{
                     flex: 1, display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',

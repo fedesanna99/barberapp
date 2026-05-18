@@ -6,6 +6,7 @@ import type { DemoBarber } from '../lib/demoData'
 import { useFeed, accentFromId, initialsFromName } from '../hooks/useFeed'
 import type { FeedPost } from '../hooks/useFeed'
 import { useBarbers } from '../hooks/useBarbers'
+import { useSavedPosts } from '../hooks/useSavedPosts'
 import type { BarberWithProfile } from '../types/supabase'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { uploadPostPhoto, validateImageType } from '../hooks/useUpload'
@@ -44,6 +45,8 @@ interface FeedProps {
   isBarber?:           boolean
   showLiked?:          boolean
   onShowLikedChange?:  (v: boolean) => void
+  showSaved?:          boolean
+  onShowSavedChange?:  (v: boolean) => void
 }
 
 function postToBarber(p: FeedPost): DemoBarber {
@@ -60,7 +63,7 @@ function postToBarber(p: FeedPost): DemoBarber {
   }
 }
 
-export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLiked = false, onShowLikedChange }: FeedProps) {
+export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLiked = false, onShowLikedChange, showSaved = false, onShowSavedChange }: FeedProps) {
   const feed = useFeed(userId, barberId)
   // Stories row: real popular barbers in prod, fallback to BARBERS demo
   const { barbers: realStoryBarbers } = useBarbers('popular')
@@ -68,12 +71,11 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
     ? BARBERS
     : realStoryBarbers.slice(0, 8).map(toStoryBarber)
 
-  const [saved,        setSaved]        = useState<Record<string, boolean>>({})
+  const { savedIds, toggleSaved } = useSavedPosts(userId)
+
   const [comments,     setComments]     = useState<Comment[]>(SEED_COMMENTS)
   const [activePostId, setActivePostId] = useState<string | null>(null)
   const [showNewPost,  setShowNewPost]  = useState(false)
-
-  function toggleSave(id: string) { setSaved(s => ({ ...s, [id]: !s[id] })) }
 
   function addComment(postId: string, text: string) {
     setComments(prev => [...prev, { id: crypto.randomUUID(), postId, author: 'You', text }])
@@ -142,7 +144,11 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
     })
   }
 
-  const visiblePosts  = showLiked ? feed.posts.filter(p => feed.likedIds.has(p.id)) : feed.posts
+  const visiblePosts  = showSaved
+    ? feed.posts.filter(p => savedIds.has(p.id))
+    : showLiked
+      ? feed.posts.filter(p => feed.likedIds.has(p.id))
+      : feed.posts
   const activePost    = feed.posts.find(p => p.id === activePostId) ?? null
   const sheetComments = activePostId !== null ? comments.filter(c => c.postId === activePostId) : []
 
@@ -150,7 +156,17 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
     <div style={{ flex: 1, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {/* Top bar */}
-        {showLiked ? (
+        {showSaved ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 8px' }}>
+            <button
+              onClick={() => onShowSavedChange?.(false)}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}
+            >
+              <i className="ti ti-arrow-left" style={{ fontSize: 22, color: C.text }} />
+            </button>
+            <span style={{ fontSize: 18, fontWeight: 600, color: C.text }}>Post salvati</span>
+          </div>
+        ) : showLiked ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 8px' }}>
             <button
               onClick={() => onShowLikedChange?.(false)}
@@ -183,7 +199,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
         )}
 
         {/* Stories row (demo barbers) */}
-        {!showLiked && (
+        {!showLiked && !showSaved && (
           <div style={{ display: 'flex', gap: 12, padding: '4px 16px 14px', overflowX: 'auto' }}>
             {storyBarbers.map(b => (
               <div key={b.id} onClick={() => onViewProfile(b)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', minWidth: 58 }}>
@@ -214,10 +230,18 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
           </div>
         )}
 
+        {/* Empty saved feed */}
+        {showSaved && visiblePosts.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '48px 16px', color: C.hint, fontSize: 13 }}>
+            <i className="ti ti-bookmark" style={{ fontSize: 32, display: 'block', marginBottom: 8 }} />
+            Nessun post salvato. Tocca il segnalibro su un post per metterlo qui.
+          </div>
+        )}
+
         {/* Post list */}
         {visiblePosts.map((post, idx) => {
           const isLiked = feed.likedIds.has(post.id)
-          const isSaved = saved[post.id]
+          const isSaved = savedIds.has(post.id)
           const count   = comments.filter(c => c.postId === post.id).length
 
           return (
@@ -272,7 +296,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                   <i className="ti ti-message-circle" style={{ fontSize: 22, color: C.muted }} />
                 </button>
                 <div style={{ flex: 1 }} />
-                <button onClick={() => toggleSave(post.id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+                <button onClick={() => toggleSaved(post.id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
                   <i className={`ti ${isSaved ? 'ti-bookmark-filled' : 'ti-bookmark'}`} style={{ fontSize: 22, color: isSaved ? C.text : C.muted }} />
                 </button>
               </div>
