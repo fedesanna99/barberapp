@@ -10,6 +10,11 @@ import './index.css'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Maintenance, NotFound } from './screens/StatusPages'
+import { bootstrapTheme } from './hooks/useTheme'
+
+// Apply the persisted theme to <html> BEFORE React mounts. Otherwise the
+// first paint shows the default (light) and then flashes to dark.
+bootstrapTheme()
 
 // Hardening: refuse to boot a production build without Supabase credentials.
 // Without this guard the app would fall back to IS_DEMO=true (see
