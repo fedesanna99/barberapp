@@ -159,10 +159,10 @@ export default function App() {
     setPullRefreshing(true)
     setPullDistance(72)
     setRefreshNonce(n => n + 1)
-    setToast({ kind: 'success', title: 'Aggiornato.', message: 'I dati della schermata sono stati ricaricati.' })
     window.setTimeout(() => {
       setPullRefreshing(false)
       setPullDistance(0)
+      setToast({ kind: 'success', title: 'Aggiornato.', message: 'I dati della schermata sono stati ricaricati.' })
     }, 450)
   }
 
