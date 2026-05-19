@@ -1,11 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import 'maplibre-gl/dist/maplibre-gl.css'
-// Phosphor Icons webfont — bundled via npm so we never load from a CDN
-// (no SRI / supply-chain exposure). Only the weights we use are imported.
-import '@phosphor-icons/web/thin'
-import '@phosphor-icons/web/fill'
-import '@phosphor-icons/web/bold'
+// Pari design system: icons are inline SVGs (src/components/Icon.tsx).
+// Phosphor webfont is intentionally dropped — the design system forbids
+// CDN icon fonts.
 import './index.css'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -69,7 +67,7 @@ const m = readMaintenanceFlag()
 const isMaintenance = m.active
 // Always log: helps debug "I set VITE_MAINTENANCE=true but it doesn't work" issues.
 // eslint-disable-next-line no-console
-console.info(`[CutBook] Maintenance: ${m.active ? 'ON' : 'OFF'} (source=${m.source}, VITE_MAINTENANCE=${JSON.stringify(m.env)})`)
+console.info(`[Barberbook] Maintenance: ${m.active ? 'ON' : 'OFF'} (source=${m.source}, VITE_MAINTENANCE=${JSON.stringify(m.env)})`)
 
 // Known top-level paths the SPA actually handles. Anything else → 404.
 // We don't have a router (everything is rendered conditionally inside <App>),

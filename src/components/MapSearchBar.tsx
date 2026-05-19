@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { C } from '../lib/colors'
+import { Icon } from './Icon'
 
 interface Props {
   value:    string
@@ -33,7 +34,7 @@ export function MapSearchBar({ value, onChange, delay = 250 }: Props) {
       background: C.bg,
       boxShadow: '0 4px 14px rgba(10,10,10,0.10), 0 0 0 1px rgba(10,10,10,0.06)',
     }}>
-      <i className="ph-thin ph-magnifying-glass" style={{ fontSize: 18, color: C.muted, flexShrink: 0 }} />
+      <Icon name="search" size={18} color={C.muted} />
       <input
         value={local}
         onChange={e => setLocal(e.target.value)}
@@ -58,7 +59,7 @@ export function MapSearchBar({ value, onChange, delay = 250 }: Props) {
             cursor: 'pointer', color: C.muted, display: 'flex',
           }}
         >
-          <i className="ph-thin ph-x" style={{ fontSize: 14 }} />
+          <Icon name="close" size={14} />
         </button>
       )}
     </div>

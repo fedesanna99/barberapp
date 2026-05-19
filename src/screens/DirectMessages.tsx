@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
+import { Icon } from '../components/Icon'
 import { ListRowSkeleton } from '../components/Skeleton'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import {
@@ -80,7 +81,7 @@ function DMList({ userId, onClose, onOpenPeer }: {
     <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 50, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px 12px', flexShrink: 0, borderBottom: `1px solid ${C.border}` }}>
         <button onClick={onClose} aria-label="Indietro" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-          <i className="ph-thin ph-arrow-left" style={{ fontSize: 22, color: C.text }} />
+          <Icon name="back" size={22} color={C.text} />
         </button>
         <span style={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
           Messaggi
@@ -99,8 +100,8 @@ function DMList({ userId, onClose, onOpenPeer }: {
           alignItems: 'center', justifyContent: 'center', gap: 10,
           padding: '0 32px', textAlign: 'center',
         }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="ph-thin ph-chat-circle" style={{ fontSize: 20, color: C.hint }} />
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--clay-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="chat" size={20} color="var(--clay-deep)" />
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
             Nessuna conversazione
@@ -214,7 +215,7 @@ function DMThread({ meId, peer, onBack, onClose, onToast }: {
         padding: '12px 16px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
       }}>
         <button onClick={onBack} aria-label="Indietro" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-          <i className="ph-thin ph-arrow-left" style={{ fontSize: 20, color: C.muted }} />
+          <Icon name="back" size={20} color={C.muted} />
         </button>
         <Avatar initials={initials(peer.displayName)} size={36} photo={peer.avatarUrl ?? null} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -243,19 +244,19 @@ function DMThread({ meId, peer, onBack, onClose, onToast }: {
           </button>
         )}
         <button onClick={onClose} aria-label="Chiudi" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-          <i className="ph-thin ph-x" style={{ fontSize: 20, color: C.muted }} />
+          <Icon name="close" size={20} color={C.muted} />
         </button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {!loaded || loading ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="ph-thin ph-spinner-gap" style={{ fontSize: 24, color: C.muted, animation: 'spin .8s linear infinite' }} />
+            <Icon name="refresh" size={24} color={C.muted} style={{ animation: 'spin .8s linear infinite' }} />
           </div>
         ) : messages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 32px', color: C.muted, fontSize: 13.5, lineHeight: 1.55 }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-              <i className="ph-thin ph-chat-circle" style={{ fontSize: 20, color: C.hint }} />
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--clay-soft)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+              <Icon name="chat" size={20} color="var(--clay-deep)" />
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, letterSpacing: '-0.015em', color: C.text, marginBottom: 6 }}>
               Nessun messaggio.
@@ -271,13 +272,13 @@ function DMThread({ meId, peer, onBack, onClose, onToast }: {
                 <div style={{
                   maxWidth: '78%', padding: '9px 13px',
                   borderRadius: mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                  background: mine ? C.text : C.surface,
+                  background: mine ? 'var(--clay)' : C.surface,
                   border: mine ? 'none' : `1px solid ${C.border}`,
                 }}>
-                  <div style={{ fontSize: 13.5, color: mine ? C.bg : C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  <div style={{ fontSize: 13.5, color: mine ? 'var(--paper-3)' : C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {m.body}
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: mine ? 'rgba(255,255,255,0.6)' : C.hint, marginTop: 4, textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: mine ? 'rgba(252,250,245,0.7)' : C.hint, marginTop: 4, textAlign: 'right' }}>
                     {time}
                   </div>
                 </div>
@@ -325,15 +326,15 @@ function DMThread({ meId, peer, onBack, onClose, onToast }: {
           aria-label="Invia"
           style={{
             width: 36, height: 36, borderRadius: '50%',
-            background: text.trim() ? C.text : C.surface,
+            background: text.trim() ? 'var(--clay)' : C.surface,
             border: 'none', cursor: text.trim() ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, transition: 'background 120ms var(--ease)',
           }}
         >
           {sending
-            ? <i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, color: C.bg, animation: 'spin .8s linear infinite' }} />
-            : <i className="ph-thin ph-paper-plane-tilt" style={{ fontSize: 16, color: text.trim() ? C.bg : C.hint }} />
+            ? <Icon name="refresh" size={16} color="var(--paper-3)" style={{ animation: 'spin .8s linear infinite' }} />
+            : <Icon name="send" size={16} color={text.trim() ? 'var(--paper-3)' : C.hint} />
           }
         </button>
       </div>

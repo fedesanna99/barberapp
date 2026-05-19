@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
+import { Icon } from './Icon'
 
 interface Props {
   value:        number
@@ -12,9 +13,8 @@ interface Props {
 }
 
 /**
- * 1–5 star control — Phosphor `ph-star`. Interactive when `onChange` is
- * provided; otherwise read-only with half-star precision via a clip overlay.
- * The active star uses coral by default (the single accent in the system).
+ * 1–5 star control with half-star precision (clip overlay).
+ * Active star uses the clay accent by default.
  */
 export function StarRating({
   value,
@@ -60,7 +60,7 @@ export function StarRating({
               lineHeight: 1,
             }}
           >
-            <i className="ph-thin ph-star" style={{ fontSize: size, color: outline, position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+            <Icon name="star" size={size} color={outline} style={{ position: 'absolute', inset: 0, margin: 'auto' }} />
             {fill > 0 && (
               <span
                 style={{
@@ -75,19 +75,7 @@ export function StarRating({
                   justifyContent: 'flex-start',
                 }}
               >
-                <i
-                  className="ph-fill ph-star"
-                  style={{
-                    fontSize: size,
-                    color,
-                    width: size,
-                    height: size,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                />
+                <Icon name="star" size={size} color={color} weight="fill" />
               </span>
             )}
           </button>

@@ -36,7 +36,7 @@ function apply(resolved: ResolvedTheme): void {
   else                     root.classList.remove('dark')
   // Sync the browser meta theme-color so status bars / chrome match.
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-  if (meta) meta.content = resolved === 'dark' ? '#0E0E10' : '#FFFFFF'
+  if (meta) meta.content = resolved === 'dark' ? '#14110D' : '#FCFAF5'
 }
 
 export function useTheme() {

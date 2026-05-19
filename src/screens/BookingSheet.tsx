@@ -6,6 +6,7 @@ import { useAvailability } from '../hooks/useAvailability'
 import { useBarberDefaults } from '../hooks/useBarberDefaults'
 import { IS_DEMO } from '../lib/supabase'
 import { ratingDisplay } from '../lib/rating'
+import { Icon } from '../components/Icon'
 
 interface BookingSheetProps {
   barber:    DemoBarber
@@ -56,19 +57,19 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                   con {barber.name}
                 </h2>
                 <div style={{ fontSize: 12.5, color: C.muted, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <i className="ph-thin ph-map-pin" style={{ fontSize: 14, color: C.accent }} />
+                  <Icon name="pin" size={14} color={C.accent} />
                   {barber.city}
                   {rd.hasReviews && (
                     <>
                       <span style={{ color: C.borderMed }}>·</span>
-                      <i className="ph-fill ph-star" style={{ fontSize: 12, color: C.accent }} />
+                      <Icon name="star" size={12} color={C.accent} weight="fill" />
                       <span style={{ fontWeight: 600, color: C.text }}>{rd.label}</span>
                     </>
                   )}
                 </div>
               </div>
               <button onClick={onClose} aria-label="Chiudi" style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: C.muted }}>
-                <i className="ph-thin ph-x" style={{ fontSize: 20 }} />
+                <Icon name="close" size={20} />
               </button>
             </div>
 
@@ -79,7 +80,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
               display: 'flex', alignItems: 'center', gap: 12,
             }}>
               <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <i className="ph-thin ph-scissors" style={{ fontSize: 20, color: C.accentDeep }} />
+                <Icon name="scissors" size={20} color={C.accentDeep} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{service}</div>
@@ -104,9 +105,9 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                     style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center',
                       padding: '10px 14px', minWidth: 56, cursor: 'pointer',
-                      background: sel ? C.text : C.surface,
-                      color:      sel ? C.bg   : C.text,
-                      border: `1px solid ${sel ? C.text : C.border}`,
+                      background: sel ? 'var(--clay)' : C.surface,
+                      color:      sel ? 'var(--paper-3)' : C.text,
+                      border: `1px solid ${sel ? 'var(--clay)' : C.border}`,
                       borderRadius: 'var(--r-md)', flexShrink: 0,
                       transition: 'all 120ms var(--ease)', fontFamily: 'inherit',
                     }}
@@ -138,8 +139,8 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                   ))}
                 </div>
               ) : effectiveSlots.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '24px 0', color: C.muted, fontSize: 13 }}>
-                  <i className="ph-thin ph-calendar-x" style={{ fontSize: 28, display: 'block', marginBottom: 8, color: C.hint }} />
+                <div style={{ textAlign: 'center', padding: '24px 0', color: C.muted, fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                  <Icon name="calendar" size={28} color={C.hint} />
                   Nessuna disponibilità per questo giorno
                 </div>
               ) : (
@@ -155,9 +156,9 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                         style={{
                           padding: '14px 0', minHeight: 44, textAlign: 'center',
                           fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 500,
-                          border: `1px solid ${sel ? C.text : C.border}`,
-                          background: sel ? C.text : C.surface,
-                          color: sel ? C.bg : taken ? C.hint : C.text,
+                          border: `1px solid ${sel ? 'var(--clay)' : C.border}`,
+                          background: sel ? 'var(--clay)' : C.surface,
+                          color: sel ? 'var(--paper-3)' : taken ? C.hint : C.text,
                           textDecoration: taken ? 'line-through' : 'none',
                           borderRadius: 'var(--r-md)', cursor: taken ? 'not-allowed' : 'pointer',
                           transition: 'all 120ms var(--ease)',
@@ -178,9 +179,9 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                 disabled={selTime === null}
                 style={{
                   width: '100%', padding: '14px 20px', borderRadius: 'var(--r-md)',
-                  background:  selTime !== null ? C.text : C.surface,
-                  color:       selTime !== null ? C.bg : C.hint,
-                  border: `1px solid ${selTime !== null ? C.text : C.border}`,
+                  background:  selTime !== null ? 'var(--ink)' : C.surface,
+                  color:       selTime !== null ? 'var(--paper-3)' : C.hint,
+                  border: `1px solid ${selTime !== null ? 'var(--ink)' : C.border}`,
                   fontSize: 14.5, fontWeight: 500,
                   cursor: selTime !== null ? 'pointer' : 'not-allowed',
                   fontFamily: 'inherit',
@@ -195,12 +196,12 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
             <div style={{ padding: '0 20px 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <button onClick={() => setStep('datetime')} aria-label="Indietro"
                 style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: C.muted, display: 'flex' }}>
-                <i className="ph-thin ph-arrow-left" style={{ fontSize: 20 }} />
+                <Icon name="back" size={20} />
               </button>
               <div style={{ flex: 1, fontSize: 12, color: C.muted, fontWeight: 500 }}>Conferma</div>
               <button onClick={onClose} aria-label="Chiudi"
                 style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: C.muted, display: 'flex' }}>
-                <i className="ph-thin ph-x" style={{ fontSize: 20 }} />
+                <Icon name="close" size={20} />
               </button>
             </div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 24, letterSpacing: '-0.025em', margin: '10px 20px 4px', color: C.text }}>
@@ -245,8 +246,8 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                 onClick={() => onConfirm(barber, dates[selDate], selTime!)}
                 style={{
                   width: '100%', padding: '14px 20px', borderRadius: 'var(--r-md)',
-                  background: C.accent, color: C.bg,
-                  border: `1px solid ${C.accent}`,
+                  background: 'var(--clay)', color: 'var(--paper-3)',
+                  border: '1px solid var(--clay)',
                   fontSize: 14.5, fontWeight: 500,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}

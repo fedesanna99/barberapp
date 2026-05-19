@@ -1,5 +1,6 @@
 import { C } from '../lib/colors'
 import { Avatar } from './Avatar'
+import { Icon } from './Icon'
 import { formatKm } from '../lib/geo'
 import type { DemoBarber } from '../lib/demoData'
 import type { SortMode } from '../hooks/useBarbers'
@@ -36,10 +37,10 @@ export function BarberList({ barbers, loading, sort, onSort, onBook, onView, myB
               onClick={() => onSort(s.id)}
               style={{
                 padding: '7px 14px', borderRadius: 'var(--r-pill)',
-                border: active ? `1px solid ${C.text}` : `1px solid ${C.border}`,
+                border: active ? '1px solid var(--clay)' : `1px solid ${C.border}`,
                 fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap',
-                background: active ? C.text : C.surface,
-                color:      active ? C.bg   : C.muted,
+                background: active ? 'var(--clay)' : C.surface,
+                color:      active ? 'var(--paper-3)' : C.muted,
                 fontWeight: 500, fontFamily: 'inherit',
                 transition: 'all 120ms var(--ease)',
               }}
@@ -60,8 +61,8 @@ export function BarberList({ barbers, loading, sort, onSort, onBook, onView, myB
 
       {!loading && barbers.length === 0 && (
         <div style={{ padding: '48px 28px', textAlign: 'center' }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-            <i className="ph-thin ph-magnifying-glass" style={{ fontSize: 20, color: C.hint }} />
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--clay-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+            <Icon name="search" size={20} color="var(--clay-deep)" />
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em', color: C.text }}>
             Nessun barbiere
@@ -109,7 +110,7 @@ export function BarberList({ barbers, loading, sort, onSort, onBook, onView, myB
                     {barber.city}{barber.dist > 0 ? ` · ${formatKm(barber.dist)}` : ''}
                   </div>
                   <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.muted }}>
-                    <i className={`${rd.hasReviews ? 'ph-fill' : 'ph-thin'} ph-star`} style={{ fontSize: 12, color: rd.hasReviews ? C.accent : C.hint }} />
+                    <Icon name="star" size={12} color={rd.hasReviews ? C.accent : C.hint} weight={rd.hasReviews ? 'fill' : 'regular'} />
                     <span style={{ fontWeight: 600, color: C.text }}>{rd.label}</span>
                     {barber.tags.length > 0 && (
                       <>

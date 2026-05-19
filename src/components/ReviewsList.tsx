@@ -1,6 +1,7 @@
 import { C } from '../lib/colors'
 import { Avatar } from './Avatar'
 import { StarRating } from './StarRating'
+import { Icon } from './Icon'
 import type { ReviewRow } from '../hooks/useReviews'
 
 interface Props {
@@ -37,8 +38,8 @@ export function ReviewsList({ reviews, aggregate, myUserId, onEditMine }: Props)
         padding: '40px 24px', textAlign: 'center',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
       }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <i className="ph-thin ph-star" style={{ fontSize: 20, color: C.hint }} />
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--clay-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="star" size={20} color="var(--clay-deep)" />
         </div>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 16, color: C.text, letterSpacing: '-0.015em' }}>
           Nessuna recensione

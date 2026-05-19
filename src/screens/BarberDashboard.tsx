@@ -13,6 +13,7 @@ import { useAvailabilitySettings } from '../hooks/useAvailabilitySettings'
 import { useAutoAccept } from '../hooks/useAutoAccept'
 import { useBarberVacation } from '../hooks/useBarberVacation'
 import { useBarberInfo } from '../hooks/useBarberInfo'
+import { Icon } from '../components/Icon'
 import type { ToastEvent } from '../components/Toast'
 
 type DashTab = 'bookings' | 'availability'
@@ -68,7 +69,7 @@ export function BarberDashboard({ barberId, userId, onToast }: {
         </span>
         {barberId && !IS_DEMO && (
           <button onClick={() => setShowEditInfo(true)} aria-label="Impostazioni salone" style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex' }}>
-            <i className="ph-thin ph-gear" style={{ fontSize: 22, color: C.muted }} />
+            <Icon name="settings" size={22} color={C.muted} />
           </button>
         )}
       </div>
@@ -559,7 +560,7 @@ function DayRow({
                   alignItems: 'center', justifyContent: 'center', padding: 0,
                 }}
               >
-                <i className="ph-thin ph-plus" style={{ fontSize: 12 }} />
+                <Icon name="plus" size={12} />
               </button>
             )}
             {dirty && (
@@ -599,7 +600,7 @@ function DayRow({
               fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 4,
             }}
           >
-            <i className="ph-thin ph-x" style={{ fontSize: 11 }} />
+            <Icon name="close" size={11} />
             Pausa
           </button>
           <input type="time" value={bStart} onChange={e => setBStart(e.target.value)} style={timeInputStyle} />

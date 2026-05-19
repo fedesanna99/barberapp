@@ -7,30 +7,31 @@ import { useTheme, type ThemePref } from '../hooks/useTheme'
 import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
 import { LocationSettingsSheet } from '../components/LocationSettingsSheet'
 import { Avatar } from '../components/Avatar'
+import { Icon, type IconName } from '../components/Icon'
 import { IS_DEMO } from '../lib/supabase'
 import type { ToastEvent } from '../components/Toast'
 
 const TODAY = new Date().toISOString().split('T')[0]
 
 type MenuAction = 'appointments' | 'saved' | 'support' | 'notifications' | 'invite' | 'location' | 'messages'
-type MenuItem = { icon: string; label: string; badge?: string; action?: MenuAction }
+type MenuItem = { icon: IconName; label: string; badge?: string; action?: MenuAction }
 
 function buildItems(upcomingCount: number): MenuItem[] {
   return [
-    { icon: 'ph-thin ph-calendar',          label: 'I miei appuntamenti', action: 'appointments', badge: upcomingCount > 0 ? String(upcomingCount) : undefined },
-    { icon: 'ph-thin ph-chat-circle',       label: 'Messaggi',             action: 'messages' },
-    { icon: 'ph-thin ph-bookmark-simple',   label: 'Post salvati',         action: 'saved' },
-    { icon: 'ph-thin ph-bell',              label: 'Notifiche',            action: 'notifications' },
-    { icon: 'ph-thin ph-map-pin',           label: 'Posizione',            action: 'location' },
-    { icon: 'ph-thin ph-share-network',     label: 'Invita un amico',      action: 'invite' },
-    { icon: 'ph-thin ph-question',          label: 'Aiuto e supporto',     action: 'support' },
+    { icon: 'calendar', label: 'I miei appuntamenti', action: 'appointments', badge: upcomingCount > 0 ? String(upcomingCount) : undefined },
+    { icon: 'chat',     label: 'Messaggi',            action: 'messages' },
+    { icon: 'bookmark', label: 'Post salvati',        action: 'saved' },
+    { icon: 'bell',     label: 'Notifiche',           action: 'notifications' },
+    { icon: 'pin',      label: 'Posizione',           action: 'location' },
+    { icon: 'share',    label: 'Invita un amico',     action: 'invite' },
+    { icon: 'help',     label: 'Aiuto e supporto',    action: 'support' },
   ]
 }
 
 async function handleInvite(setToast: (t: ToastEvent) => void) {
   const url   = window.location.origin
-  const title = 'CutBook'
-  const text  = 'Prenota il tuo prossimo taglio con CutBook'
+  const title = 'Barberbook'
+  const text  = 'Prenota il tuo prossimo taglio con Barberbook'
   if (navigator.share) {
     try { await navigator.share({ title, text, url }) } catch { /* user cancelled */ }
     return
@@ -56,10 +57,10 @@ interface Props {
   userId?:          string
 }
 
-const THEME_OPTIONS: { id: ThemePref; label: string; icon: string }[] = [
-  { id: 'light',  label: 'Chiaro', icon: 'ph-sun' },
-  { id: 'dark',   label: 'Scuro',  icon: 'ph-moon' },
-  { id: 'system', label: 'Auto',   icon: 'ph-desktop' },
+const THEME_OPTIONS: { id: ThemePref; label: string; icon: IconName }[] = [
+  { id: 'light',  label: 'Chiaro', icon: 'sun'      },
+  { id: 'dark',   label: 'Scuro',  icon: 'moon'     },
+  { id: 'system', label: 'Auto',   icon: 'settings' },
 ]
 
 export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onAppointments, onMessages, onToast, isBarber, barberId, userId }: Props) {
@@ -138,19 +139,19 @@ export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onApp
                 padding: '16px 20px', cursor: 'pointer',
               }}
             >
-              <i className={icon} style={{ fontSize: 22, color: C.muted, width: 24 }} />
+              <Icon name={icon} size={22} color={C.muted} style={{ width: 24 }} />
               <span style={{ flex: 1, fontSize: 14.5, color: C.text }}>{label}</span>
               {badge && (
                 <span style={{
                   minWidth: 22, height: 20, padding: '0 7px',
-                  borderRadius: 9999, background: C.accent, color: C.bg,
+                  borderRadius: 9999, background: 'var(--clay)', color: 'var(--paper-3)',
                   fontSize: 11, fontWeight: 600,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {badge}
                 </span>
               )}
-              <i className="ph-thin ph-caret-right" style={{ fontSize: 16, color: C.hint }} />
+              <Icon name="caret" size={16} color={C.hint} />
             </div>
             {i < items.length - 1 && <div style={{ height: 1, background: C.border, marginLeft: 20 }} />}
           </div>
@@ -178,14 +179,14 @@ export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onApp
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   padding: '10px 0', minHeight: 44,
                   border: 'none', borderRadius: 'var(--r-sm)',
-                  background: active ? C.text : 'transparent',
-                  color:      active ? C.bg   : C.muted,
+                  background: active ? 'var(--clay)' : 'transparent',
+                  color:      active ? 'var(--paper-3)' : C.muted,
                   fontSize: 12.5, fontWeight: 500, fontFamily: 'inherit',
                   cursor: 'pointer',
                   transition: 'background 120ms var(--ease), color 120ms var(--ease)',
                 }}
               >
-                <i className={`${active ? 'ph-fill' : 'ph-thin'} ${opt.icon}`} style={{ fontSize: 14 }} />
+                <Icon name={opt.icon} size={14} weight={active ? 'fill' : 'regular'} />
                 {opt.label}
               </button>
             )
@@ -200,7 +201,7 @@ export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onApp
             width: '100%', padding: '12px 0',
             borderRadius: 'var(--r-md)',
             border: `1px solid ${C.red}`,
-            background: C.bg, color: C.red,
+            background: 'transparent', color: C.red,
             fontSize: 14, fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
@@ -210,7 +211,7 @@ export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onApp
       </div>
 
       <div style={{ textAlign: 'center', padding: '16px 20px 24px', fontSize: 11, color: C.hint }}>
-        CutBook · v1.0
+        Barberbook · v1.0
       </div>
 
       {showEdit && (

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
+import { Icon } from '../components/Icon'
 import { EditProfileSheet } from '../components/EditProfileSheet'
 import { PostMedia } from '../components/PostMedia'
 import { BARBERS, POSTS, CUT_LOG, UPCOMING as DEMO_UPCOMING } from '../lib/demoData'
@@ -206,12 +207,12 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           {!isBarber && (
             <button onClick={() => !uploading && setShowNewUserPost(true)} aria-label="Nuovo post" style={iconBtn()}>
-              <i className="ph-thin ph-camera-plus" style={{ fontSize: 22, color: C.muted }} />
+              <Icon name="plus" size={22} color={C.muted} />
             </button>
           )}
           {!isDemo && (
             <button onClick={() => setShowEditProfile(true)} aria-label="Impostazioni profilo" style={iconBtn()}>
-              <i className="ph-thin ph-gear" style={{ fontSize: 22, color: C.muted }} />
+              <Icon name="settings" size={22} color={C.muted} />
             </button>
           )}
         </div>
@@ -231,7 +232,7 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
               background: C.text, border: `2px solid ${C.bg}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <i className="ph-thin ph-camera" style={{ fontSize: 11, color: C.bg }} />
+              <Icon name="image" size={11} color={C.bg} />
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -284,13 +285,13 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
         <div style={{ margin: '0 20px 16px', padding: '12px 14px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 'var(--r-md)' }}>
           {barberInfo.shop_name && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.text, marginBottom: 4 }}>
-              <i className="ph-thin ph-storefront" style={{ fontSize: 14, color: C.muted }} />
+              <Icon name="shop" size={14} color={C.muted} />
               <span style={{ fontWeight: 600 }}>{barberInfo.shop_name}</span>
             </div>
           )}
           {barberInfo.address && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: C.muted, marginBottom: 4 }}>
-              <i className="ph-thin ph-map-pin" style={{ fontSize: 14 }} />
+              <Icon name="pin" size={14} />
               <span>{barberInfo.address}</span>
             </div>
           )}
@@ -298,7 +299,7 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
             <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
               {barberInfo.phone && (
                 <a href={`tel:${barberInfo.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: C.accent, textDecoration: 'none' }}>
-                  <i className="ph-thin ph-phone" style={{ fontSize: 14 }} />
+                  <Icon name="phone" size={14} />
                   <span>{barberInfo.phone}</span>
                 </a>
               )}
@@ -447,7 +448,7 @@ function UserPostGrid({ posts, onPostClick }: { posts: UserPost[]; onPostClick: 
     return (
       <div style={{ gridColumn: '1 / -1', padding: '48px 28px', textAlign: 'center' }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-          <i className="ph-thin ph-camera-plus" style={{ fontSize: 20, color: C.hint }} />
+          <Icon name="plus" size={20} color={C.hint} />
         </div>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 16, letterSpacing: '-0.015em', color: C.text }}>
           Nessun post
@@ -496,7 +497,7 @@ function GridCell({ src, label, onClick }: { src?: string | null; label?: string
     }}>
       {src
         ? <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        : <i className="ph-thin ph-scissors" style={{ fontSize: 26, color: C.hint }} />
+        : <Icon name="scissors" size={26} color={C.hint} />
       }
       {label && (
         <div style={{
@@ -596,7 +597,7 @@ function ProfilePostsFeed({ posts, startIdx, authorName, title = 'I miei post', 
     <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 10, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px 12px', flexShrink: 0, borderBottom: `1px solid ${C.border}` }}>
         <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-          <i className="ph-thin ph-arrow-left" style={{ fontSize: 22, color: C.text }} />
+          <Icon name="back" size={22} color={C.text} />
         </button>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>{title}</span>
       </div>
@@ -692,7 +693,7 @@ function NewUserPostSheet({
             Nuovo taglio
           </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
+            <Icon name="close" size={18} color={C.muted} />
           </button>
         </div>
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFile} style={{ display: 'none' }} />
@@ -708,13 +709,13 @@ function NewUserPostSheet({
             <>
               <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,10,10,0.45)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                <i className="ph-thin ph-camera" style={{ fontSize: 22, color: C.bg }} />
+                <Icon name="image" size={22} color={C.bg} />
                 <span style={{ fontSize: 12, color: C.bg }}>Tocca per cambiare</span>
               </div>
             </>
           ) : (
             <>
-              <i className="ph-thin ph-camera-plus" style={{ fontSize: 28, color: C.hint }} />
+              <Icon name="plus" size={28} color={C.hint} />
               <span style={{ fontSize: 12.5, color: C.muted }}>
                 {IS_DEMO ? 'Tocca per aggiungere una foto' : 'Tocca per aggiungere una foto (richiesta)'}
               </span>
@@ -753,7 +754,7 @@ function NewUserPostSheet({
             }}
           >
             {loading
-              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Pubblicazione…</>
+              ? <><Icon name="refresh" size={16} style={{ animation: 'spin .8s linear infinite' }} /> Pubblicazione…</>
               : 'Pubblica'}
           </button>
         </div>

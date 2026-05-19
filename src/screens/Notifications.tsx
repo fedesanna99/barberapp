@@ -1,4 +1,5 @@
 import { C } from '../lib/colors'
+import { Icon } from '../components/Icon'
 import { useNotifications } from '../hooks/useNotifications'
 import { sanitizeNotificationHtml } from '../lib/sanitizeHtml'
 import { ListRowSkeleton } from '../components/Skeleton'
@@ -26,7 +27,7 @@ export function Notifications({ userId, onClose }: Props) {
     <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 50, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px 12px', flexShrink: 0, borderBottom: `1px solid ${C.border}` }}>
         <button onClick={onClose} aria-label="Indietro" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-          <i className="ph-thin ph-arrow-left" style={{ fontSize: 22, color: C.text }} />
+          <Icon name="back" size={22} color={C.text} />
         </button>
         <span style={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
           Notifiche
@@ -56,8 +57,8 @@ export function Notifications({ userId, onClose }: Props) {
           alignItems: 'center', justifyContent: 'center', gap: 10,
           padding: '0 32px', textAlign: 'center',
         }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="ph-thin ph-bell" style={{ fontSize: 20, color: C.hint }} />
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--clay-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="bell" size={20} color="var(--clay-deep)" />
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
             Nessuna notifica
@@ -97,7 +98,7 @@ function NotificationRow({ item, onMarkRead }: { item: Notification; onMarkRead:
         color:      isBroadcast ? C.muted : C.accentDeep,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
-        <i className={`ph-thin ${isBroadcast ? 'ph-megaphone' : 'ph-bell'}`} style={{ fontSize: 18 }} />
+        <Icon name={isBroadcast ? 'send' : 'bell'} size={18} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>

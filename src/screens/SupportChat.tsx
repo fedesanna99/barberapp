@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { C } from '../lib/colors'
+import { Icon } from '../components/Icon'
 import { useSupportChat } from '../hooks/useSupportChat'
 import type { SupportMessage } from '../types/supabase'
 
@@ -60,11 +61,11 @@ export function SupportChat({ userId, onClose }: Props) {
             background: C.accentLight,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <i className="ph-thin ph-headset" style={{ fontSize: 18, color: C.accentDeep }} />
+            <Icon name="chat" size={18} color={C.accentDeep} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
-              Supporto CutBook
+              Supporto Barberbook
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.green }} />
@@ -72,7 +73,7 @@ export function SupportChat({ userId, onClose }: Props) {
             </div>
           </div>
           <button onClick={onClose} aria-label="Chiudi" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ph-thin ph-x" style={{ fontSize: 20, color: C.muted }} />
+            <Icon name="close" size={20} color={C.muted} />
           </button>
         </div>
 
@@ -83,7 +84,7 @@ export function SupportChat({ userId, onClose }: Props) {
         }}>
           {loading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <i className="ph-thin ph-spinner-gap" style={{ fontSize: 26, color: C.muted, animation: 'spin .8s linear infinite' }} />
+              <Icon name="refresh" size={26} color={C.muted} style={{ animation: 'spin .8s linear infinite' }} />
             </div>
           ) : messages.length === 0 ? (
             <div style={{
@@ -91,8 +92,8 @@ export function SupportChat({ userId, onClose }: Props) {
               alignItems: 'center', justifyContent: 'center',
               gap: 10, textAlign: 'center', padding: '40px 28px',
             }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <i className="ph-thin ph-chat-circle" style={{ fontSize: 20, color: C.hint }} />
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--clay-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="chat" size={20} color="var(--clay-deep)" />
               </div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
                 Come possiamo aiutarti?
@@ -140,7 +141,7 @@ export function SupportChat({ userId, onClose }: Props) {
             aria-label="Invia"
             style={{
               width: 38, height: 38, borderRadius: '50%',
-              background: text.trim() ? C.text : C.surface,
+              background: text.trim() ? 'var(--clay)' : C.surface,
               border: 'none',
               cursor: text.trim() ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -148,8 +149,8 @@ export function SupportChat({ userId, onClose }: Props) {
             }}
           >
             {sending
-              ? <i className="ph-thin ph-spinner-gap" style={{ fontSize: 18, color: C.bg, animation: 'spin .8s linear infinite' }} />
-              : <i className="ph-thin ph-paper-plane-tilt" style={{ fontSize: 18, color: text.trim() ? C.bg : C.hint }} />
+              ? <Icon name="refresh" size={18} color="var(--paper-3)" style={{ animation: 'spin .8s linear infinite' }} />
+              : <Icon name="send" size={18} color={text.trim() ? 'var(--paper-3)' : C.hint} />
             }
           </button>
         </div>
@@ -166,7 +167,7 @@ function Bubble({ msg, isOwn }: { msg: SupportMessage; isOwn: boolean }) {
         maxWidth: '78%',
         padding: '9px 13px',
         borderRadius: isOwn ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-        background: isOwn ? C.text : C.surface,
+        background: isOwn ? 'var(--clay)' : C.surface,
         border: isOwn ? 'none' : `1px solid ${C.border}`,
       }}>
         {!isOwn && (
@@ -175,14 +176,14 @@ function Bubble({ msg, isOwn }: { msg: SupportMessage; isOwn: boolean }) {
           </div>
         )}
         <div style={{
-          fontSize: 14, color: isOwn ? C.bg : C.text,
+          fontSize: 14, color: isOwn ? 'var(--paper-3)' : C.text,
           lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
         }}>
           {msg.content}
         </div>
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: 10,
-          color: isOwn ? 'rgba(255,255,255,0.6)' : C.hint,
+          color: isOwn ? 'rgba(252,250,245,0.7)' : C.hint,
           marginTop: 4, textAlign: 'right',
         }}>
           {time}

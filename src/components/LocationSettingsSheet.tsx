@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
+import { Icon } from './Icon'
 
 interface Props {
   initialLat: number | null
@@ -70,7 +71,7 @@ export function LocationSettingsSheet({ initialLat, initialLng, onSave, onClose 
             Posizione
           </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
+            <Icon name="close" size={18} color={C.muted} />
           </button>
         </div>
 
@@ -106,8 +107,8 @@ export function LocationSettingsSheet({ initialLat, initialLng, onSave, onClose 
             }}
           >
             {loading
-              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Rilevamento…</>
-              : <><i className="ph-thin ph-crosshair-simple" style={{ fontSize: 16 }} /> Usa la mia posizione attuale</>
+              ? <><Icon name="refresh" size={16} style={{ animation: 'spin .8s linear infinite' }} /> Rilevamento…</>
+              : <><Icon name="pin" size={16} /> Usa la mia posizione attuale</>
             }
           </button>
 
@@ -133,9 +134,9 @@ export function LocationSettingsSheet({ initialLat, initialLng, onSave, onClose 
             disabled={saving || (lat === initialLat && lng === initialLng)}
             style={{
               padding: 13, borderRadius: 'var(--r-md)',
-              background: (saving || (lat === initialLat && lng === initialLng)) ? C.surface : C.text,
-              color:      (saving || (lat === initialLat && lng === initialLng)) ? C.muted : C.bg,
-              border: `1px solid ${(saving || (lat === initialLat && lng === initialLng)) ? C.border : C.text}`,
+              background: (saving || (lat === initialLat && lng === initialLng)) ? C.surface : 'var(--clay)',
+              color:      (saving || (lat === initialLat && lng === initialLng)) ? C.muted : 'var(--paper-3)',
+              border: `1px solid ${(saving || (lat === initialLat && lng === initialLng)) ? C.border : 'var(--clay)'}`,
               fontSize: 14, fontWeight: 500,
               cursor: (saving || (lat === initialLat && lng === initialLng)) ? 'default' : 'pointer',
               fontFamily: 'inherit',
@@ -143,7 +144,7 @@ export function LocationSettingsSheet({ initialLat, initialLng, onSave, onClose 
             }}
           >
             {saving
-              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
+              ? <><Icon name="refresh" size={16} style={{ animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
               : 'Salva'}
           </button>
         </div>

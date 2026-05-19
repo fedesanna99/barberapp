@@ -1,9 +1,10 @@
 /* ============================================================
-   CutBook · Modern Minimal design system
-   White surfaces, near-black ink, one coral accent, one sans.
+   Barberbook · Pari design system (seppia · warm neutral · clay)
+   Source of truth: design_handoff_pari/colors_and_type.css
+   Theme is toggled with class "dark" on <html> (see useTheme.ts).
    ============================================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap");
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -11,120 +12,176 @@
 }
 
 :root {
-  /* ---- Surfaces ---- */
-  --carta:            #FFFFFF;
-  --carta-2:          #FAFAFA;
-  --carta-3:          #F5F5F5;
+  /* ---- SURFACES ---- */
+  --paper-3:          #FCFAF5;
+  --paper-2:          #F9F6EF;
+  --paper:            #F4F0E8;
+  --linen:            #EDE9E1;
+  --linen-2:          #E4DFD5;
 
-  /* ---- Ink ---- */
-  --inchiostro:       #0A0A0A;
-  --inchiostro-80:    rgba(10, 10, 10, 0.86);
-  --inchiostro-60:    rgba(10, 10, 10, 0.58);
-  --inchiostro-40:    rgba(10, 10, 10, 0.42);
-  --inchiostro-20:    rgba(10, 10, 10, 0.18);
-  --inchiostro-12:    rgba(10, 10, 10, 0.10);
-  --inchiostro-04:    rgba(10, 10, 10, 0.04);
+  --bg:               var(--paper-3);
+  --bg-2:             var(--paper-2);
+  --surface:          var(--paper);
+  --surface-deep:     var(--linen);
 
-  /* ---- Accent: warm coral. One pop in an otherwise quiet UI. ---- */
-  --ottone:           #FF5C39;
-  --ottone-deep:      #E63E1B;
-  --ottone-soft:      #FFE7E0;
+  /* ---- INK ---- */
+  --ink:              #46413B;
+  --ink-80:           rgba(70, 65, 59, 0.80);
+  --ink-60:           rgba(70, 65, 59, 0.58);
+  --ink-50:           rgba(70, 65, 59, 0.46);
+  --ink-40:           rgba(70, 65, 59, 0.36);
+  --ink-25:           rgba(70, 65, 59, 0.22);
+  --ink-15:           rgba(70, 65, 59, 0.13);
+  --ink-08:           rgba(70, 65, 59, 0.07);
+  --ink-04:           rgba(70, 65, 59, 0.04);
 
-  /* ---- Semantic ---- */
-  --sangue:           #DC2626;
-  --sangue-soft:      #FEE2E2;
+  /* ---- ACCENT (clay) ---- */
+  --clay:             #B07F61;
+  --clay-deep:        #8E6244;
+  --clay-soft:        #E7DACD;
+  --clay-tint:        rgba(176, 127, 97, 0.10);
 
-  --muschio:          #16A34A;
-  --muschio-soft:     #DCFCE7;
+  /* ---- SEMANTIC ---- */
+  --sage:             #7C8C6E;
+  --sage-soft:        #DDE3D5;
+  --rust:             #B05E48;
+  --rust-soft:        #EEDCD3;
 
-  --scrim:            rgba(10, 10, 10, 0.46);
+  --scrim:            rgba(46, 42, 37, 0.34);
+  --border:           var(--ink-15);
 
-  /* ---- Legacy aliases (drive existing inline `C.*` references) ---- */
-  --color-background-primary:    var(--carta);
-  --color-background-secondary:  var(--carta-2);
-  --color-text-primary:          var(--inchiostro);
-  --color-text-secondary:        var(--inchiostro-60);
-  --color-text-tertiary:         var(--inchiostro-40);
-  --color-border-secondary:      var(--inchiostro-20);
-  --color-border-tertiary:       var(--inchiostro-12);
+  /* ============================================================
+     LEGACY ALIASES — keep older code (lib/colors.ts, screens that
+     used the CutBook white/coral tokens) re-themed automatically.
+     Map old token names → Pari equivalents.
+     ============================================================ */
+  --carta:            var(--paper-3);
+  --carta-2:          var(--paper-2);
+  --carta-3:          var(--paper);
 
-  /* ---- Type ---- */
-  --font-display:     "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-body:        "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono:        "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+  --inchiostro:       var(--ink);
+  --inchiostro-80:    var(--ink-80);
+  --inchiostro-60:    var(--ink-60);
+  --inchiostro-40:    var(--ink-40);
+  --inchiostro-20:    var(--ink-25);
+  --inchiostro-12:    var(--ink-15);
+  --inchiostro-04:    var(--ink-04);
 
-  /* ---- Radii (only these — nothing in between) ---- */
-  --r-sm:             6px;
-  --r-md:             10px;
-  --r-lg:             16px;
+  --ottone:           var(--clay);
+  --ottone-deep:      var(--clay-deep);
+  --ottone-soft:      var(--clay-soft);
+
+  --sangue:           var(--rust);
+  --sangue-soft:      var(--rust-soft);
+  --muschio:          var(--sage);
+  --muschio-soft:     var(--sage-soft);
+
+  --color-background-primary:    var(--paper-3);
+  --color-background-secondary:  var(--paper-2);
+  --color-text-primary:          var(--ink);
+  --color-text-secondary:        var(--ink-60);
+  --color-text-tertiary:         var(--ink-40);
+  --color-border-secondary:      var(--ink-25);
+  --color-border-tertiary:       var(--ink-15);
+
+  /* ---- TYPE ---- */
+  --font-display:     "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  --font-body:        "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono:        "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --t-eyebrow:        500 11.5px/1.4 var(--font-body);
+  --t-label:          500 12.5px/1.4 var(--font-body);
+  --t-body:           400 14px/1.55 var(--font-body);
+  --t-body-strong:    600 14px/1.5 var(--font-body);
+  --t-caption:        400 12.5px/1.45 var(--font-body);
+  --t-mono:           500 13px/1.4 var(--font-mono);
+
+  --t-h1:             500 36px/1.05 var(--font-display);
+  --t-h2:             500 26px/1.15 var(--font-display);
+  --t-h3:             500 20px/1.2 var(--font-display);
+  --t-h4:             500 16px/1.25 var(--font-display);
+
+  --tracking-display: -0.022em;
+  --tracking-body:    -0.005em;
+
+  /* ---- RADII (4 sizes only — 8 / 12 / 18 / pill) ---- */
+  --r-sm:             8px;
+  --r-md:             12px;
+  --r-lg:             18px;
   --r-pill:           9999px;
 
-  /* ---- Shadow ---- */
-  --shadow-card:      0 1px 2px rgba(10,10,10,0.04), 0 0 0 1px rgba(10,10,10,0.06);
-  --shadow-sheet:     0 -8px 28px -10px rgba(10,10,10,0.12);
-  --shadow-toast:     0 12px 30px -10px rgba(10,10,10,0.18);
+  /* ---- SHADOWS ---- */
+  --shadow-card:      0 1px 2px rgba(43,39,35,0.04), 0 0 0 1px rgba(43,39,35,0.06);
+  --shadow-lift:      0 4px 14px -6px rgba(43,39,35,0.10), 0 0 0 1px rgba(43,39,35,0.05);
+  --shadow-sheet:     0 -10px 30px -12px rgba(43,39,35,0.14);
+  --shadow-toast:     0 14px 36px -14px rgba(43,39,35,0.22);
 
-  /* ---- Motion ---- */
+  /* ---- SPACING (4px base) ---- */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-7: 32px; --s-8: 40px; --s-9: 56px;
+
+  /* ---- MOTION ---- */
   --ease:             cubic-bezier(.2, .8, .2, 1);
   --ease-spring:      cubic-bezier(.34, 1.4, .64, 1);
+  --d-fast:           120ms;
+  --d-med:            200ms;
+  --d-slow:           320ms;
 
-  /* ---- Theme ---- */
   color-scheme: light;
 }
 
 /* ============================================================
-   Dark mode — active when <html> has class "dark".
-   Only token values change; semantics (ink-on-paper) preserved.
-   The coral accent stays the same — it reads well on both.
+   DARK — activated by `class="dark"` on <html> (useTheme.ts).
    ============================================================ */
 :root.dark {
-  /* Surfaces: deep neutral, not pure black, so ink/border still have contrast. */
-  --carta:            #0E0E10;
-  --carta-2:          #16161A;
-  --carta-3:          #1C1C21;
+  --paper-3:        #14110D;
+  --paper-2:        #1B1814;
+  --paper:          #221E1A;
+  --linen:          #2A2520;
+  --linen-2:        #332D26;
 
-  /* Ink: warm off-white. */
-  --inchiostro:       #F2F0EC;
-  --inchiostro-80:    rgba(242, 240, 236, 0.86);
-  --inchiostro-60:    rgba(242, 240, 236, 0.62);
-  --inchiostro-40:    rgba(242, 240, 236, 0.42);
-  --inchiostro-20:    rgba(242, 240, 236, 0.18);
-  --inchiostro-12:    rgba(242, 240, 236, 0.10);
-  --inchiostro-04:    rgba(242, 240, 236, 0.05);
+  --ink:            #ECE5D6;
+  --ink-80:         rgba(236, 229, 214, 0.82);
+  --ink-60:         rgba(236, 229, 214, 0.62);
+  --ink-50:         rgba(236, 229, 214, 0.50);
+  --ink-40:         rgba(236, 229, 214, 0.38);
+  --ink-25:         rgba(236, 229, 214, 0.24);
+  --ink-15:         rgba(236, 229, 214, 0.14);
+  --ink-08:         rgba(236, 229, 214, 0.08);
+  --ink-04:         rgba(236, 229, 214, 0.04);
 
-  /* Coral kept; soft variant slightly muted so the bright glow doesn't
-     burn against the dark surface. */
-  --ottone:           #FF6A45;
-  --ottone-deep:      #FF8466;
-  --ottone-soft:      rgba(255, 92, 57, 0.18);
+  --clay-deep:      #D9B091;
+  --clay-soft:      rgba(176, 127, 97, 0.20);
+  --clay-tint:      rgba(176, 127, 97, 0.16);
 
-  /* Semantic */
-  --sangue:           #F87171;
-  --sangue-soft:      rgba(248, 113, 113, 0.18);
+  --sage:           #9DB089;
+  --sage-soft:      rgba(157, 176, 137, 0.18);
+  --rust:           #D27F66;
+  --rust-soft:      rgba(210, 127, 102, 0.18);
 
-  --muschio:          #4ADE80;
-  --muschio-soft:     rgba(74, 222, 128, 0.16);
+  --scrim:          rgba(0, 0, 0, 0.58);
+  --border:         var(--ink-15);
 
-  --scrim:            rgba(0, 0, 0, 0.62);
-
-  /* Shadow — increase elevation tint, ink-on-ink barely visible otherwise. */
-  --shadow-card:      0 1px 2px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.04);
-  --shadow-sheet:     0 -8px 28px -10px rgba(0,0,0,0.55);
-  --shadow-toast:     0 12px 30px -10px rgba(0,0,0,0.65);
+  --shadow-card:    0 1px 2px rgba(0,0,0,0.30), 0 0 0 1px rgba(236,229,214,0.04);
+  --shadow-lift:    0 6px 18px -8px rgba(0,0,0,0.55), 0 0 0 1px rgba(236,229,214,0.05);
+  --shadow-sheet:   0 -14px 36px -14px rgba(0,0,0,0.55);
+  --shadow-toast:   0 16px 40px -14px rgba(0,0,0,0.55);
 
   color-scheme: dark;
 }
 
+/* ============================================================
+   Global defaults — gentle baseline so any HTML lifted in looks
+   at home without per-element styling.
+   ============================================================ */
 html, body {
+  margin: 0;
   height: 100%;
   overflow: hidden;
-  margin: 0;
-  background: var(--carta-3);
-  color: var(--inchiostro);
-  font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.55;
-  letter-spacing: -0.005em;
+  background: var(--paper-3);
+  color: var(--ink);
+  font: var(--t-body);
+  letter-spacing: var(--tracking-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -133,60 +190,202 @@ html, body {
   height: 100%;
   display: flex;
   justify-content: center;
+  align-items: stretch;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+  color: var(--ink);
+  margin: 0;
+  font-weight: 500;
+}
+h1 { font-size: 36px; line-height: 1.05; }
+h2 { font-size: 26px; line-height: 1.15; }
+h3 { font-size: 20px; line-height: 1.2;  }
+h4 { font-size: 16px; line-height: 1.25; }
+
+p, li {
+  color: var(--ink-80);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+code, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--ink-04);
+  padding: 1px 6px;
+  border-radius: 6px;
+  color: var(--ink);
 }
 
 ::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; }
 
 /* ============================================================
-   Animations (kept from previous build, retuned to new easing)
+   App shell (.bb-app, .bb-screen, topbar, bottom nav, sheet,
+   toast). Pulled from ui_kits/barberbook_app/app.css.
    ============================================================ */
-@keyframes toastIn {
-  from { opacity: 0; transform: translateY(-10px) scale(.96); }
-  to   { opacity: 1; transform: translateY(0)    scale(1); }
+.bb-app {
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  background: var(--paper-3);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--ink-08), 0 24px 60px -24px rgba(46,42,37,0.14);
 }
 
-@keyframes sheetUp {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
+.bb-safe-top { height: 14px; flex-shrink: 0; }
+.bb-safe-bot { height: env(safe-area-inset-bottom, 0px); background: var(--paper-3); }
+
+.bb-screen {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
 }
 
-@keyframes scrimIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+/* Top bar */
+.bb-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 16px;
+  gap: 12px;
+}
+.bb-topbar .wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bb-topbar .actions { display: flex; gap: 12px; align-items: center; }
+
+/* Bottom nav */
+.bb-bottom-nav {
+  flex-shrink: 0;
+  background: var(--paper-3);
+  border-top: 1px solid var(--ink-08);
+}
+.bb-bottom-nav__row {
+  height: 64px;
+  display: flex;
+  padding: 6px 8px;
+  gap: 4px;
+}
+.bb-bottom-nav__btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 10px;
+  transition: background 120ms var(--ease);
+  color: var(--ink-50);
+}
+.bb-bottom-nav__btn .lbl {
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--ink-50);
+  margin-top: 2px;
+}
+.bb-bottom-nav__btn.active { color: var(--sage); }
+.bb-bottom-nav__btn.active .lbl { color: var(--ink); }
+
+/* Sheet */
+.bb-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  display: flex;
+  align-items: flex-end;
+  z-index: 100;
+  animation: scrimIn 200ms var(--ease);
+}
+.bb-sheet {
+  background: var(--paper-3);
+  width: 100%;
+  border-radius: 20px 20px 0 0;
+  box-shadow: var(--shadow-sheet);
+  animation: sheetUp 280ms var(--ease);
+  max-height: 92%;
+  overflow-y: auto;
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+}
+.bb-sheet__handle {
+  width: 36px; height: 4px;
+  background: var(--ink-15);
+  border-radius: 9999px;
+  margin: 10px auto 14px;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+/* Toast */
+.bb-toast {
+  position: absolute;
+  top: 18px; left: 14px; right: 14px;
+  z-index: 200;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  background: var(--ink);
+  color: var(--linen);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-toast);
+  animation: toastIn 360ms var(--ease-spring);
+}
+.bb-toast__gutter { width: 4px; border-radius: 9999px; align-self: stretch; }
+.bb-toast .ttl {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14.5px;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+.bb-toast .msg {
+  font-size: 12px;
+  color: rgba(237,233,225,0.70);
+  margin-top: 2px;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
-}
+/* Dark: toast bg is --ink (now a light bone color) so re-tone foreground */
+:root.dark .bb-toast       { color: #1B1814; }
+:root.dark .bb-toast .msg  { color: rgba(27, 24, 20, 0.62); }
 
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+.bb-eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-50);
 }
 
 /* ============================================================
-   Phosphor icon defaults
-   Tabler-style `<i class="ti ti-foo">` is migrated; remaining
-   `ti` selectors here just normalise size and line-height.
+   Animations
    ============================================================ */
-i[class*="ph-"] {
-  line-height: 1;
-  display: inline-block;
-}
+@keyframes scrimIn  { from { opacity: 0 } to { opacity: 1 } }
+@keyframes sheetUp  { from { transform: translateY(100%) } to { transform: translateY(0) } }
+@keyframes toastIn  { from { opacity:0; transform: translateY(-10px) scale(.96) } to { opacity:1; transform: translateY(0) scale(1) } }
+@keyframes fadeIn   { from { opacity: 0 } to { opacity: 1 } }
+@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin     { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+@keyframes pulse    { 0%, 100% { opacity: 1 } 50% { opacity: 0.4 } }
+@keyframes shimmer  { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }

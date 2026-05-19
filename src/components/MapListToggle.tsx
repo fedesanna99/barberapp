@@ -1,4 +1,5 @@
 import { C } from '../lib/colors'
+import { Icon, type IconName } from './Icon'
 
 export type DiscoverView = 'map' | 'list'
 
@@ -8,9 +9,9 @@ interface Props {
 }
 
 export function MapListToggle({ value, onChange }: Props) {
-  const items: { id: DiscoverView; icon: string; label: string }[] = [
-    { id: 'map',  icon: 'ph-thin ph-map-trifold', label: 'Mappa' },
-    { id: 'list', icon: 'ph-thin ph-list',        label: 'Lista' },
+  const items: { id: DiscoverView; icon: IconName; label: string }[] = [
+    { id: 'map',  icon: 'map',  label: 'Mappa' },
+    { id: 'list', icon: 'list', label: 'Lista' },
   ]
   return (
     <div style={{
@@ -22,7 +23,7 @@ export function MapListToggle({ value, onChange }: Props) {
       padding:   3,
       borderRadius: 'var(--r-md)',
       background: C.bg,
-      boxShadow: '0 4px 14px rgba(10,10,10,0.10), 0 0 0 1px rgba(10,10,10,0.06)',
+      boxShadow: 'var(--shadow-lift)',
     }}>
       {items.map(it => {
         const active = value === it.id
@@ -35,13 +36,13 @@ export function MapListToggle({ value, onChange }: Props) {
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '7px 12px', borderRadius: 8, border: 'none',
-              background: active ? C.text : 'transparent',
-              color:      active ? C.bg   : C.muted,
+              background: active ? 'var(--clay)' : 'transparent',
+              color:      active ? 'var(--paper-3)' : C.muted,
               fontSize: 13, fontWeight: 500, cursor: 'pointer',
               fontFamily: 'inherit', transition: 'all 120ms var(--ease)',
             }}
           >
-            <i className={it.icon} style={{ fontSize: 16 }} />
+            <Icon name={it.icon} size={16} />
             {it.label}
           </button>
         )

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
+import { Icon } from './Icon'
 
 export interface EditProfileForm {
   display_name: string
@@ -49,7 +50,7 @@ export function EditProfileSheet({
             Modifica profilo
           </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
+            <Icon name="close" size={18} color={C.muted} />
           </button>
         </div>
 
@@ -85,7 +86,7 @@ export function EditProfileSheet({
             style={primaryBtn(saving)}
           >
             {saving
-              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
+              ? <><Icon name="refresh" size={16} style={{ animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
               : 'Salva'}
           </button>
         </div>
@@ -114,9 +115,9 @@ const inputStyle: React.CSSProperties = {
 function primaryBtn(loading: boolean): React.CSSProperties {
   return {
     marginTop: 4, padding: 13, borderRadius: 'var(--r-md)',
-    background: loading ? C.surface : C.text,
-    color:      loading ? C.muted : C.bg,
-    border: `1px solid ${loading ? C.border : C.text}`,
+    background: loading ? C.surface : 'var(--clay)',
+    color:      loading ? C.muted : 'var(--paper-3)',
+    border: `1px solid ${loading ? C.border : 'var(--clay)'}`,
     fontSize: 14, fontWeight: 500,
     cursor: loading ? 'default' : 'pointer',
     fontFamily: 'inherit',

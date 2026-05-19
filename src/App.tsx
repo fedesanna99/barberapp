@@ -1,41 +1,12 @@
 import { useState, useEffect } from 'react'
-import { C } from './lib/colors'
 import { IS_DEMO } from './lib/supabase'
-
-const DEMO_BANNER_DISMISSED_KEY = 'cutbook_demo_banner_dismissed'
-
-function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '6px 12px',
-      background: C.accentLight, color: C.accentDeep,
-      fontSize: 11, fontWeight: 500, lineHeight: 1.3,
-      borderBottom: `1px solid ${C.border}`,
-      flexShrink: 0,
-    }}>
-      <i className="ph-fill ph-warning-circle" style={{ fontSize: 13, lineHeight: 1 }} />
-      <span style={{ flex: 1 }}>DEMO MODE — nessun dato è persistente.</span>
-      <button
-        onClick={onDismiss}
-        aria-label="Chiudi banner demo"
-        style={{
-          minWidth: 24, minHeight: 24, padding: 0,
-          border: 'none', background: 'transparent', cursor: 'pointer',
-          color: C.accentDeep,
-        }}
-      >
-        <i className="ph-bold ph-x" style={{ fontSize: 12 }} />
-      </button>
-    </div>
-  )
-}
 import { useAuth } from './hooks/useAuth'
 import { writeLog } from './hooks/useAdminLogs'
 import { useBarberByProfile } from './hooks/useBarbers'
 import { useBookingToast } from './hooks/useBookingToast'
 import { useBooking } from './hooks/useBooking'
 import { Toast, type ToastEvent } from './components/Toast'
+import { Icon, type IconName } from './components/Icon'
 import { Feed } from './screens/Feed'
 import { Discover } from './screens/Discover'
 import { Profile } from './screens/Profile'
@@ -53,29 +24,60 @@ import { Register } from './screens/Register'
 import { ResetPassword } from './screens/ResetPassword'
 import type { DemoBarber, DemoDate } from './lib/demoData'
 
+const DEMO_BANNER_DISMISSED_KEY = 'cutbook_demo_banner_dismissed'
+
+function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '6px 12px',
+      background: 'var(--clay-soft)',
+      color: 'var(--clay-deep)',
+      fontSize: 11, fontWeight: 500, lineHeight: 1.3,
+      borderBottom: '1px solid var(--ink-08)',
+      flexShrink: 0,
+    }}>
+      <Icon name="warning" size={13} color="var(--clay-deep)" />
+      <span style={{ flex: 1 }}>Modalità demo — nessun dato è persistente.</span>
+      <button
+        onClick={onDismiss}
+        aria-label="Chiudi banner demo"
+        style={{
+          minWidth: 24, minHeight: 24, padding: 0,
+          border: 'none', background: 'transparent', cursor: 'pointer',
+          color: 'var(--clay-deep)',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <Icon name="close" size={12} />
+      </button>
+    </div>
+  )
+}
+
 type ScreenId = 'feed' | 'discover' | 'profile' | 'menu' | 'dashboard' | 'admin'
 type AuthView = 'login' | 'register'
 
-const CLIENT_NAV: { id: ScreenId; icon: string; label: string }[] = [
-  { id: 'feed',     icon: 'ph-square-half',   label: 'Feed'    },
-  { id: 'discover', icon: 'ph-map-trifold',   label: 'Esplora' },
-  { id: 'profile',  icon: 'ph-user',          label: 'Profilo' },
-  { id: 'menu',     icon: 'ph-list',          label: 'Menu'    },
+const CLIENT_NAV: { id: ScreenId; icon: IconName; label: string }[] = [
+  { id: 'feed',     icon: 'feed',     label: 'Feed'    },
+  { id: 'discover', icon: 'map',      label: 'Esplora' },
+  { id: 'profile',  icon: 'user',     label: 'Profilo' },
+  { id: 'menu',     icon: 'menu',     label: 'Menu'    },
 ]
 
-const BARBER_NAV: { id: ScreenId; icon: string; label: string }[] = [
-  { id: 'feed',      icon: 'ph-square-half',  label: 'Feed'    },
-  { id: 'discover',  icon: 'ph-map-trifold',  label: 'Esplora' },
-  { id: 'dashboard', icon: 'ph-storefront',   label: 'Bottega' },
-  { id: 'profile',   icon: 'ph-user',         label: 'Profilo' },
-  { id: 'menu',      icon: 'ph-list',         label: 'Menu'    },
+const BARBER_NAV: { id: ScreenId; icon: IconName; label: string }[] = [
+  { id: 'feed',      icon: 'feed',     label: 'Feed'    },
+  { id: 'discover',  icon: 'map',      label: 'Esplora' },
+  { id: 'dashboard', icon: 'shop',     label: 'Bottega' },
+  { id: 'profile',   icon: 'user',     label: 'Profilo' },
+  { id: 'menu',      icon: 'menu',     label: 'Menu'    },
 ]
 
-const ADMIN_NAV: { id: ScreenId; icon: string; label: string }[] = [
-  { id: 'feed',    icon: 'ph-square-half',  label: 'Feed'    },
-  { id: 'discover', icon: 'ph-map-trifold', label: 'Esplora' },
-  { id: 'admin',   icon: 'ph-shield-check', label: 'Admin'   },
-  { id: 'menu',    icon: 'ph-list',         label: 'Menu'    },
+const ADMIN_NAV: { id: ScreenId; icon: IconName; label: string }[] = [
+  { id: 'feed',     icon: 'feed',     label: 'Feed'    },
+  { id: 'discover', icon: 'map',      label: 'Esplora' },
+  { id: 'admin',    icon: 'shield',   label: 'Admin'   },
+  { id: 'menu',     icon: 'menu',     label: 'Menu'    },
 ]
 
 export default function App() {
@@ -132,11 +134,6 @@ export default function App() {
         timeSlot: time,
       })
       if (error) {
-        // Postgres error codes are the source of truth — the human-readable
-        // message can vary by DB locale. 23P01 = exclusion violation (the
-        // bookings_no_double constraint, slot already taken). 23514 = check
-        // violation (the migration 024 trigger that prevents a barber from
-        // booking themselves).
         const code = (error as { code?: string }).code
         const isConflict = code === '23P01' || error.message.includes('bookings_no_double')
         const isSelfBook = code === '23514' || /barber.*book.*herself|cannot book themselves/i.test(error.message)
@@ -164,21 +161,11 @@ export default function App() {
   }
 
   const showLoading = !IS_DEMO && loading
+  const navItems = isAdmin ? ADMIN_NAV : isBarber ? BARBER_NAV : CLIENT_NAV
 
   return (
-    <div style={{
-      width: '100%',
-      maxWidth: 430,
-      height: '100dvh',
-      background: C.bg,
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'relative',
-      boxShadow: '0 0 0 1px rgba(10,10,10,0.04)',
-    }}>
-
-      <div style={{ height: 'env(safe-area-inset-top, 0px)', flexShrink: 0, background: C.bg }} />
+    <div className="bb-app">
+      <div style={{ height: 'env(safe-area-inset-top, 0px)', flexShrink: 0, background: 'var(--paper-3)' }} />
 
       {demoBannerOpen && (
         <DemoBanner onDismiss={() => {
@@ -190,7 +177,7 @@ export default function App() {
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {showLoading ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="ph-thin ph-spinner-gap" style={{ fontSize: 32, color: C.muted, animation: 'spin 0.8s linear infinite' }} />
+            <Icon name="refresh" size={28} color="var(--ink-40)" style={{ animation: 'spin 0.8s linear infinite' }} />
           </div>
         ) : recoveryMode ? (
           <ResetPassword onDone={clearRecoveryMode} />
@@ -287,19 +274,15 @@ export default function App() {
         {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
       </div>
 
-      {/* Bottom nav — pill icons, coral active */}
       {loggedIn && !recoveryMode && (
-        <nav style={{
-          borderTop: `1px solid ${C.border}`,
-          background: C.bg,
-          flexShrink: 0,
-        }}>
-          <div style={{ height: 64, display: 'flex', padding: '6px 8px', gap: 4 }}>
-            {(isAdmin ? ADMIN_NAV : isBarber ? BARBER_NAV : CLIENT_NAV).map(({ id, icon, label }) => {
+        <nav className="bb-bottom-nav">
+          <div className="bb-bottom-nav__row">
+            {navItems.map(({ id, icon, label }) => {
               const active = screen === id
               return (
                 <button
                   key={id}
+                  className={`bb-bottom-nav__btn ${active ? 'active' : ''}`}
                   onClick={() => {
                     setScreen(id)
                     setProfileBarber(null)
@@ -312,35 +295,19 @@ export default function App() {
                     setDmOpen(null)
                     setShowDmList(false)
                   }}
-                  style={{
-                    flex: 1, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center',
-                    gap: 2, cursor: 'pointer', border: 'none',
-                    background: 'none', padding: 0, fontFamily: 'inherit',
-                    borderRadius: 'var(--r-md)',
-                  }}
                 >
-                  <i
-                    className={`${active ? 'ph-fill' : 'ph-thin'} ${icon}`}
-                    style={{
-                      fontSize: 22,
-                      color: active ? C.accent : C.muted,
-                      lineHeight: 1,
-                      transition: 'color 120ms var(--ease)',
-                    }}
+                  <Icon
+                    name={icon}
+                    size={22}
+                    weight={active ? 'fill' : 'regular'}
+                    color={active ? 'var(--clay)' : 'var(--ink-50)'}
                   />
-                  <span style={{
-                    fontSize: 10, fontWeight: 500,
-                    color: active ? C.text : C.muted,
-                    marginTop: 2,
-                  }}>
-                    {label}
-                  </span>
+                  <span className="lbl">{label}</span>
                 </button>
               )
             })}
           </div>
-          <div style={{ height: 'env(safe-area-inset-bottom, 0px)', background: C.bg }} />
+          <div className="bb-safe-bot" />
         </nav>
       )}
     </div>

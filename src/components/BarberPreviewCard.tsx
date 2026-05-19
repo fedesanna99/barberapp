@@ -1,5 +1,6 @@
 import { C } from '../lib/colors'
 import { Avatar } from './Avatar'
+import { Icon } from './Icon'
 import { haversineKm, formatKm, type LatLng } from '../lib/geo'
 import type { DemoBarber } from '../lib/demoData'
 import { ratingDisplay } from '../lib/rating'
@@ -28,7 +29,7 @@ export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf 
         zIndex:      20,
         background:  C.bg,
         borderRadius: 'var(--r-lg)',
-        boxShadow:   '0 8px 24px rgba(10,10,10,0.12), 0 0 0 1px rgba(10,10,10,0.04)',
+        boxShadow:   'var(--shadow-lift)',
         padding:     '14px',
         animation:   'sheetUp 260ms var(--ease)',
       }}
@@ -42,7 +43,7 @@ export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf 
           cursor: 'pointer', padding: 4, color: C.muted,
         }}
       >
-        <i className="ph-thin ph-x" style={{ fontSize: 16 }} />
+        <Icon name="close" size={16} />
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -57,11 +58,11 @@ export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf 
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 12, color: C.muted }}>
-            <i className="ph-thin ph-map-pin" style={{ fontSize: 13, color: C.accent }} />
+            <Icon name="pin" size={13} color={C.accent} />
             {barber.city}{dist != null ? ` · ${formatKm(dist)}` : ''}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, color: C.muted }}>
-            <i className={`${rd.hasReviews ? 'ph-fill' : 'ph-thin'} ph-star`} style={{ fontSize: 12, color: rd.hasReviews ? C.accent : C.hint }} />
+            <Icon name="star" size={12} color={rd.hasReviews ? C.accent : C.hint} weight={rd.hasReviews ? 'fill' : 'regular'} />
             <span style={{ fontWeight: 600, color: C.text }}>{rd.label}</span>
             {barber.tags.length > 0 && (
               <>
@@ -105,7 +106,7 @@ export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf 
           style={{
             marginTop: 12, width: '100%', padding: '11px 0',
             borderRadius: 'var(--r-md)',
-            background: C.text, color: C.bg, border: `1px solid ${C.text}`,
+            background: 'var(--clay)', color: 'var(--paper-3)', border: '1px solid var(--clay)',
             fontSize: 13, fontWeight: 500, cursor: 'pointer',
             fontFamily: 'inherit',
           }}

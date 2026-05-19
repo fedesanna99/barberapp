@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { C } from '../lib/colors'
+import { Icon } from './Icon'
 import type { BarberInfo } from '../hooks/useBarberInfo'
 
 const FIELDS: [keyof BarberInfo, string, string, string?][] = [
@@ -64,7 +65,7 @@ export function EditBarberInfoSheet({
             Info salone
           </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
+            <Icon name="close" size={18} color={C.muted} />
           </button>
         </div>
 
@@ -106,9 +107,9 @@ export function EditBarberInfoSheet({
             disabled={saving || formInvalid}
             style={{
               marginTop: 4, padding: 13, borderRadius: 'var(--r-md)',
-              background: saving || formInvalid ? C.surface : C.text,
-              color:      saving || formInvalid ? C.muted : C.bg,
-              border: `1px solid ${saving || formInvalid ? C.border : C.text}`,
+              background: saving || formInvalid ? C.surface : 'var(--clay)',
+              color:      saving || formInvalid ? C.muted : 'var(--paper-3)',
+              border: `1px solid ${saving || formInvalid ? C.border : 'var(--clay)'}`,
               fontSize: 14, fontWeight: 500,
               cursor: saving || formInvalid ? 'default' : 'pointer',
               fontFamily: 'inherit',
@@ -116,7 +117,7 @@ export function EditBarberInfoSheet({
             }}
           >
             {saving
-              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
+              ? <><Icon name="refresh" size={16} style={{ animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
               : 'Salva'}
           </button>
         </div>

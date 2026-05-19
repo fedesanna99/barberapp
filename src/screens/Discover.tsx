@@ -12,6 +12,7 @@ import { MapSearchBar } from '../components/MapSearchBar'
 import { MapListToggle, type DiscoverView } from '../components/MapListToggle'
 import { BarberPreviewCard } from '../components/BarberPreviewCard'
 import { BarberList } from '../components/BarberList'
+import { Icon, type IconName } from '../components/Icon'
 
 const MapView = lazy(() => import('../components/MapView').then(m => ({ default: m.MapView })))
 
@@ -105,7 +106,7 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
         <div style={{ position: 'absolute', inset: 0 }}>
           <Suspense fallback={
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.surface }}>
-              <i className="ph-thin ph-spinner-gap" style={{ fontSize: 28, color: C.muted, animation: 'spin .8s linear infinite' }} />
+              <Icon name="refresh" size={28} color={C.muted} style={{ animation: 'spin .8s linear infinite' }} />
             </div>
           }>
             <MapView
@@ -134,7 +135,7 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
               boxShadow: '0 4px 14px rgba(10,10,10,0.10)',
             }}
           >
-            <i className="ph-thin ph-crosshair-simple" style={{ fontSize: 20 }} />
+            <Icon name="pin" size={20} />
           </button>
 
           {selected && (
@@ -162,7 +163,7 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
                 onClick={() => setView('list')}
                 style={{
                   marginTop: 12, padding: '8px 16px', borderRadius: 'var(--r-md)', border: 'none',
-                  background: C.text, color: C.bg, fontSize: 13, fontWeight: 500,
+                  background: 'var(--clay)', color: 'var(--paper-3)', fontSize: 13, fontWeight: 500,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
@@ -178,7 +179,7 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
               <div>
                 <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 500 }}>Cerca a</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                  <i className="ph-thin ph-map-pin" style={{ fontSize: 16, color: C.accent }} />
+                  <Icon name="pin" size={16} color={C.accent} />
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 22, letterSpacing: '-0.025em', color: C.text }}>
                     Cagliari
                   </span>
@@ -217,9 +218,9 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
 }
 
 function MapListToggleInline({ value, onChange }: { value: DiscoverView; onChange: (v: DiscoverView) => void }) {
-  const items: { id: DiscoverView; icon: string; label: string }[] = [
-    { id: 'map',  icon: 'ph-thin ph-map-trifold', label: 'Mappa' },
-    { id: 'list', icon: 'ph-thin ph-list',        label: 'Lista' },
+  const items: { id: DiscoverView; icon: IconName; label: string }[] = [
+    { id: 'map',  icon: 'map',  label: 'Mappa' },
+    { id: 'list', icon: 'list', label: 'Lista' },
   ]
   return (
     <div style={{
@@ -241,10 +242,10 @@ function MapListToggleInline({ value, onChange }: { value: DiscoverView; onChang
               background: active ? C.bg : 'transparent',
               color:      active ? C.text : C.muted,
               fontSize: 12.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-              boxShadow: active ? '0 1px 2px rgba(10,10,10,0.06)' : 'none',
+              boxShadow: active ? 'var(--shadow-card)' : 'none',
             }}
           >
-            <i className={it.icon} style={{ fontSize: 14 }} />
+            <Icon name={it.icon} size={14} />
             {it.label}
           </button>
         )
@@ -260,7 +261,7 @@ function InlineSearch({ value, onChange }: { value: string; onChange: (v: string
       padding: '11px 14px', borderRadius: 'var(--r-md)',
       background: C.surfaceAlt, border: `1px solid ${C.border}`,
     }}>
-      <i className="ph-thin ph-magnifying-glass" style={{ fontSize: 18, color: C.muted }} />
+      <Icon name="search" size={18} color={C.muted} />
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -276,7 +277,7 @@ function InlineSearch({ value, onChange }: { value: string; onChange: (v: string
           aria-label="Cancella"
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, padding: 2, display: 'flex' }}
         >
-          <i className="ph-thin ph-x" style={{ fontSize: 14 }} />
+          <Icon name="close" size={14} />
         </button>
       )}
     </div>

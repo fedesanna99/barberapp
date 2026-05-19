@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
+import { Icon } from './Icon'
 
 interface Props {
   imageUrl?:         string
@@ -48,7 +49,7 @@ export function PostMedia({
             }}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
-        : <i className="ph-thin ph-scissors" style={{ fontSize: fallbackIconSize, color: C.hint }} />
+        : <Icon name="scissors" size={fallbackIconSize} color={C.hint} />
       }
       {children}
     </div>

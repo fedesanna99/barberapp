@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
+import { Icon } from '../components/Icon'
 import { ReviewSheet } from '../components/ReviewSheet'
 import { useBooking, useClientBookings, type BookingWithBarber } from '../hooks/useBooking'
 import { useReviews } from '../hooks/useReviews'
@@ -90,7 +91,7 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
     <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 50, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px 12px', flexShrink: 0, borderBottom: `1px solid ${C.border}` }}>
         <button onClick={onClose} aria-label="Indietro" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-          <i className="ph-thin ph-arrow-left" style={{ fontSize: 22, color: C.text }} />
+          <Icon name="back" size={22} color={C.text} />
         </button>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
           I miei appuntamenti
@@ -186,8 +187,8 @@ function EmptyState() {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       gap: 10, padding: '60px 32px', textAlign: 'center',
     }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <i className="ph-thin ph-calendar-x" style={{ fontSize: 20, color: C.hint }} />
+      <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--clay-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="calendar" size={20} color="var(--clay-deep)" />
       </div>
       <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
         Nessun appuntamento

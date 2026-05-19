@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
+import { Icon, type IconName } from '../components/Icon'
+import { PoleMark } from '../components/primitives'
 import { BARBERS } from '../lib/demoData'
 import type { DemoBarber } from '../lib/demoData'
 import { useFeed, accentFromId, initialsFromName, extractStoragePath } from '../hooks/useFeed'
@@ -226,16 +228,16 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
           <SubHeader title="Post che ti piacciono" onBack={() => onShowLikedChange?.(false)} />
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: C.accent }} />
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, lineHeight: 1, letterSpacing: '-0.025em', color: C.text }}>CutBook</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <PoleMark size={28} />
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, lineHeight: 1, letterSpacing: '-0.035em', color: C.text }}>Barberbook</span>
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
               <button onClick={() => setShowNewPost(true)} aria-label="Nuovo post" style={iconBtn()}>
-                <i className="ph-thin ph-camera-plus" style={{ fontSize: 22, color: C.muted }} />
+                <Icon name="plus" size={22} color={C.muted} />
               </button>
               <button onClick={() => onShowLikedChange?.(true)} aria-label="Mi piace" style={iconBtn()}>
-                <i className="ph-thin ph-heart" style={{ fontSize: 22, color: C.muted }} />
+                <Icon name="heart" size={22} color={C.muted} />
               </button>
             </div>
           </div>
@@ -259,10 +261,10 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
 
         {/* Empty states */}
         {showLiked && visiblePosts.length === 0 && (
-          <EmptyState icon="ph-thin ph-heart" title="Nessun post che ti piace" subtitle="Tocca il cuore su un post per metterlo qui." />
+          <EmptyState icon="heart" title="Nessun post che ti piace" subtitle="Tocca il cuore su un post per metterlo qui." />
         )}
         {showSaved && visiblePosts.length === 0 && (
-          <EmptyState icon="ph-thin ph-bookmark-simple" title="Nessun post salvato" subtitle="Tocca il segnalibro su un post per metterlo qui." />
+          <EmptyState icon="bookmark" title="Nessun post salvato" subtitle="Tocca il segnalibro su un post per metterlo qui." />
         )}
 
         {/* Post list */}
@@ -311,7 +313,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                     aria-label="Azioni post"
                     style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex' }}
                   >
-                    <i className="ph-thin ph-dots-three" style={{ fontSize: 20, color: C.muted }} />
+                    <Icon name="menu" size={20} color={C.muted} />
                   </button>
                 )}
               </div>
@@ -333,19 +335,21 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
               {/* Actions */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px 6px' }}>
                 <IconAction
-                  icon={isLiked ? 'ph-fill ph-heart' : 'ph-thin ph-heart'}
+                  icon="heart"
+                  weight={isLiked ? 'fill' : 'regular'}
                   color={isLiked ? C.red : C.text}
                   onClick={() => toggleLike(post)}
                 />
                 <IconAction
-                  icon="ph-thin ph-chat-circle"
+                  icon="chat"
                   color={C.text}
                   onClick={() => setActivePostId(post.id)}
                 />
-                <IconAction icon="ph-thin ph-paper-plane-tilt" color={C.text} />
+                <IconAction icon="send" color={C.text} />
                 <div style={{ flex: 1 }} />
                 <IconAction
-                  icon={isSaved ? 'ph-fill ph-bookmark-simple' : 'ph-thin ph-bookmark-simple'}
+                  icon="bookmark"
+                  weight={isSaved ? 'fill' : 'regular'}
                   color={C.text}
                   onClick={async () => {
                     const { error } = await toggleSaved(post.id)
@@ -401,7 +405,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                       fontSize: 11.5, color: C.accent, fontFamily: 'inherit',
                     }}
                   >
-                    <i className="ph-thin ph-at" style={{ fontSize: 11 }} />
+                    <Icon name="user" size={11} color={C.accent} />
                     {post.taggedName}
                   </button>
                 </div>
@@ -428,7 +432,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
         )}
         {feed.loading && visiblePosts.length > 0 && (
           <div style={{ textAlign: 'center', padding: '20px 0', color: C.hint }}>
-            <i className="ph-thin ph-spinner-gap" style={{ fontSize: 20, animation: 'spin .8s linear infinite' }} />
+            <Icon name="refresh" size={20} style={{ animation: 'spin .8s linear infinite' }} />
           </div>
         )}
         {feed.hasMore && !feed.loading && (
@@ -527,7 +531,7 @@ function SubHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '18px 20px 16px' }}>
       <button onClick={onBack} aria-label="Indietro" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-        <i className="ph-thin ph-arrow-left" style={{ fontSize: 22, color: C.text }} />
+        <Icon name="back" size={22} color={C.text} />
       </button>
       <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', color: C.text }}>
         {title}
@@ -540,22 +544,22 @@ function iconBtn(): React.CSSProperties {
   return { background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex' }
 }
 
-function IconAction({ icon, color, onClick }: { icon: string; color: string; onClick?: () => void }) {
+function IconAction({ icon, color, onClick, weight = 'regular' }: { icon: IconName; color: string; onClick?: () => void; weight?: 'regular' | 'fill' }) {
   return (
     <button onClick={onClick} style={{
       background: 'none', border: 'none', padding: 4, cursor: 'pointer',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      <i className={icon} style={{ fontSize: 24, color }} />
+      <Icon name={icon} size={24} color={color} weight={weight} />
     </button>
   )
 }
 
-function EmptyState({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
+function EmptyState({ icon, title, subtitle }: { icon: IconName; title: string; subtitle: string }) {
   return (
     <div style={{ padding: '48px 28px', textAlign: 'center' }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-        <i className={icon} style={{ fontSize: 20, color: C.hint }} />
+      <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--clay-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+        <Icon name={icon} size={20} color="var(--clay-deep)" />
       </div>
       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em', color: C.text }}>
         {title}
@@ -589,11 +593,11 @@ function PostActionSheet({ post, onClose, onEdit, onDelete }: {
           {post.label || post.caption || 'Il tuo post'}
         </div>
         <button onClick={onEdit} style={sheetBtn(false)}>
-          <i className="ph-thin ph-pencil-simple" style={{ fontSize: 18, color: C.text }} />
+          <Icon name="edit" size={18} color={C.text} />
           <span>Modifica caption</span>
         </button>
         <button onClick={onDelete} style={sheetBtn(true)}>
-          <i className="ph-thin ph-trash" style={{ fontSize: 18, color: C.red }} />
+          <Icon name="trash" size={18} color={C.red} />
           <span style={{ color: C.red }}>Elimina post</span>
         </button>
         <button onClick={onClose} style={{
@@ -643,7 +647,7 @@ function EditCaptionSheet({ initial, onClose, onSave }: {
             Modifica caption
           </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer' }}>
-            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
+            <Icon name="close" size={18} color={C.muted} />
           </button>
         </div>
         <div style={{ padding: '4px 20px 14px' }}>
@@ -664,16 +668,16 @@ function EditCaptionSheet({ initial, onClose, onSave }: {
             disabled={saving}
             style={{
               width: '100%', marginTop: 12, padding: 13, borderRadius: 'var(--r-md)',
-              background: saving ? C.surface : C.text,
-              color: saving ? C.muted : C.bg,
+              background: saving ? C.surface : 'var(--clay)',
+              color: saving ? C.muted : 'var(--paper-3)',
               fontSize: 14, fontWeight: 500,
-              border: `1px solid ${saving ? C.border : C.text}`,
+              border: `1px solid ${saving ? C.border : 'var(--clay)'}`,
               cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
             {saving
-              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
+              ? <><Icon name="refresh" size={16} style={{ animation: 'spin .8s linear infinite' }} /> Salvataggio…</>
               : 'Salva'}
           </button>
         </div>
@@ -772,7 +776,7 @@ function NewPostSheet({
             Nuovo post
           </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
+            <Icon name="close" size={18} color={C.muted} />
           </button>
         </div>
 
@@ -791,16 +795,16 @@ function NewPostSheet({
               <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'rgba(10,10,10,0.45)',
+                background: 'rgba(20,17,13,0.45)',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
               }}>
-                <i className="ph-thin ph-camera" style={{ fontSize: 22, color: C.bg }} />
+                <Icon name="image" size={22} color={C.bg} />
                 <span style={{ fontSize: 12, color: C.bg }}>Tocca per cambiare</span>
               </div>
             </>
           ) : (
             <>
-              <i className="ph-thin ph-camera-plus" style={{ fontSize: 28, color: C.hint }} />
+              <Icon name="image" size={28} color={C.hint} />
               <span style={{ fontSize: 12.5, color: C.muted }}>
                 {requirePhoto ? 'Tocca per aggiungere una foto (richiesta)' : 'Tocca per aggiungere una foto'}
               </span>
@@ -842,14 +846,14 @@ function NewPostSheet({
                 background: C.accentLight, color: C.accentDeep,
                 fontSize: 12.5, fontWeight: 500,
               }}>
-                <i className="ph-thin ph-at" style={{ fontSize: 13 }} />
+                <Icon name="user" size={13} color={C.accentDeep} />
                 {tagPick.name}
                 <button
                   onClick={() => onTagPick(null)}
                   aria-label="Rimuovi tag"
                   style={{ background: 'none', border: 'none', padding: 0, display: 'inline-flex', cursor: 'pointer', color: C.accentDeep }}
                 >
-                  <i className="ph-thin ph-x" style={{ fontSize: 13 }} />
+                  <Icon name="close" size={13} color={C.accentDeep} />
                 </button>
               </div>
             ) : (
@@ -886,7 +890,7 @@ function NewPostSheet({
                           display: 'flex', alignItems: 'center', gap: 8,
                         }}
                       >
-                        <i className={`ph-thin ${s.role === 'barber' ? 'ph-scissors' : 'ph-user'}`} style={{ fontSize: 14, color: C.muted }} />
+                        <Icon name={s.role === 'barber' ? 'scissors' : 'user'} size={14} color={C.muted} />
                         {s.display_name ?? 'Profilo'}
                       </div>
                     ))}
@@ -905,17 +909,17 @@ function NewPostSheet({
             disabled={!canPost || loading}
             style={{
               padding: 13, borderRadius: 'var(--r-md)',
-              background: canPost && !loading ? C.text : C.surface,
-              color: canPost && !loading ? C.bg : C.hint,
+              background: canPost && !loading ? 'var(--clay)' : C.surface,
+              color: canPost && !loading ? 'var(--paper-3)' : C.hint,
               fontSize: 14, fontWeight: 500,
-              border: `1px solid ${canPost && !loading ? C.text : C.border}`,
+              border: `1px solid ${canPost && !loading ? 'var(--clay)' : C.border}`,
               cursor: canPost && !loading ? 'pointer' : 'default',
               fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
             {loading
-              ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Pubblicazione…</>
+              ? <><Icon name="refresh" size={16} style={{ animation: 'spin .8s linear infinite' }} /> Pubblicazione…</>
               : 'Pubblica'}
           </button>
         </div>

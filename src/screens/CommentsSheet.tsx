@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
+import { Icon } from '../components/Icon'
 import { ConfirmSheet } from '../components/ConfirmSheet'
 import { initialsFromName } from '../hooks/useFeed'
 import { useComments } from '../hooks/useComments'
@@ -73,15 +74,15 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ph-thin ph-x" style={{ fontSize: 18, color: C.muted }} />
+            <Icon name="close" size={18} color={C.muted} />
           </button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 4px' }}>
           {comments.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px', color: C.muted }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
-                <i className="ph-thin ph-chat-circle" style={{ fontSize: 20, color: C.hint }} />
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--clay-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                <Icon name="chat" size={20} color="var(--clay-deep)" />
               </div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, letterSpacing: '-0.015em', color: C.text }}>
                 Nessun commento
@@ -112,7 +113,7 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
                   onClick={() => handleToggleLike(c.id)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0 0', flexShrink: 0, minWidth: 22 }}
                 >
-                  <i className={`${c.likedByMe ? 'ph-fill' : 'ph-thin'} ph-heart`} style={{ fontSize: 16, color: c.likedByMe ? C.red : C.hint }} />
+                  <Icon name="heart" size={16} color={c.likedByMe ? C.red : C.hint} weight={c.likedByMe ? 'fill' : 'regular'} />
                   {c.likesCount > 0 && (
                     <span style={{ fontSize: 10, color: C.hint, marginTop: 2 }}>{c.likesCount}</span>
                   )}
@@ -139,12 +140,12 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
             onClick={submit}
             aria-label="Invia"
             style={{
-              background: C.text, border: 'none', borderRadius: '50%',
+              background: 'var(--clay)', border: 'none', borderRadius: '50%',
               width: 36, height: 36, cursor: 'pointer', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <i className="ph-thin ph-paper-plane-tilt" style={{ fontSize: 16, color: C.bg }} />
+            <Icon name="send" size={16} color="var(--paper-3)" />
           </button>
         </div>
       </div>

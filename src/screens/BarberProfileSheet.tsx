@@ -12,6 +12,7 @@ import { ReviewsList } from '../components/ReviewsList'
 import { ReviewSheet } from '../components/ReviewSheet'
 import type { ToastEvent } from '../components/Toast'
 import { ratingDisplay } from '../lib/rating'
+import { Icon, type IconName } from '../components/Icon'
 
 interface BarberPost {
   id:       string
@@ -117,7 +118,7 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
     <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px 8px', flexShrink: 0 }}>
         <button onClick={onClose} aria-label="Indietro" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-          <i className="ph-thin ph-arrow-left" style={{ fontSize: 22, color: C.text }} />
+          <Icon name="back" size={22} color={C.text} />
         </button>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>
           {barber.name}
@@ -139,7 +140,7 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
               {barber.name}
             </h1>
             <div style={{ marginTop: 6, fontSize: 12.5, color: C.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <i className="ph-thin ph-map-pin" style={{ fontSize: 13, color: C.accent }} />
+              <Icon name="pin" size={13} color={C.accent} />
               {barber.city}
             </div>
           </div>
@@ -163,9 +164,9 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
                 disabled={followLoading}
                 style={{
                   flex: 1, padding: '11px 0', borderRadius: 'var(--r-md)',
-                  background: isFollowing ? C.bg : C.text,
-                  color:      isFollowing ? C.text : C.bg,
-                  border: `1px solid ${isFollowing ? C.borderMed : C.text}`,
+                  background: isFollowing ? C.bg : 'var(--clay)',
+                  color:      isFollowing ? C.text : 'var(--paper-3)',
+                  border: `1px solid ${isFollowing ? C.borderMed : 'var(--clay)'}`,
                   fontSize: 13.5, fontWeight: 500,
                   cursor: followLoading ? 'default' : 'pointer',
                   fontFamily: 'inherit',
@@ -187,7 +188,7 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
                   fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
-                <i className="ph-thin ph-chat-circle" style={{ fontSize: 16 }} />
+                <Icon name="chat" size={16} />
                 Messaggia
               </button>
             )}
@@ -199,13 +200,13 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
           <div style={{ margin: '0 20px 16px', padding: '12px 14px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 'var(--r-md)' }}>
             {info.shop_name && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.text, marginBottom: 4 }}>
-                <i className="ph-thin ph-storefront" style={{ fontSize: 14, color: C.muted }} />
+                <Icon name="shop" size={14} color={C.muted} />
                 <span style={{ fontWeight: 600 }}>{info.shop_name}</span>
               </div>
             )}
             {info.address && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: C.muted, marginBottom: 4 }}>
-                <i className="ph-thin ph-map-pin" style={{ fontSize: 14 }} />
+                <Icon name="pin" size={14} />
                 <span>{info.address}</span>
               </div>
             )}
@@ -213,16 +214,20 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
               <div style={{ display: 'flex', gap: 16, marginTop: 6 }}>
                 {info.phone && (
                   <a href={`tel:${info.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: C.accent, textDecoration: 'none' }}>
-                    <i className="ph-thin ph-phone" style={{ fontSize: 14 }} />
+                    <Icon name="phone" size={14} />
                     <span>{info.phone}</span>
                   </a>
                 )}
-                {info.social_link && (
-                  <a href={info.social_link} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: C.accent, textDecoration: 'none' }}>
-                    <i className={`ph-thin ${info.social_link.includes('instagram') ? 'ph-instagram-logo' : info.social_link.includes('tiktok') ? 'ph-tiktok-logo' : 'ph-globe'}`} style={{ fontSize: 14 }} />
-                    <span>Social</span>
-                  </a>
-                )}
+                {info.social_link && (() => {
+                  const socialIcon: IconName = info.social_link.includes('instagram') ? 'instagram'
+                    : info.social_link.includes('tiktok') ? 'tiktok' : 'globe'
+                  return (
+                    <a href={info.social_link} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: C.accent, textDecoration: 'none' }}>
+                      <Icon name={socialIcon} size={14} />
+                      <span>Social</span>
+                    </a>
+                  )
+                })()}
               </div>
             )}
           </div>
@@ -281,13 +286,13 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
                 >
                   {post?.imageUrl
                     ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <i className="ph-thin ph-scissors" style={{ fontSize: 26, color: C.hint }} />
+                    : <Icon name="scissors" size={26} color={C.hint} />
                   }
                   {post && post.label && (
                     <div style={{
                       position: 'absolute', bottom: 6, left: 6, right: 6,
-                      fontSize: 10, color: C.bg, fontWeight: 500,
-                      background: 'rgba(10,10,10,0.55)',
+                      fontSize: 10, color: 'var(--paper-3)', fontWeight: 500,
+                      background: 'rgba(20,17,13,0.55)',
                       padding: '2px 8px', borderRadius: 9999,
                       textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{post.label}</div>
@@ -311,8 +316,8 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
                     onClick={() => setReviewOpen(true)}
                     style={{
                       width: '100%', padding: 12, borderRadius: 'var(--r-md)',
-                      background: C.text, color: C.bg,
-                      border: `1px solid ${C.text}`,
+                      background: 'var(--ink)', color: 'var(--paper-3)',
+                      border: '1px solid var(--ink)',
                       fontSize: 14, fontWeight: 500,
                       cursor: 'pointer', fontFamily: 'inherit',
                     }}
@@ -342,8 +347,8 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
               onClick={() => onBook(barber)}
               style={{
                 width: '100%', padding: '14px 20px', borderRadius: 'var(--r-md)',
-                background: C.text, color: C.bg,
-                border: `1px solid ${C.text}`,
+                background: 'var(--clay)', color: 'var(--paper-3)',
+                border: '1px solid var(--clay)',
                 fontSize: 14.5, fontWeight: 500, cursor: 'pointer',
                 fontFamily: 'inherit',
               }}
@@ -446,7 +451,7 @@ function PostsFeed({ posts, startIdx, barber, onClose }: {
     <div style={{ position: 'absolute', inset: 0, background: C.bg, zIndex: 10, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px 12px', flexShrink: 0, borderBottom: `1px solid ${C.border}` }}>
         <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-          <i className="ph-thin ph-arrow-left" style={{ fontSize: 22, color: C.text }} />
+          <Icon name="back" size={22} color={C.text} />
         </button>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em', color: C.text }}>{barber.name}</span>
       </div>
@@ -458,7 +463,7 @@ function PostsFeed({ posts, startIdx, barber, onClose }: {
               {post.label && (
                 <div style={{
                   position: 'absolute', bottom: 12, left: 16,
-                  background: 'rgba(10,10,10,0.65)', color: C.bg,
+                  background: 'rgba(20,17,13,0.65)', color: 'var(--paper-3)',
                   fontSize: 11, padding: '4px 10px', borderRadius: 9999,
                   fontWeight: 500,
                 }}>

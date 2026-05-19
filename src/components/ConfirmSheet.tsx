@@ -1,4 +1,5 @@
 import { C } from '../lib/colors'
+import { Icon, type IconName } from './Icon'
 
 interface Props {
   title:        string
@@ -6,7 +7,7 @@ interface Props {
   confirmLabel?: string
   cancelLabel?:  string
   destructive?: boolean
-  icon?:        string  // Phosphor icon name without prefix, e.g. "trash"
+  icon?:        IconName
   onConfirm:    () => void
   onCancel:     () => void
 }
@@ -25,9 +26,9 @@ export function ConfirmSheet({
   onConfirm,
   onCancel,
 }: Props) {
-  const confirmBg = destructive ? C.red : C.text
-  const iconBg    = destructive ? C.redSoft : C.surface
-  const iconColor = destructive ? C.red : C.text
+  const confirmBg = destructive ? 'var(--rust)' : 'var(--ink)'
+  const iconBg    = destructive ? 'var(--rust-soft)' : 'var(--clay-soft)'
+  const iconColor = destructive ? 'var(--rust)' : 'var(--clay-deep)'
 
   return (
     <div
@@ -56,7 +57,7 @@ export function ConfirmSheet({
             alignItems: 'center', justifyContent: 'center',
             marginBottom: 14,
           }}>
-            <i className={`ph-thin ph-${icon}`} style={{ fontSize: 24, color: iconColor }} />
+            <Icon name={icon} size={24} color={iconColor} />
           </div>
         )}
 
@@ -94,7 +95,7 @@ export function ConfirmSheet({
             onClick={onConfirm}
             style={{
               flex: 1, padding: '12px 0', borderRadius: 'var(--r-md)',
-              background: confirmBg, color: C.bg,
+              background: confirmBg, color: 'var(--paper-3)',
               border: `1px solid ${confirmBg}`,
               fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
             }}

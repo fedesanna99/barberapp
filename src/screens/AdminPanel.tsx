@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
+import { Icon, type IconName } from '../components/Icon'
 import { Toast, type ToastEvent } from '../components/Toast'
 import { useAdminUsers, type AdminUser } from '../hooks/useAdminUsers'
 import { useAdminLogs } from '../hooks/useAdminLogs'
@@ -24,14 +25,14 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)} g fa`
 }
 
-function pill(bg: string, fg: string, label: string, icon?: string) {
+function pill(bg: string, fg: string, label: string, icon?: IconName) {
   return (
     <span style={{
       fontSize: 11, fontWeight: 500, padding: '3px 9px', borderRadius: 9999,
       background: bg, color: fg,
       display: 'inline-flex', alignItems: 'center', gap: 4,
     }}>
-      {icon && <i className={icon} style={{ fontSize: 11 }} />}
+      {icon && <Icon name={icon} size={11} />}
       {label}
     </span>
   )
@@ -44,7 +45,7 @@ function roleBadge(role: UserRole) {
 }
 
 function adminBadge() {
-  return pill(C.accentLight, C.accentDeep, 'Admin', 'ph-thin ph-shield-check')
+  return pill(C.accentLight, C.accentDeep, 'Admin', 'shield')
 }
 
 /* ---- Add user modal -------------------------------------------------- */
@@ -95,7 +96,7 @@ function AddUserModal({ onClose, onCreate }: {
             Aggiungi utente
           </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-            <i className="ph-thin ph-x" style={{ fontSize: 20, color: C.muted }} />
+            <Icon name="close" size={20} color={C.muted} />
           </button>
         </div>
 
@@ -135,7 +136,7 @@ function AddUserModal({ onClose, onCreate }: {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
           {loading
-            ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, animation: 'spin .8s linear infinite' }} /> Creazione…</>
+            ? <><Icon name="refresh" size={16} style={{ animation: 'spin .8s linear infinite' }} /> Creazione…</>
             : 'Crea utente'}
         </button>
       </div>
@@ -160,7 +161,7 @@ function ConfirmDeleteSheet({ user, onConfirm, onCancel }: { user: AdminUser; on
       }}>
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: C.redSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-            <i className="ph-thin ph-trash" style={{ fontSize: 24, color: C.red }} />
+            <Icon name="trash" size={24} color={C.red} />
           </div>
           <p style={{ margin: '0 0 6px', fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, letterSpacing: '-0.02em', color: C.text }}>
             Elimina utente
@@ -224,7 +225,7 @@ function RoleSheet({ user, onPick, onCancel }: { user: AdminUser; onPick: (r: Us
               color: C.text,
             }}>
               <span style={{ flex: 1, textAlign: 'left' }}>{label}</span>
-              {active && <i className="ph-thin ph-check" style={{ fontSize: 16, color: C.accent }} />}
+              {active && <Icon name="check" size={16} color={C.accent} />}
             </button>
           )
         })}
@@ -301,7 +302,7 @@ function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
     <>
       <div style={{ padding: '12px 20px 0', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
-          <i className="ph-thin ph-magnifying-glass" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: C.muted, pointerEvents: 'none' }} />
+          <Icon name="search" size={18} color={C.muted} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             placeholder="Cerca per nome o email…"
             value={search}
@@ -321,14 +322,14 @@ function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
           {loading ? 'Caricamento…' : error ? 'Errore nel caricamento' : `${filtered.length} utent${filtered.length === 1 ? 'e' : 'i'}`}
         </span>
         <button onClick={reload} aria-label="Ricarica" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.muted }}>
-          <i className="ph-thin ph-arrows-clockwise" style={{ fontSize: 16 }} />
+          <Icon name="refresh" size={16} />
         </button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 80px' }}>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 40 }}>
-            <i className="ph-thin ph-spinner-gap" style={{ fontSize: 28, color: C.muted, animation: 'spin .8s linear infinite' }} />
+            <Icon name="refresh" size={28} color={C.muted} style={{ animation: 'spin .8s linear infinite' }} />
           </div>
         ) : error ? (
           <div style={{ margin: '24px 0', padding: '14px 16px', borderRadius: 'var(--r-md)', background: C.redSoft }}>
@@ -365,8 +366,8 @@ function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
                   {user.is_admin && adminBadge()}
                 </div>
                 {isBusy
-                  ? <i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, color: C.muted, animation: 'spin .8s linear infinite', flexShrink: 0 }} />
-                  : <i className={`ph-thin ph-caret-${isExpanded ? 'up' : 'down'}`} style={{ fontSize: 14, color: C.hint, flexShrink: 0 }} />
+                  ? <Icon name="refresh" size={16} color={C.muted} style={{ animation: 'spin .8s linear infinite', flexShrink: 0 }} />
+                  : <Icon name={isExpanded ? 'arrowUp' : 'caretDown'} size={14} color={C.hint} style={{ flexShrink: 0 }} />
                 }
               </div>
 
@@ -412,7 +413,7 @@ function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
           boxShadow: '0 8px 24px rgba(10,10,10,0.18)',
         }}
       >
-        <i className="ph-thin ph-plus" style={{ fontSize: 22, color: C.bg }} />
+        <Icon name="plus" size={22} color={C.bg} />
       </button>
 
       {showAdd && (
@@ -535,14 +536,14 @@ function LogsTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
           {loading ? 'Caricamento…' : `${filtered.length} event${filtered.length === 1 ? 'o' : 'i'}`}
         </span>
         <button onClick={reload} aria-label="Ricarica" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.muted }}>
-          <i className="ph-thin ph-arrows-clockwise" style={{ fontSize: 16 }} />
+          <Icon name="refresh" size={16} />
         </button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 20px 80px' }}>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 40 }}>
-            <i className="ph-thin ph-spinner-gap" style={{ fontSize: 28, color: C.muted, animation: 'spin .8s linear infinite' }} />
+            <Icon name="refresh" size={28} color={C.muted} style={{ animation: 'spin .8s linear infinite' }} />
           </div>
         ) : error ? (
           <div style={{ textAlign: 'center', paddingTop: 40, color: C.red, fontSize: 13 }}>{error}</div>
@@ -635,7 +636,7 @@ function SupportThread({ conv, adminId, onBack }: { conv: ConvWithUser; adminId:
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
         <button onClick={onBack} aria-label="Indietro" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-          <i className="ph-thin ph-arrow-left" style={{ fontSize: 20, color: C.muted }} />
+          <Icon name="back" size={20} color={C.muted} />
         </button>
         <Avatar initials={ini} size={34} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -662,7 +663,7 @@ function SupportThread({ conv, adminId, onBack }: { conv: ConvWithUser; adminId:
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {loading ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="ph-thin ph-spinner-gap" style={{ fontSize: 24, color: C.muted, animation: 'spin .8s linear infinite' }} />
+            <Icon name="refresh" size={24} color={C.muted} style={{ animation: 'spin .8s linear infinite' }} />
           </div>
         ) : messages.length === 0 ? (
           <div style={{ textAlign: 'center', paddingTop: 40, color: C.muted, fontSize: 13.5 }}>
@@ -708,8 +709,8 @@ function SupportThread({ conv, adminId, onBack }: { conv: ConvWithUser; adminId:
             }}
           >
             {sending
-              ? <i className="ph-thin ph-spinner-gap" style={{ fontSize: 16, color: C.bg, animation: 'spin .8s linear infinite' }} />
-              : <i className="ph-thin ph-paper-plane-tilt" style={{ fontSize: 16, color: text.trim() ? C.bg : C.hint }} />
+              ? <Icon name="refresh" size={16} color={C.bg} style={{ animation: 'spin .8s linear infinite' }} />
+              : <Icon name="send" size={16} color={text.trim() ? C.bg : C.hint} />
             }
           </button>
         </div>
@@ -739,14 +740,14 @@ function SupportTab({ adminId }: { adminId: string | undefined }) {
           {loading ? 'Caricamento…' : `${conversations.length} conversazion${conversations.length === 1 ? 'e' : 'i'}`}
         </span>
         <button onClick={reload} aria-label="Ricarica" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.muted }}>
-          <i className="ph-thin ph-arrows-clockwise" style={{ fontSize: 16 }} />
+          <Icon name="refresh" size={16} />
         </button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 20px 80px' }}>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 40 }}>
-            <i className="ph-thin ph-spinner-gap" style={{ fontSize: 28, color: C.muted, animation: 'spin .8s linear infinite' }} />
+            <Icon name="refresh" size={28} color={C.muted} style={{ animation: 'spin .8s linear infinite' }} />
           </div>
         ) : conversations.length === 0 ? (
           <div style={{ textAlign: 'center', paddingTop: 48, color: C.muted, fontSize: 13.5 }}>
@@ -888,7 +889,7 @@ function NotifyTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
                             {u.email}
                           </div>
                         </div>
-                        {active && <i className="ph-thin ph-check" style={{ fontSize: 16, color: C.accent }} />}
+                        {active && <Icon name="check" size={16} color={C.accent} />}
                       </div>
                     )
                   })}
@@ -966,7 +967,7 @@ function NotifyTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
         }}
       >
         {sending
-          ? <><i className="ph-thin ph-spinner-gap" style={{ fontSize: 17, animation: 'spin .8s linear infinite' }} /> Invio…</>
+          ? <><Icon name="refresh" size={17} style={{ animation: 'spin .8s linear infinite' }} /> Invio…</>
           : 'Invia notifica'}
       </button>
     </div>
@@ -1000,7 +1001,7 @@ export function AdminPanel({ userId }: { userId?: string }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 20px 12px', flexShrink: 0 }}>
-        <i className="ph-thin ph-shield-check" style={{ fontSize: 22, color: C.accent }} />
+        <Icon name="shield" size={22} color={C.accent} />
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, letterSpacing: '-0.025em', color: C.text }}>
           Admin
         </span>

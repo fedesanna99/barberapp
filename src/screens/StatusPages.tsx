@@ -1,7 +1,8 @@
 import { C } from '../lib/colors'
+import { Icon, type IconName } from '../components/Icon'
 
 function Frame({ icon, title, message, action, tone }: {
-  icon:    string
+  icon:    IconName
   title:   string
   message: string
   action?: { label: string; onClick: () => void }
@@ -18,7 +19,7 @@ function Frame({ icon, title, message, action, tone }: {
     <div style={{
       width: '100%', maxWidth: 430, height: '100dvh',
       background: C.bg, display: 'flex', flexDirection: 'column',
-      position: 'relative', boxShadow: '0 0 0 1px rgba(10,10,10,0.04)',
+      position: 'relative', boxShadow: '0 0 0 1px var(--ink-08)',
     }}>
       <div style={{ height: 'env(safe-area-inset-top, 0px)', flexShrink: 0 }} />
       <div style={{
@@ -32,7 +33,7 @@ function Frame({ icon, title, message, action, tone }: {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: 4,
         }}>
-          <i className={icon} style={{ fontSize: 32 }} />
+          <Icon name={icon} size={32} />
         </div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, letterSpacing: '-0.025em', color: C.text }}>
           {title}
@@ -44,8 +45,8 @@ function Frame({ icon, title, message, action, tone }: {
             style={{
               marginTop: 10,
               padding: '12px 24px', borderRadius: 'var(--r-md)',
-              background: C.text, color: C.bg,
-              border: `1px solid ${C.text}`, fontSize: 14, fontWeight: 500,
+              background: 'var(--clay)', color: 'var(--paper-3)',
+              border: '1px solid var(--clay)', fontSize: 14, fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -60,7 +61,7 @@ function Frame({ icon, title, message, action, tone }: {
 
 export function NotFound() {
   return <Frame
-    icon="ph-thin ph-compass"
+    icon="globe"
     title="Pagina non trovata"
     message="L'indirizzo che hai inserito non esiste o è stato spostato."
     action={{ label: 'Torna alla home', onClick: () => { window.location.href = '/' } }}
@@ -69,7 +70,7 @@ export function NotFound() {
 
 export function Forbidden({ onBack }: { onBack?: () => void }) {
   return <Frame
-    icon="ph-thin ph-lock"
+    icon="lock"
     title="Accesso negato"
     message="Non hai i permessi per visualizzare questa pagina. Se pensi sia un errore, prova a uscire e rientrare."
     action={onBack
@@ -81,7 +82,7 @@ export function Forbidden({ onBack }: { onBack?: () => void }) {
 
 export function ServerError({ onRetry }: { onRetry?: () => void }) {
   return <Frame
-    icon="ph-thin ph-warning"
+    icon="warning"
     title="Qualcosa è andato storto"
     message="Si è verificato un errore inatteso. Riprova. Se persiste, contatta il supporto."
     action={onRetry
@@ -93,7 +94,7 @@ export function ServerError({ onRetry }: { onRetry?: () => void }) {
 
 export function Maintenance() {
   return <Frame
-    icon="ph-thin ph-wrench"
+    icon="settings"
     title="Lavori in corso"
     message="Stiamo effettuando una manutenzione programmata. Torneremo online a brevissimo — grazie per la pazienza."
     tone="success"
