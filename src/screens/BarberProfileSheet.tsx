@@ -13,6 +13,7 @@ import { ReviewsList } from '../components/ReviewsList'
 import { ReviewSheet } from '../components/ReviewSheet'
 import type { ToastEvent } from '../components/Toast'
 import { ratingDisplay } from '../lib/rating'
+import { formatKm } from '../lib/geo'
 import { Icon, type IconName } from '../components/Icon'
 
 interface BarberPost {
@@ -142,7 +143,7 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
             </h1>
             <div style={{ marginTop: 6, fontSize: 12.5, color: C.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="pin" size={13} color={C.accent} />
-              {barber.city}
+              {barber.city}{barber.dist > 0 ? ` · ${formatKm(barber.dist)}` : ''}
             </div>
           </div>
         </div>
