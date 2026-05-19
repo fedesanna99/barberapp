@@ -26,7 +26,7 @@ import { ResetPassword } from './screens/ResetPassword'
 import type { DemoBarber, DemoDate } from './lib/demoData'
 
 const DEMO_BANNER_DISMISSED_KEY = 'cutbook_demo_banner_dismissed'
-const PULL_REFRESH_START_ZONE_PX = 160
+const PULL_REFRESH_START_ZONE_PX = () => window.innerHeight / 2
 const PULL_DEAD_ZONE_PX = 10
 
 function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
@@ -153,7 +153,7 @@ export default function App() {
     if (pullRefreshing || e.touches.length !== 1 || !isAtScrollableTop(e.target)) return
     const startY = e.touches[0].clientY
     const appTop = e.currentTarget.getBoundingClientRect().top
-    if (startY > appTop + PULL_REFRESH_START_ZONE_PX) return
+    if (startY > appTop + PULL_REFRESH_START_ZONE_PX()) return
     pullStartY.current = startY
     pullTracking.current = true
   }
