@@ -13,7 +13,8 @@ import { ReviewsList } from '../components/ReviewsList'
 import { ReviewSheet } from '../components/ReviewSheet'
 import type { ToastEvent } from '../components/Toast'
 import { ratingDisplay } from '../lib/rating'
-import { formatKm } from '../lib/geo'
+import { haversineKm, formatKm } from '../lib/geo'
+import { useGeolocation } from '../hooks/useGeolocation'
 import { Icon, type IconName } from '../components/Icon'
 
 interface BarberPost {
@@ -45,6 +46,11 @@ interface Props {
 
 export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, myBarberId, onToast, onMessage }: Props) {
   const isOwnProfile = !!myBarberId && String(myBarberId) === String(barber.id)
+  const { coords: userCoords } = useGeolocation()
+  const dist: number | null =
+    userCoords && barber.lat != null && barber.lng != null
+      ? haversineKm(userCoords, { lat: barber.lat, lng: barber.lng })
+      : barber.dist > 0 ? barber.dist : null
   const [posts, setPosts]             = useState<BarberPost[]>([])
   const [feedStartIdx, setFeedStartIdx] = useState<number | null>(null)
   const [tab, setTab]                 = useState<'posts' | 'reviews'>('posts')
@@ -143,7 +149,7 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
             </h1>
             <div style={{ marginTop: 6, fontSize: 12.5, color: C.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="pin" size={13} color={C.accent} />
-              {barber.city}{barber.dist > 0 ? ` · ${formatKm(barber.dist)}` : ''}
+              {barber.city}{dist != null ? ` · ${formatKm(dist)}` : ''}
             </div>
           </div>
         </div>

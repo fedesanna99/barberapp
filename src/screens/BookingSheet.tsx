@@ -6,6 +6,8 @@ import { useAvailability } from '../hooks/useAvailability'
 import { useBarberDefaults } from '../hooks/useBarberDefaults'
 import { IS_DEMO } from '../lib/supabase'
 import { ratingDisplay } from '../lib/rating'
+import { haversineKm, formatKm } from '../lib/geo'
+import { useGeolocation } from '../hooks/useGeolocation'
 import { Icon } from '../components/Icon'
 
 interface BookingSheetProps {
@@ -18,6 +20,11 @@ const DEMO_TAKEN = new Set(SLOTS.filter((_, i) => TAKEN_INDICES.has(i)))
 
 export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) {
   const dates = useMemo(() => getNext7Days(), [])
+  const { coords: userCoords } = useGeolocation()
+  const dist: number | null =
+    userCoords && barber.lat != null && barber.lng != null
+      ? haversineKm(userCoords, { lat: barber.lat, lng: barber.lng })
+      : barber.dist > 0 ? barber.dist : null
   const [selDate, setSelDate] = useState(0)
   const [selTime, setSelTime] = useState<string | null>(null)
   const [step, setStep]       = useState<'datetime' | 'confirm'>('datetime')
@@ -58,7 +65,7 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
                 </h2>
                 <div style={{ fontSize: 12.5, color: C.muted, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="pin" size={14} color={C.accent} />
-                  {barber.city}
+                  {barber.city}{dist != null ? ` · ${formatKm(dist)}` : ''}
                   {rd.hasReviews && (
                     <>
                       <span style={{ color: C.borderMed }}>·</span>
