@@ -36,6 +36,7 @@ const STATUS_LABEL: Record<string, string> = {
   confirmed: 'Confermato',
   done:      'Completato',
   cancelled: 'Annullato',
+  declined:  'Rifiutato',
 }
 
 const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
@@ -43,6 +44,7 @@ const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
   confirmed: { bg: C.greenSoft,   fg: C.green },
   done:      { bg: C.surfaceAlt,  fg: C.muted },
   cancelled: { bg: C.redSoft,     fg: C.red },
+  declined:  { bg: C.redSoft,     fg: C.red },
 }
 
 export function MyAppointments({ userId, onClose, onToast }: Props) {
@@ -55,12 +57,14 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
   const upcoming = bookings.filter(b =>
     bookingTime(b.date, b.time_slot) >= now
     && b.status !== 'cancelled'
+    && b.status !== 'declined'
     && b.status !== 'done'
   )
   const past = bookings.filter(b =>
     bookingTime(b.date, b.time_slot) < now
     || b.status === 'done'
     || b.status === 'cancelled'
+    || b.status === 'declined'
   ).sort((a, b) =>
     bookingTime(b.date, b.time_slot) - bookingTime(a.date, a.time_slot)
   )
