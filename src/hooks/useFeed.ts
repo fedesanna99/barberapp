@@ -29,6 +29,9 @@ export interface FeedPost {
   taggedProfileId?: string | null
   taggedName?: string | null
   taggedRole?: 'client' | 'barber' | null
+  // Barber coordinates — needed to compute haversine distance when opening profile from Feed
+  barberLat?: number | null
+  barberLng?: number | null
 }
 
 const ACCENT_PALETTE = ['#5DCAA5', '#85B7EB', '#EF9F27', '#AFA9EC', '#F09595', '#72BCD4', '#E8B86D']
@@ -74,6 +77,8 @@ let demoPosts: FeedPost[] = POSTS.map(p => {
     timeAgo: p.timeAgo,
     imageUrl: p.imageUrl,
     isUserPost: false,
+    barberLat: b.lat ?? null,
+    barberLng: b.lng ?? null,
   }
 })
 
@@ -156,7 +161,7 @@ export function useFeed(userId: string | undefined, _ownBarberId?: string) {
     // (null for user posts). Fetch profile via author_id; city only when barber_id exists.
     supabase
       .from('posts')
-      .select('*, barbers ( id, city )')
+      .select('*, barbers ( id, city, profiles ( lat, lng ) )')
       .order('created_at', { ascending: false })
       .range(page * PAGE, (page + 1) * PAGE - 1)
       .then(async ({ data: postsData, error }) => {
@@ -207,6 +212,8 @@ export function useFeed(userId: string | undefined, _ownBarberId?: string) {
             taggedProfileId: taggedId ?? null,
             taggedName: taggedProf?.display_name ?? null,
             taggedRole: taggedProf?.role ?? null,
+            barberLat: (barberRow?.profiles as any)?.lat ?? null,
+            barberLng: (barberRow?.profiles as any)?.lng ?? null,
           }
         })
 

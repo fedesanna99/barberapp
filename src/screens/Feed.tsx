@@ -64,6 +64,8 @@ function postToBarber(p: FeedPost): DemoBarber {
     followers: 0,
     accent:    p.barberAccent,
     profileId: p.barberProfileId,
+    lat:       p.barberLat ?? undefined,
+    lng:       p.barberLng ?? undefined,
   }
 }
 

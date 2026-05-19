@@ -19,23 +19,32 @@ export function useGeolocation(): GeoState {
       setUnavailable(true)
       return
     }
-    // Phase 1: fast low-accuracy fix via WiFi/cell (usually < 1 s, 5-min cache ok)
+
+    let gotAccurate = false
+
+    // Fast path: network/WiFi fix — shows distance quickly (< 1 s, 1-min cache)
     navigator.geolocation.getCurrentPosition(
       p => {
+        if (!gotAccurate)
+          setCoords({ lat: p.coords.latitude, lng: p.coords.longitude })
+        setDenied(false)
+      },
+      () => { /* silent — GPS path handles errors */ },
+      { enableHighAccuracy: false, timeout: 4_000, maximumAge: 60_000 },
+    )
+
+    // GPS path: accurate fix, runs in parallel — overwrites network position when ready
+    navigator.geolocation.getCurrentPosition(
+      p => {
+        gotAccurate = true
         setCoords({ lat: p.coords.latitude, lng: p.coords.longitude })
         setDenied(false)
-        // Phase 2: silently refine with GPS in background
-        navigator.geolocation.getCurrentPosition(
-          p2 => setCoords({ lat: p2.coords.latitude, lng: p2.coords.longitude }),
-          () => { /* keep phase-1 coords */ },
-          { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },
-        )
       },
       err => {
         if (err.code === err.PERMISSION_DENIED) setDenied(true)
         else setUnavailable(true)
       },
-      { enableHighAccuracy: false, timeout: 5_000, maximumAge: 300_000 },
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 30_000 },
     )
   }, [])
 
