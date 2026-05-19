@@ -14,7 +14,7 @@ import { Profile } from './screens/Profile'
 import { Menu } from './screens/Menu'
 import { BarberDashboard } from './screens/BarberDashboard'
 import { AdminPanel } from './screens/AdminPanel'
-import { BookingSheet } from './screens/BookingSheet'
+import { BookingSheet, type BookingConfirmParams } from './screens/BookingSheet'
 import { BarberProfileSheet } from './screens/BarberProfileSheet'
 import { SupportChat } from './screens/SupportChat'
 import { Notifications } from './screens/Notifications'
@@ -24,7 +24,7 @@ import { DirectMessages } from './screens/DirectMessages'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
 import { ResetPassword } from './screens/ResetPassword'
-import type { DemoBarber, DemoDate } from './lib/demoData'
+import type { DemoBarber } from './lib/demoData'
 
 const DEMO_BANNER_DISMISSED_KEY = 'cutbook_demo_banner_dismissed'
 const PULL_REFRESH_START_ZONE_PX = () => window.innerHeight / 2
@@ -205,13 +205,17 @@ export default function App() {
     else if (asBarber) setScreen('dashboard')
   }
 
-  async function handleConfirm(barber: DemoBarber, date: DemoDate, time: string) {
+  async function handleConfirm({ barber, date, time, serviceId, paymentMethod, stripePaymentIntentId }: BookingConfirmParams) {
     if (!IS_DEMO && userId) {
+      const paymentStatus = paymentMethod === 'online' ? 'paid' : 'pending_cash'
       const { error } = await createBooking({
-        clientId: userId,
-        barberId: barber.id,
-        date:     date.date,
-        timeSlot: time,
+        clientId:              userId,
+        barberId:              barber.id,
+        date:                  date.date,
+        timeSlot:              time,
+        serviceId,
+        paymentStatus,
+        stripePaymentIntentId,
       })
       if (error) {
         const code = (error as { code?: string }).code
@@ -233,10 +237,11 @@ export default function App() {
     }
     setBookingBarber(null)
     setProfileBarber(null)
+    const payLabel = paymentMethod === 'online' ? ' · Pagato online' : ' · Paga in loco'
     setToast({
       kind:    'success',
       title:   'Prenotato.',
-      message: `${date.day} ${date.num} ${date.month} · ${time} · ${barber.name}`,
+      message: `${date.day} ${date.num} ${date.month} · ${time} · ${barber.name}${payLabel}`,
     })
   }
 
@@ -337,7 +342,7 @@ export default function App() {
           <BookingSheet
             barber={bookingBarber}
             onClose={() => setBookingBarber(null)}
-            onConfirm={handleConfirm}
+            onConfirm={params => handleConfirm(params)}
           />
         )}
 

@@ -6,6 +6,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 // 'declined' = barbiere rifiuta una prenotazione pending (migration 033).
 // 'cancelled' resta riservato al cliente che annulla.
 export type BookingStatus = 'pending' | 'confirmed' | 'done' | 'cancelled' | 'declined'
+export type PaymentStatus = 'pending_cash' | 'pending_online' | 'paid' | 'refunded'
 // Task 9 — 'admin' is no longer a value of `profiles.role`; instead `profiles.is_admin`
 // is a separate boolean flag. The union here matches the DB CHECK constraint.
 export type UserRole = 'client' | 'barber'
@@ -461,6 +462,41 @@ export type Database = {
           }
         ]
       }
+      services: {
+        Row: {
+          id: string
+          barber_id: string
+          name: string
+          price: number
+          duration_minutes: number
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          barber_id: string
+          name: string
+          price: number
+          duration_minutes?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          name?: string
+          price?: number
+          duration_minutes?: number
+          is_active?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'services_barber_id_fkey'
+            columns: ['barber_id']
+            isOneToOne: false
+            referencedRelation: 'barbers'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       bookings: {
         Row: {
           id: string
@@ -469,6 +505,9 @@ export type Database = {
           date: string
           time_slot: string
           status: BookingStatus
+          service_id: string | null
+          payment_status: PaymentStatus
+          stripe_payment_intent_id: string | null
           created_at: string
         }
         Insert: {
@@ -478,10 +517,14 @@ export type Database = {
           date: string
           time_slot: string
           status?: BookingStatus
+          service_id?: string | null
+          payment_status?: PaymentStatus
+          stripe_payment_intent_id?: string | null
           created_at?: string
         }
         Update: {
           status?: BookingStatus
+          payment_status?: PaymentStatus
         }
         Relationships: [
           {
@@ -699,6 +742,7 @@ export type Comment      = Database['public']['Tables']['comments']['Row']
 export type CommentLike  = Database['public']['Tables']['comment_likes']['Row']
 export type Availability = Database['public']['Tables']['availability']['Row']
 export type Booking      = Database['public']['Tables']['bookings']['Row']
+export type Service      = Database['public']['Tables']['services']['Row']
 export type Review       = Database['public']['Tables']['reviews']['Row']
 export type UserPost     = Database['public']['Tables']['user_posts']['Row']
 export type SupportConversation = Database['public']['Tables']['support_conversations']['Row']
