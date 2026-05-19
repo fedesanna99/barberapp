@@ -66,18 +66,29 @@ const CLIENT_SELECT = '*, barbers(id, profile:profiles(display_name, avatar_url)
 
 export function useClientBookings(clientId: string | undefined) {
   const [bookings, setBookings] = useState<BookingWithBarber[]>([])
+  const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   useEffect(() => {
-    if (!clientId) return
+    if (!clientId) {
+      setBookings([])
+      setLoading(false)
+      setLoadError(null)
+      return
+    }
+    setLoading(true)
+    setLoadError(null)
 
     supabase
       .from('bookings')
       .select(CLIENT_SELECT)
       .eq('client_id', clientId)
       .order('date', { ascending: true })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { setLoadError(error.message); setLoading(false); return }
         if (data) setBookings(data as BookingWithBarber[])
+        setLoading(false)
       })
 
     channelRef.current = supabase
@@ -114,7 +125,7 @@ export function useClientBookings(clientId: string | undefined) {
     return () => { channelRef.current?.unsubscribe() }
   }, [clientId])
 
-  return { bookings }
+  return { bookings, loading, loadError }
 }
 
 // Booking with joined client display data

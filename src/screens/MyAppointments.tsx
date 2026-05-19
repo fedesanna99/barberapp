@@ -16,15 +16,25 @@ interface Props {
 // Returns the booking's datetime as ms-since-epoch in local time.
 // Used to move bookings to "past" the instant their slot starts, not at
 // midnight: an 08:00 appointment today belongs in Cronologia from 08:01.
-function bookingTime(date: string, timeSlot: string): number {
-  const [y, m, d] = date.split('-').map(Number)
-  const [hh, mm] = timeSlot.slice(0, 5).split(':').map(Number)
-  return new Date(y, m - 1, d, hh, mm).getTime()
+function bookingTime(date: string | null | undefined, timeSlot: string | null | undefined): number {
+  if (!date || !timeSlot) return 0
+  try {
+    const [y, m, d] = date.split('-').map(Number)
+    const [hh, mm] = timeSlot.slice(0, 5).split(':').map(Number)
+    return new Date(y, m - 1, d, hh, mm).getTime()
+  } catch {
+    return 0
+  }
 }
 
-function fmtDate(s: string): string {
-  const [y, m, d] = s.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
+function fmtDate(s: string | null | undefined): string {
+  if (!s) return '—'
+  try {
+    const [y, m, d] = s.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
+  } catch {
+    return s
+  }
 }
 
 function initials(name: string | null | undefined): string {
@@ -49,7 +59,7 @@ const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
 }
 
 export function MyAppointments({ userId, onClose, onToast }: Props) {
-  const { bookings } = useClientBookings(userId)
+  const { bookings, loading, loadError } = useClientBookings(userId)
   const { cancelBooking } = useBooking()
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [reviewBooking, setReviewBooking] = useState<BookingWithBarber | null>(null)
@@ -99,7 +109,16 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-        {bookings.length === 0 ? (
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '60px 0' }}>
+            <Icon name="refresh" size={24} color={C.hint} style={{ animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        ) : loadError ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '60px 32px', textAlign: 'center' }}>
+            <Icon name="warning" size={28} color={C.hint} />
+            <div style={{ fontSize: 14, color: C.muted }}>Impossibile caricare gli appuntamenti.</div>
+          </div>
+        ) : bookings.length === 0 ? (
           <EmptyState />
         ) : (
           <>
