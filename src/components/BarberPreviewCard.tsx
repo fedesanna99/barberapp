@@ -14,9 +14,10 @@ interface Props {
 }
 
 export function BarberPreviewCard({ barber, userCoords, onBook, onClose, isSelf }: Props) {
-  const dist = userCoords && barber.lat != null && barber.lng != null
-    ? haversineKm(userCoords, { lat: barber.lat, lng: barber.lng })
-    : null
+  const dist: number | null =
+    userCoords && barber.lat != null && barber.lng != null
+      ? haversineKm(userCoords, { lat: barber.lat, lng: barber.lng })
+      : barber.dist > 0 ? barber.dist : null
   const rd = ratingDisplay({ rating: barber.rating, reviewsCount: barber.reviewsCount })
 
   return (

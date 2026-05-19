@@ -16,6 +16,6 @@ export function haversineKm(a: LatLng, b: LatLng): number {
 }
 
 export function formatKm(km: number): string {
-  if (km < 1) return `${Math.round(km * 1000)} m`
-  return `${km < 10 ? km.toFixed(1) : Math.round(km)} km`
+  if (km < 1) return `${Math.round(km * 1000)} m`
+  return `${km < 10 ? km.toFixed(1).replace('.', ',') : Math.round(km)} km`
 }
