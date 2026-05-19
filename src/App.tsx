@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import type { TouchEvent } from 'react'
 import { IS_DEMO } from './lib/supabase'
 import { useAuth } from './hooks/useAuth'
 import { writeLog } from './hooks/useAdminLogs'
@@ -99,6 +100,11 @@ export default function App() {
   const [dmOpen, setDmOpen] = useState<null | { peerId: string; name: string | null; avatar: string | null; role: 'client' | 'barber' }>(null)
   const [showDmList, setShowDmList] = useState(false)
   const [toast, setToast]               = useState<ToastEvent | null>(null)
+  const [refreshNonce, setRefreshNonce] = useState(0)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [pullRefreshing, setPullRefreshing] = useState(false)
+  const pullStartY = useRef<number | null>(null)
+  const pullTracking = useRef(false)
   const [demoBannerOpen, setDemoBannerOpen] = useState(
     () => IS_DEMO && localStorage.getItem(DEMO_BANNER_DISMISSED_KEY) !== 'true'
   )
@@ -116,6 +122,49 @@ export default function App() {
       if (roleIsAdmin) { setIsAdmin(true); setScreen('admin') }
     }
   }, [session, roleIsBarber, roleIsAdmin, loading])
+
+  function isAtScrollableTop(target: EventTarget | null) {
+    if (!(target instanceof Element)) return true
+    if (target.closest('input, textarea, select, [contenteditable="true"]')) return false
+    if (target.closest('.bb-sheet')) return false
+    const screen = target.closest('.bb-screen') as HTMLElement | null
+    return !screen || screen.scrollTop <= 2
+  }
+
+  function handleTouchStart(e: TouchEvent<HTMLDivElement>) {
+    if (pullRefreshing || e.touches.length !== 1 || !isAtScrollableTop(e.target)) return
+    pullStartY.current = e.touches[0].clientY
+    pullTracking.current = true
+  }
+
+  function handleTouchMove(e: TouchEvent<HTMLDivElement>) {
+    if (!pullTracking.current || pullStartY.current == null) return
+    const delta = e.touches[0].clientY - pullStartY.current
+    if (delta <= 0) {
+      setPullDistance(0)
+      return
+    }
+    setPullDistance(Math.min(96, delta * 0.55))
+  }
+
+  function handleTouchEnd() {
+    if (!pullTracking.current) return
+    const shouldReload = pullDistance >= 72
+    pullTracking.current = false
+    pullStartY.current = null
+    if (!shouldReload) {
+      setPullDistance(0)
+      return
+    }
+    setPullRefreshing(true)
+    setPullDistance(72)
+    setRefreshNonce(n => n + 1)
+    setToast({ kind: 'success', title: 'Aggiornato.', message: 'I dati della schermata sono stati ricaricati.' })
+    window.setTimeout(() => {
+      setPullRefreshing(false)
+      setPullDistance(0)
+    }, 450)
+  }
 
   function handleLogin(asBarber = false, asAdmin = false) {
     setLoggedIn(true)
@@ -164,7 +213,26 @@ export default function App() {
   const navItems = isAdmin ? ADMIN_NAV : isBarber ? BARBER_NAV : CLIENT_NAV
 
   return (
-    <div className="bb-app">
+    <div
+      className="bb-app"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={() => {
+        pullTracking.current = false
+        pullStartY.current = null
+        setPullDistance(0)
+      }}
+    >
+      {(pullDistance > 0 || pullRefreshing) && (
+        <div
+          className={`bb-pull-refresh ${pullRefreshing ? 'is-refreshing' : ''}`}
+          style={{ transform: `translate(-50%, ${Math.max(0, pullDistance - 44)}px)` }}
+        >
+          <Icon name="refresh" size={16} />
+          <span>{pullRefreshing || pullDistance >= 72 ? 'Rilascia per aggiornare' : 'Tira per aggiornare'}</span>
+        </div>
+      )}
       <div style={{ height: 'env(safe-area-inset-top, 0px)', flexShrink: 0, background: 'var(--paper-3)' }} />
 
       {demoBannerOpen && (
@@ -198,20 +266,21 @@ export default function App() {
           />
         ) : (
           <>
-            {screen === 'feed'      && <Feed     userId={userId} barberId={barberId} onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} showSaved={showSavedFeed} onShowSavedChange={setShowSavedFeed} onToast={setToast} />}
-            {screen === 'discover'  && <Discover onBook={setBookingBarber} onViewProfile={setProfileBarber} myBarberId={barberId} />}
-            {screen === 'profile'   && <Profile userId={userId} isBarber={isBarber} barberId={barberId} onToast={setToast} />}
+            {screen === 'feed'      && <Feed     key={`feed-${refreshNonce}`} userId={userId} barberId={barberId} onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} showSaved={showSavedFeed} onShowSavedChange={setShowSavedFeed} onToast={setToast} />}
+            {screen === 'discover'  && <Discover key={`discover-${refreshNonce}`} onBook={setBookingBarber} onViewProfile={setProfileBarber} myBarberId={barberId} />}
+            {screen === 'profile'   && <Profile key={`profile-${refreshNonce}`} userId={userId} isBarber={isBarber} barberId={barberId} onToast={setToast} />}
             {isBarber && (
-              <div style={{ flex: screen === 'dashboard' ? 1 : 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div key={`dashboard-${refreshNonce}`} style={{ flex: screen === 'dashboard' ? 1 : 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <BarberDashboard barberId={barberId} userId={userId} onToast={setToast} />
               </div>
             )}
             {isAdmin && (
-              <div style={{ flex: screen === 'admin' ? 1 : 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div key={`admin-${refreshNonce}`} style={{ flex: screen === 'admin' ? 1 : 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <AdminPanel userId={userId} />
               </div>
             )}
             {screen === 'menu'      && <Menu
+              key={`menu-${refreshNonce}`}
               isBarber={isBarber}
               barberId={barberId}
               userId={userId}

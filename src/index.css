@@ -236,7 +236,32 @@ code, kbd, samp {
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  overscroll-behavior: contain;
   box-shadow: 0 0 0 1px var(--ink-08), 0 24px 60px -24px rgba(46,42,37,0.14);
+}
+
+.bb-pull-refresh {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 250;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid var(--ink-08);
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--paper-3) 92%, transparent);
+  color: var(--ink-80);
+  box-shadow: var(--shadow-lift);
+  font: var(--t-label);
+  opacity: 0.96;
+  pointer-events: none;
+  transition: transform var(--d-fast) var(--ease), opacity var(--d-fast) var(--ease);
+}
+
+.bb-pull-refresh.is-refreshing svg {
+  animation: spin .8s linear infinite;
 }
 
 .bb-safe-top { height: 14px; flex-shrink: 0; }
@@ -246,6 +271,7 @@ code, kbd, samp {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior-y: contain;
   position: relative;
 }
 
