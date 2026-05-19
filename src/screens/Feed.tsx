@@ -17,6 +17,7 @@ import { supabase, IS_DEMO } from '../lib/supabase'
 import { uploadPostPhoto, uploadUserPostPhoto, validateImageType } from '../hooks/useUpload'
 import { CommentsSheet } from './CommentsSheet'
 import { PostMedia } from '../components/PostMedia'
+import { SOFT_PHOTO_FILTER } from '../lib/photoTone'
 import type { ToastEvent } from '../components/Toast'
 
 function toStoryBarber(b: BarberWithProfile): DemoBarber {
@@ -792,7 +793,7 @@ function NewPostSheet({
         >
           {preview ? (
             <>
-              <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+              <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, filter: SOFT_PHOTO_FILTER }} />
               <div style={{
                 position: 'absolute', inset: 0,
                 background: 'rgba(20,17,13,0.45)',

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
 import { Icon } from './Icon'
+import { PhotoImage } from './PhotoImage'
 
 interface Props {
   imageUrl?:         string
@@ -39,15 +40,14 @@ export function PostMedia({
       borderBottom:    withBorder ? `1px solid ${C.border}` : undefined,
     }}>
       {imageUrl
-        ? <img
+        ? <PhotoImage
             src={imageUrl}
-            onLoad={e => {
-              const img = e.currentTarget
+            tone="soft"
+            onLoad={img => {
               if (img.naturalWidth && img.naturalHeight) {
                 setAspect(img.naturalWidth >= img.naturalHeight ? '1 / 1' : '3 / 4')
               }
             }}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         : <Icon name="scissors" size={fallbackIconSize} color={C.hint} />
       }

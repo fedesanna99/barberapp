@@ -4,6 +4,8 @@ import { Avatar } from '../components/Avatar'
 import { Icon } from '../components/Icon'
 import { EditProfileSheet } from '../components/EditProfileSheet'
 import { PostMedia } from '../components/PostMedia'
+import { PhotoImage } from '../components/PhotoImage'
+import { SOFT_PHOTO_FILTER } from '../lib/photoTone'
 import { BARBERS, POSTS, CUT_LOG, UPCOMING as DEMO_UPCOMING } from '../lib/demoData'
 import { useClientBookings } from '../hooks/useBooking'
 import { useProfile } from '../hooks/useProfile'
@@ -496,7 +498,7 @@ function GridCell({ src, label, onClick }: { src?: string | null; label?: string
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       {src
-        ? <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ? <PhotoImage src={src} tone="soft" />
         : <Icon name="scissors" size={26} color={C.hint} />
       }
       {label && (
@@ -707,7 +709,7 @@ function NewUserPostSheet({
         >
           {preview ? (
             <>
-              <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+              <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, filter: SOFT_PHOTO_FILTER }} />
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(20,17,13,0.45)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                 <Icon name="image" size={22} color={C.bg} />
                 <span style={{ fontSize: 12, color: C.bg }}>Tocca per cambiare</span>

@@ -8,6 +8,7 @@ import { useBarberInfo } from '../hooks/useBarberInfo'
 import { useFollow } from '../hooks/useFollow'
 import { useReviews } from '../hooks/useReviews'
 import { PostMedia } from '../components/PostMedia'
+import { PhotoImage } from '../components/PhotoImage'
 import { ReviewsList } from '../components/ReviewsList'
 import { ReviewSheet } from '../components/ReviewSheet'
 import type { ToastEvent } from '../components/Toast'
@@ -285,7 +286,7 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
                   }}
                 >
                   {post?.imageUrl
-                    ? <img src={post.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ? <PhotoImage src={post.imageUrl} tone="soft" />
                     : <Icon name="scissors" size={26} color={C.hint} />
                   }
                   {post && post.label && (

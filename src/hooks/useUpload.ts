@@ -1,7 +1,9 @@
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { SOFT_PHOTO_FILTER } from '../lib/photoTone'
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const AVATAR_MAX_DIM = 400
+const AVATAR_FOCAL_Y = 0.38
 const POST_MAX_DIM = 1920
 const JPEG_QUALITY = 0.85
 // Hard cap before compression — refuses oversized uploads that would burn
@@ -21,14 +23,30 @@ function validateImageSize(file: File): void {
   }
 }
 
-function compressImage(file: File, maxDim: number): Promise<File> {
+function compressImage(file: File, maxDim: number, cropSquare = false, soften = false): Promise<File> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const objectUrl = URL.createObjectURL(file)
     img.onload = () => {
       URL.revokeObjectURL(objectUrl)
+      let sourceX = 0
+      let sourceY = 0
+      let sourceWidth = img.width
+      let sourceHeight = img.height
       let { width, height } = img
-      if (width > maxDim || height > maxDim) {
+
+      if (cropSquare) {
+        const cropSize = Math.min(img.width, img.height)
+        sourceWidth = cropSize
+        sourceHeight = cropSize
+        sourceX = Math.round((img.width - cropSize) / 2)
+        sourceY = Math.round(Math.min(
+          Math.max(0, img.height * AVATAR_FOCAL_Y - cropSize / 2),
+          img.height - cropSize,
+        ))
+        width = maxDim
+        height = maxDim
+      } else if (width > maxDim || height > maxDim) {
         if (width >= height) {
           height = Math.round(height * maxDim / width)
           width = maxDim
@@ -40,7 +58,19 @@ function compressImage(file: File, maxDim: number): Promise<File> {
       const canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      const ctx = canvas.getContext('2d')!
+      if (soften) ctx.filter = SOFT_PHOTO_FILTER
+      ctx.drawImage(
+        img,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
+        0,
+        0,
+        width,
+        height,
+      )
       canvas.toBlob(
         blob => {
           if (!blob) { reject(new Error('Image compression failed')); return }
@@ -61,7 +91,7 @@ function compressImage(file: File, maxDim: number): Promise<File> {
 export async function uploadAvatar(file: File, userId: string): Promise<string> {
   validateImageType(file)
   validateImageSize(file)
-  const compressed = await compressImage(file, AVATAR_MAX_DIM)
+  const compressed = await compressImage(file, AVATAR_MAX_DIM, true)
   if (IS_DEMO) return URL.createObjectURL(compressed)
   const path = `${userId}/avatar.jpg`
   const { data: existing } = await supabase.storage.from('avatars').list(userId)
@@ -83,7 +113,7 @@ export async function uploadAvatar(file: File, userId: string): Promise<string> 
 export async function uploadPostPhoto(file: File, barberId: string): Promise<string> {
   validateImageType(file)
   validateImageSize(file)
-  const compressed = await compressImage(file, POST_MAX_DIM)
+  const compressed = await compressImage(file, POST_MAX_DIM, false, true)
   if (IS_DEMO) return URL.createObjectURL(compressed)
   const path = `${barberId}/${crypto.randomUUID()}.jpg`
   const { error } = await supabase.storage
@@ -98,7 +128,7 @@ export async function uploadPostPhoto(file: File, barberId: string): Promise<str
 export async function uploadUserPostPhoto(file: File, userId: string): Promise<string> {
   validateImageType(file)
   validateImageSize(file)
-  const compressed = await compressImage(file, POST_MAX_DIM)
+  const compressed = await compressImage(file, POST_MAX_DIM, false, true)
   if (IS_DEMO) return URL.createObjectURL(compressed)
   const path = `users/${userId}/${crypto.randomUUID()}.jpg`
   const { error } = await supabase.storage

@@ -92,10 +92,7 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
           ) : (
             comments.map(c => (
               <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
-                {c.authorAvatar
-                  ? <img src={c.authorAvatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                  : <Avatar initials={initialsFromName(c.authorName)} size={36} />
-                }
+                <Avatar initials={initialsFromName(c.authorName)} size={36} photo={c.authorAvatar ?? null} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.5, wordBreak: 'break-word' }}>
                     <span style={{ fontWeight: 600 }}>{c.authorName}</span>{' '}{c.content}

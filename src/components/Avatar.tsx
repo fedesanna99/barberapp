@@ -1,4 +1,5 @@
 import { C } from '../lib/colors'
+import { PhotoImage } from './PhotoImage'
 
 interface AvatarProps {
   initials: string
@@ -23,12 +24,11 @@ export function Avatar({ initials, size = 40, ring = false, photo = null }: Avat
       height:          size,
       borderRadius:    '50%',
       background:      photo ? '#1A1A1A' : C.surfaceAlt,
-      backgroundImage: photo ? `url(${photo})` : 'none',
-      backgroundSize:  'cover',
-      backgroundPosition: 'center',
       display:         'flex',
       alignItems:      'center',
       justifyContent:  'center',
+      position:        'relative',
+      overflow:        'hidden',
       fontFamily:      'var(--font-display)',
       fontWeight:      600,
       fontSize:        size * 0.36,
@@ -38,7 +38,10 @@ export function Avatar({ initials, size = 40, ring = false, photo = null }: Avat
       border:          ring ? `2px solid ${C.bg}` : 'none',
       flexShrink:      0,
     }}>
-      {!photo && initials}
+      {photo
+        ? <PhotoImage src={photo} position="center 38%" />
+        : initials
+      }
     </div>
   )
   if (!ring) return inner

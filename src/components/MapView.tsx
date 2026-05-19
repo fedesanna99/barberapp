@@ -21,6 +21,46 @@ interface Props {
 
 type ClusterFeature = Supercluster.PointFeature<{ id: string }> | Supercluster.ClusterFeature<{}>
 
+type MapLayer = {
+  id: string
+  type?: string
+  'source-layer'?: string
+}
+
+const MINIMAL_LAYER_PATTERNS = [
+  /\bpoi\b/,
+  /point[-_ ]of[-_ ]interest/,
+  /amenity/,
+  /building/,
+  /housenumber/,
+  /address/,
+  /transit/,
+  /public[-_ ]transport/,
+  /railway/,
+  /airport/,
+  /aeroway/,
+  /ferry/,
+  /parking/,
+  /place[-_ ]suburb/,
+  /place[-_ ]neighbourhood/,
+]
+
+function applyMinimalMapStyle(map: ReturnType<MapRef['getMap']>) {
+  const layers = (map.getStyle().layers ?? []) as MapLayer[]
+
+  for (const layer of layers) {
+    const layerKey = `${layer.id} ${layer['source-layer'] ?? ''}`.toLowerCase()
+    const shouldHide = MINIMAL_LAYER_PATTERNS.some(pattern => pattern.test(layerKey))
+    if (!shouldHide || !map.getLayer(layer.id)) continue
+
+    try {
+      map.setLayoutProperty(layer.id, 'visibility', 'none')
+    } catch {
+      // Some provider styles protect computed layers during style reloads.
+    }
+  }
+}
+
 export function MapView({
   barbers, userCoords, fallback, selectedId, onSelect, onMapLoad, onError,
 }: Props) {
@@ -142,12 +182,18 @@ export function MapView({
     }
   }
 
+  function handleMapStyleReady() {
+    const map = mapRef.current?.getMap()
+    if (map) applyMinimalMapStyle(map)
+  }
+
   return (
     <Map
       ref={mapRef}
       {...viewState}
       onMove={onMove}
-      onLoad={() => { setMapLoaded(true); onMapLoad?.() }}
+      onLoad={() => { handleMapStyleReady(); setMapLoaded(true); onMapLoad?.() }}
+      onStyleData={handleMapStyleReady}
       onError={onError}
       mapStyle={mapStyleFor(theme)}
       dragRotate={false}
