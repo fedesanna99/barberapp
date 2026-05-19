@@ -8,6 +8,7 @@ import { C } from '../lib/colors'
 import { useTheme } from '../hooks/useTheme'
 import { BarberMarker } from './BarberMarker'
 import { ClusterMarker } from './ClusterMarker'
+import { UserLocationMarker } from './UserLocationMarker'
 
 interface Props {
   barbers:    DemoBarber[]
@@ -203,6 +204,9 @@ export function MapView({
       style={{ position: 'absolute', inset: 0, background: C.surface }}
     >
       <AttributionControl compact position="bottom-left" />
+      {userCoords && (
+        <UserLocationMarker lat={userCoords.lat} lng={userCoords.lng} />
+      )}
       {features.map(f => {
         const [lng, lat] = f.geometry.coordinates as [number, number]
         const props = f.properties as { cluster?: boolean; cluster_id?: number; point_count?: number; id?: string }
