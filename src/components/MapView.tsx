@@ -5,6 +5,7 @@ import type { DemoBarber } from '../lib/demoData'
 import type { LatLng } from '../lib/geo'
 import { mapStyleFor } from '../lib/mapStyle'
 import { C } from '../lib/colors'
+import { useTheme } from '../hooks/useTheme'
 import { BarberMarker } from './BarberMarker'
 import { ClusterMarker } from './ClusterMarker'
 
@@ -25,20 +26,9 @@ export function MapView({
 }: Props) {
   const mapRef = useRef<MapRef | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light',
-  )
-
-  // React to system theme changes
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => setTheme(e.matches ? 'dark' : 'light')
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
+  // Resolved theme (light/dark) — respects the user's explicit Menu preference,
+  // not just the OS, so the map stays in sync with the rest of the UI.
+  const { resolved: theme } = useTheme()
 
   const initialCenter = userCoords ?? fallback
   const [viewState, setViewState] = useState<Partial<ViewState>>({

@@ -3,6 +3,7 @@ import { C } from '../lib/colors'
 import { useBarberInfo } from '../hooks/useBarberInfo'
 import { useProfile } from '../hooks/useProfile'
 import { useClientBookings } from '../hooks/useBooking'
+import { useTheme, type ThemePref } from '../hooks/useTheme'
 import { EditBarberInfoSheet } from '../components/EditBarberInfoSheet'
 import { LocationSettingsSheet } from '../components/LocationSettingsSheet'
 import { Avatar } from '../components/Avatar'
@@ -55,9 +56,16 @@ interface Props {
   userId?:          string
 }
 
+const THEME_OPTIONS: { id: ThemePref; label: string; icon: string }[] = [
+  { id: 'light',  label: 'Chiaro', icon: 'ph-sun' },
+  { id: 'dark',   label: 'Scuro',  icon: 'ph-moon' },
+  { id: 'system', label: 'Auto',   icon: 'ph-desktop' },
+]
+
 export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onAppointments, onMessages, onToast, isBarber, barberId, userId }: Props) {
   const [showEdit, setShowEdit]         = useState(false)
   const [showLocation, setShowLocation] = useState(false)
+  const { theme, setTheme } = useTheme()
   const { info, saving, saveError, saveInfo } = useBarberInfo(
     isBarber ? barberId : undefined,
     isBarber ? userId   : undefined,
@@ -149,7 +157,43 @@ export function Menu({ onLogout, onSavedPosts, onSupport, onNotifications, onApp
         ))}
       </div>
 
-      <div style={{ padding: '24px 20px 12px' }}>
+      {/* Theme picker */}
+      <div style={{ padding: '20px 20px 0' }}>
+        <div style={{ fontSize: 11.5, fontWeight: 500, color: C.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Aspetto
+        </div>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6,
+          padding: 4, background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: 'var(--r-md)',
+        }}>
+          {THEME_OPTIONS.map(opt => {
+            const active = theme === opt.id
+            return (
+              <button
+                key={opt.id}
+                onClick={() => setTheme(opt.id)}
+                aria-pressed={active}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 0', minHeight: 44,
+                  border: 'none', borderRadius: 'var(--r-sm)',
+                  background: active ? C.text : 'transparent',
+                  color:      active ? C.bg   : C.muted,
+                  fontSize: 12.5, fontWeight: 500, fontFamily: 'inherit',
+                  cursor: 'pointer',
+                  transition: 'background 120ms var(--ease), color 120ms var(--ease)',
+                }}
+              >
+                <i className={`${active ? 'ph-fill' : 'ph-thin'} ${opt.icon}`} style={{ fontSize: 14 }} />
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div style={{ padding: '20px 20px 12px' }}>
         <button
           onClick={onLogout}
           style={{

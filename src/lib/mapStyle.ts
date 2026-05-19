@@ -13,7 +13,14 @@ function maptiler(style: 'streets-v2' | 'streets-v2-dark'): string {
 }
 
 export function mapStyleFor(theme: 'light' | 'dark'): string {
-  if (!KEY) return 'https://tiles.openfreemap.org/styles/liberty'
+  if (!KEY) {
+    // OpenFreeMap pubblica solo stili light (liberty, bright, positron) —
+    // niente variante dark ufficiale. Senza MapTiler key restiamo su
+    // 'liberty' anche in dark mode: la mappa stona col tema scuro ma è
+    // l'unico fallback che non rompe. Per un look coerente in produzione
+    // serve VITE_MAPTILER_KEY (streets-v2-dark di MapTiler).
+    return 'https://tiles.openfreemap.org/styles/liberty'
+  }
   return theme === 'dark' ? maptiler('streets-v2-dark') : maptiler('streets-v2')
 }
 
