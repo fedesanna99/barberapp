@@ -15,9 +15,9 @@ import { Icon, type IconName } from './Icon'
 export function PoleMark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden>
-      <rect x="6"  y="4" width="4" height="24" rx="2" fill="var(--ink)" />
-      <rect x="14" y="4" width="4" height="24" rx="2" fill="var(--clay)" />
-      <rect x="22" y="4" width="4" height="24" rx="2" fill="var(--ink)" />
+      <rect x="6"  y="4" width="4" height="24" rx="2" fill="var(--pole-mark-side)" />
+      <rect x="14" y="4" width="4" height="24" rx="2" fill="var(--pole-mark-middle)" />
+      <rect x="22" y="4" width="4" height="24" rx="2" fill="var(--pole-mark-side)" />
     </svg>
   )
 }

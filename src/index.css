@@ -41,6 +41,9 @@
   --clay-soft:        #E7DACD;
   --clay-tint:        rgba(176, 127, 97, 0.10);
 
+  --pole-mark-side:   var(--ink);
+  --pole-mark-middle: var(--clay);
+
   /* ---- SEMANTIC ---- */
   --sage:             #7C8C6E;
   --sage-soft:        #DDE3D5;
@@ -153,6 +156,8 @@
   --clay-deep:      #D9B091;
   --clay-soft:      rgba(176, 127, 97, 0.20);
   --clay-tint:      rgba(176, 127, 97, 0.16);
+  --pole-mark-side:   var(--ink);
+  --pole-mark-middle: var(--ink);
 
   --sage:           #9DB089;
   --sage-soft:      rgba(157, 176, 137, 0.18);
