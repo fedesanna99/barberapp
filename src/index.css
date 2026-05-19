@@ -229,7 +229,7 @@ code, kbd, samp {
    ============================================================ */
 .bb-app {
   width: 100%;
-  max-width: 430px;
+  max-width: 520px;
   height: 100dvh;
   background: var(--paper-3);
   display: flex;

@@ -17,7 +17,7 @@ function Frame({ icon, title, message, action, tone }: {
 
   return (
     <div style={{
-      width: '100%', maxWidth: 430, height: '100dvh',
+      width: '100%', maxWidth: 520, height: '100dvh',
       background: C.bg, display: 'flex', flexDirection: 'column',
       position: 'relative', boxShadow: '0 0 0 1px var(--ink-08)',
     }}>
