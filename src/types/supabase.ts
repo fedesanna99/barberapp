@@ -3,7 +3,9 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
-export type BookingStatus = 'pending' | 'confirmed' | 'done' | 'cancelled'
+// 'declined' = barbiere rifiuta una prenotazione pending (migration 033).
+// 'cancelled' resta riservato al cliente che annulla.
+export type BookingStatus = 'pending' | 'confirmed' | 'done' | 'cancelled' | 'declined'
 // Task 9 — 'admin' is no longer a value of `profiles.role`; instead `profiles.is_admin`
 // is a separate boolean flag. The union here matches the DB CHECK constraint.
 export type UserRole = 'client' | 'barber'

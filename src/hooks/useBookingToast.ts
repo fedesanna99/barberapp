@@ -33,7 +33,7 @@ export function useBookingToast(
         async payload => {
           const booking = payload.new as Booking
           const status  = booking.status
-          if (status !== 'confirmed' && status !== 'cancelled') return
+          if (status !== 'confirmed' && status !== 'cancelled' && status !== 'declined') return
 
           // Fetch barber display name for the message
           const { data } = await supabase
@@ -47,6 +47,8 @@ export function useBookingToast(
           const when = `${name} · ${fmtShort(booking.date)} alle ${booking.time_slot}`
           if (status === 'confirmed') {
             onToastRef.current({ kind: 'success', title: 'Prenotazione confermata', message: when })
+          } else if (status === 'declined') {
+            onToastRef.current({ kind: 'error', title: 'Prenotazione rifiutata dal barbiere', message: when })
           } else {
             onToastRef.current({ kind: 'error', title: 'Prenotazione annullata dal barbiere', message: when })
           }

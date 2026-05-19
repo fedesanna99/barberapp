@@ -44,9 +44,12 @@ export function useBooking() {
 
   const cancelBooking  = (bookingId: string) => updateStatus(bookingId, 'cancelled')
   const confirmBooking = (bookingId: string) => updateStatus(bookingId, 'confirmed')
+  // 'declined' is the barber-side rejection of a pending booking, semantically
+  // distinct from 'cancelled' (which is the client's annulment).
+  const declineBooking = (bookingId: string) => updateStatus(bookingId, 'declined')
   const markDone       = (bookingId: string) => updateStatus(bookingId, 'done')
 
-  return { createBooking, cancelBooking, confirmBooking, markDone, loading }
+  return { createBooking, cancelBooking, declineBooking, confirmBooking, markDone, loading }
 }
 
 // ── Queries ────────────────────────────────────────────────────────────────

@@ -126,7 +126,7 @@ function BookingsTab({ barberId, onToast }: {
 }) {
   const isDemo = IS_DEMO || !barberId
   const { bookings: real, refetch } = useBarberBookings(barberId)
-  const { cancelBooking, confirmBooking, markDone } = useBooking()
+  const { cancelBooking, confirmBooking, declineBooking, markDone } = useBooking()
   const [demoList, setDemoList] = useState<DemoBarberBooking[]>([DEMO_PENDING, ...DEMO_BARBER_BOOKINGS])
   const { autoAccept, setAutoAccept } = useAutoAccept(isDemo ? undefined : barberId)
   const { acceptingBookings, setAcceptingBookings } = useBarberVacation(isDemo ? undefined : barberId)
@@ -196,12 +196,18 @@ function BookingsTab({ barberId, onToast }: {
     return real.find(b => b.id === id)?.profiles?.display_name ?? 'cliente'
   }
 
-  function demoAction(id: string, action: 'done' | 'cancel' | 'confirm') {
+  function demoAction(id: string, action: 'done' | 'cancel' | 'confirm' | 'decline') {
     const clientName = clientNameFor(id)
     if (action === 'cancel') {
       setDemoList(prev => prev.filter(b => b.id !== id))
       writeLog('booking.cancelled', `Prenotazione di ${clientName} annullata dal barbiere`, 'info', { metadata: { booking_id: id } })
       onToast?.({ kind: 'info',    title: 'Prenotazione annullata.',  message: clientName })
+    } else if (action === 'decline') {
+      // In demo non c'è uno status 'declined' nel mock DemoBarberBooking;
+      // rimuovo dal pending come per cancel — il toast distingue la semantica.
+      setDemoList(prev => prev.filter(b => b.id !== id))
+      writeLog('booking.declined', `Prenotazione di ${clientName} rifiutata dal barbiere`, 'info', { metadata: { booking_id: id } })
+      onToast?.({ kind: 'info',    title: 'Prenotazione rifiutata.',  message: clientName })
     } else if (action === 'confirm') {
       setDemoList(prev => prev.map(b => b.id === id ? { ...b, status: 'confirmed' as const } : b))
       writeLog('booking.confirmed', `Prenotazione di ${clientName} confermata`, 'info', { metadata: { booking_id: id } })
@@ -213,15 +219,35 @@ function BookingsTab({ barberId, onToast }: {
     }
   }
 
-  function act(id: string, action: 'confirm' | 'cancel' | 'done') {
+  function act(id: string, action: 'confirm' | 'cancel' | 'decline' | 'done') {
     if (isDemo) { demoAction(id, action); return }
     const clientName = clientNameFor(id)
-    const call = action === 'confirm' ? confirmBooking : action === 'cancel' ? cancelBooking : markDone
-    const actionLabel = action === 'confirm' ? 'booking.confirmed' : action === 'cancel' ? 'booking.cancelled' : 'booking.done'
-    const actionMsg   = action === 'confirm' ? 'Prenotazione confermata' : action === 'cancel' ? 'Prenotazione annullata' : 'Prenotazione completata'
-    const errorTitle  = action === 'confirm' ? 'Conferma fallita'        : action === 'cancel' ? 'Annullamento fallito'    : 'Aggiornamento fallito'
-    const okTitle     = action === 'confirm' ? 'Prenotazione confermata.' : action === 'cancel' ? 'Prenotazione annullata.'  : 'Appuntamento completato.'
-    const okKind: 'success' | 'info' = action === 'cancel' ? 'info' : 'success'
+    const call =
+      action === 'confirm' ? confirmBooking :
+      action === 'cancel'  ? cancelBooking  :
+      action === 'decline' ? declineBooking :
+      markDone
+    const actionLabel =
+      action === 'confirm' ? 'booking.confirmed' :
+      action === 'cancel'  ? 'booking.cancelled' :
+      action === 'decline' ? 'booking.declined'  :
+      'booking.done'
+    const actionMsg =
+      action === 'confirm' ? 'Prenotazione confermata' :
+      action === 'cancel'  ? 'Prenotazione annullata'  :
+      action === 'decline' ? 'Prenotazione rifiutata dal barbiere' :
+      'Prenotazione completata'
+    const errorTitle =
+      action === 'confirm' ? 'Conferma fallita' :
+      action === 'cancel'  ? 'Annullamento fallito' :
+      action === 'decline' ? 'Rifiuto fallito' :
+      'Aggiornamento fallito'
+    const okTitle =
+      action === 'confirm' ? 'Prenotazione confermata.' :
+      action === 'cancel'  ? 'Prenotazione annullata.'  :
+      action === 'decline' ? 'Prenotazione rifiutata.'  :
+      'Appuntamento completato.'
+    const okKind: 'success' | 'info' = (action === 'cancel' || action === 'decline') ? 'info' : 'success'
     call(id).then(({ error }) => {
       if (error) { onToast?.({ kind: 'error', title: errorTitle, message: error.message }); return }
       writeLog(actionLabel, actionMsg, 'info', { metadata: { booking_id: id } })
@@ -266,7 +292,7 @@ function BookingsTab({ barberId, onToast }: {
           : pending.map(r => (
               <BookingCard key={r.id} row={r}
                 onConfirm={() => act(r.id, 'confirm')}
-                onDecline={() => act(r.id, 'cancel')}
+                onDecline={() => act(r.id, 'decline')}
               />
             ))
         }
