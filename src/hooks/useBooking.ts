@@ -69,6 +69,10 @@ export function useClientBookings(clientId: string | undefined) {
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
+  // Each hook instance gets a unique suffix so multiple callers (Menu + MyAppointments)
+  // never share the same realtime channel name, which can cause silent conflicts in
+  // Supabase JS v2 when two channels with identical topics subscribe simultaneously.
+  const channelSuffix = useRef(`${Date.now()}-${Math.random().toString(36).slice(2, 7)}`)
 
   useEffect(() => {
     if (!clientId) {
@@ -92,7 +96,7 @@ export function useClientBookings(clientId: string | undefined) {
       })
 
     channelRef.current = supabase
-      .channel(`client_bookings_${clientId}`)
+      .channel(`client_bookings_${clientId}_${channelSuffix.current}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bookings', filter: `client_id=eq.${clientId}` },

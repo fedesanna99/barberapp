@@ -19,6 +19,7 @@ import { BarberProfileSheet } from './screens/BarberProfileSheet'
 import { SupportChat } from './screens/SupportChat'
 import { Notifications } from './screens/Notifications'
 import { MyAppointments } from './screens/MyAppointments'
+import { AppointmentsBoundary } from './components/AppointmentsBoundary'
 import { DirectMessages } from './screens/DirectMessages'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
@@ -349,11 +350,13 @@ export default function App() {
         )}
 
         {showMyAppointments && userId && (
-          <MyAppointments
-            userId={userId}
-            onClose={() => setShowMyAppointments(false)}
-            onToast={setToast}
-          />
+          <AppointmentsBoundary onClose={() => setShowMyAppointments(false)}>
+            <MyAppointments
+              userId={userId}
+              onClose={() => setShowMyAppointments(false)}
+              onToast={setToast}
+            />
+          </AppointmentsBoundary>
         )}
 
         {(dmOpen || showDmList) && (
