@@ -132,7 +132,7 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: C.text,
-              boxShadow: '0 4px 14px rgba(10,10,10,0.10)',
+              boxShadow: 'var(--shadow-lift)',
             }}
           >
             <Icon name="pin" size={20} />
@@ -153,7 +153,7 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
               position: 'absolute', left: 16, right: 16, top: '50%', transform: 'translateY(-50%)',
               zIndex: 5, background: C.bg, padding: '16px 18px',
               borderRadius: 'var(--r-lg)', textAlign: 'center',
-              boxShadow: '0 8px 24px rgba(10,10,10,0.12), 0 0 0 1px rgba(10,10,10,0.06)',
+              boxShadow: 'var(--shadow-lift)',
             }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, color: C.text, letterSpacing: '-0.015em' }}>
                 Nessun barbiere in zona

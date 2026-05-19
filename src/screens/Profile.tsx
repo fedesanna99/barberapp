@@ -503,7 +503,7 @@ function GridCell({ src, label, onClick }: { src?: string | null; label?: string
         <div style={{
           position: 'absolute', bottom: 6, left: 6, right: 6,
           fontSize: 10, color: C.bg, fontWeight: 500,
-          background: 'rgba(10,10,10,0.55)',
+          background: 'rgba(20,17,13,0.55)',
           padding: '2px 8px', borderRadius: 9999,
           textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{label}</div>
@@ -608,7 +608,7 @@ function ProfilePostsFeed({ posts, startIdx, authorName, title = 'I miei post', 
               {post.label && (
                 <div style={{
                   position: 'absolute', bottom: 12, left: 16,
-                  background: 'rgba(10,10,10,0.65)', color: C.bg,
+                  background: 'rgba(20,17,13,0.65)', color: 'var(--paper-3)',
                   fontSize: 11, padding: '4px 10px', borderRadius: 9999, fontWeight: 500,
                 }}>
                   {post.label}
@@ -708,7 +708,7 @@ function NewUserPostSheet({
           {preview ? (
             <>
               <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,10,10,0.45)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(20,17,13,0.45)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                 <Icon name="image" size={22} color={C.bg} />
                 <span style={{ fontSize: 12, color: C.bg }}>Tocca per cambiare</span>
               </div>

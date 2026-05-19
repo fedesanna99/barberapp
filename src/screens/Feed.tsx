@@ -324,7 +324,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                   <div style={{
                     position: 'absolute', bottom: 12, left: 16,
                     padding: '4px 10px', borderRadius: 9999,
-                    background: 'rgba(10,10,10,0.65)', color: C.bg,
+                    background: 'rgba(20,17,13,0.65)', color: 'var(--paper-3)',
                     fontSize: 11, fontWeight: 500,
                   }}>
                     {post.label}

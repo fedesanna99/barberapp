@@ -410,7 +410,7 @@ function UsersTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
           width: 52, height: 52, borderRadius: '50%',
           background: C.text, border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 8px 24px rgba(10,10,10,0.18)',
+          boxShadow: 'var(--shadow-lift)',
         }}
       >
         <Icon name="plus" size={22} color={C.bg} />
@@ -1022,7 +1022,7 @@ export function AdminPanel({ userId }: { userId?: string }) {
                   border: 'none', borderRadius: 8,
                   fontFamily: 'inherit', fontSize: 12.5, fontWeight: 500,
                   cursor: 'pointer',
-                  boxShadow: active ? '0 1px 2px rgba(10,10,10,0.06)' : 'none',
+                  boxShadow: active ? 'var(--shadow-card)' : 'none',
                 }}
               >
                 {t.label}

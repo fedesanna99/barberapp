@@ -32,7 +32,7 @@ export function MapSearchBar({ value, onChange, delay = 250 }: Props) {
       padding:   '10px 14px',
       borderRadius: 'var(--r-md)',
       background: C.bg,
-      boxShadow: '0 4px 14px rgba(10,10,10,0.10), 0 0 0 1px rgba(10,10,10,0.06)',
+      boxShadow: 'var(--shadow-lift)',
     }}>
       <Icon name="search" size={18} color={C.muted} />
       <input

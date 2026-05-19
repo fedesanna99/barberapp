@@ -89,7 +89,7 @@ export function BarberDashboard({ barberId, userId, onToast }: {
                   border: 'none', borderRadius: 8,
                   fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
                   cursor: 'pointer',
-                  boxShadow: active ? '0 1px 2px rgba(10,10,10,0.06)' : 'none',
+                  boxShadow: active ? 'var(--shadow-card)' : 'none',
                 }}
               >
                 {t === 'bookings' ? 'Prenotazioni' : 'Disponibilità'}

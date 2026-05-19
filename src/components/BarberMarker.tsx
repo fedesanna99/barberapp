@@ -17,9 +17,9 @@ interface Props {
 }
 
 /**
- * Modern Minimal pin — ink-on-white when idle, fills ink when selected.
- * No gradients, no halo, just a small monogram disc with a coral notch
- * for top-rated barbers.
+ * Pari pin — paper disc with a thin ink ring when idle, fills clay
+ * (the single accent) when selected so the chosen pin reads as the
+ * one active element. Top-rated barbers get a small clay-deep notch.
  */
 export const BarberMarker = memo(function BarberMarker({
   id, name, initials, rating, reviewsCount, lat, lng, selected, onClick,
@@ -37,11 +37,11 @@ export const BarberMarker = memo(function BarberMarker({
           position: 'relative',
           width: size, height: size,
           padding: 0, border: 'none',
-          background: selected ? C.text : C.bg,
-          color: selected ? C.bg : C.text,
-          boxShadow: '0 4px 10px rgba(10,10,10,0.15)',
+          background: selected ? 'var(--clay)' : 'var(--paper-3)',
+          color: selected ? 'var(--paper-3)' : C.text,
+          boxShadow: 'var(--shadow-lift)',
           borderRadius: '50%',
-          outline: selected ? 'none' : `2px solid ${C.text}`,
+          outline: selected ? 'none' : `1.5px solid ${C.text}`,
           cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           transformOrigin: 'bottom center',
@@ -59,7 +59,7 @@ export const BarberMarker = memo(function BarberMarker({
           <span style={{
             position: 'absolute', top: -3, right: -3,
             width: 10, height: 10, borderRadius: '50%',
-            background: C.accent, border: `2px solid ${C.bg}`,
+            background: 'var(--clay-deep)', border: '2px solid var(--paper-3)',
           }} />
         )}
       </button>
