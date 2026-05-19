@@ -26,7 +26,7 @@ import { ResetPassword } from './screens/ResetPassword'
 import type { DemoBarber, DemoDate } from './lib/demoData'
 
 const DEMO_BANNER_DISMISSED_KEY = 'cutbook_demo_banner_dismissed'
-const PULL_REFRESH_START_ZONE_PX = 72
+const PULL_REFRESH_START_ZONE_PX = 160
 const PULL_DEAD_ZONE_PX = 10
 
 function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
