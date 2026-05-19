@@ -365,7 +365,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
                 {post.likesCount === 1 ? '1 mi piace' : `${post.likesCount.toLocaleString('it-IT')} mi piace`}
               </div>
               <div style={{ padding: '4px 20px 4px', fontSize: 13.5, color: C.text, lineHeight: 1.55 }}>
-                <span style={{ fontWeight: 600, marginRight: 5 }}>{post.barberName.split(' ')[0].toLowerCase()}</span>
+                <span style={{ fontWeight: 600, marginRight: 5 }}>{post.barberName}</span>
                 {post.caption}
               </div>
               {post.taggedProfileId && post.taggedName && (

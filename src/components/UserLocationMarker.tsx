@@ -34,16 +34,6 @@ export const UserLocationMarker = memo(function UserLocationMarker({ lat, lng }:
           border: '2px solid var(--paper-3)',
           display: 'block',
         }} />
-        <span style={{
-          position: 'absolute',
-          top: 7,
-          right: 7,
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-          background: 'var(--clay-deep)',
-          border: '2px solid var(--paper-3)',
-        }} />
       </div>
     </Marker>
   )
