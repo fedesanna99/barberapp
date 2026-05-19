@@ -439,7 +439,7 @@ function OwnPostGrid({ posts, onPostClick }: { posts: PostLike[]; onPostClick: (
   return (
     <>
       {posts.map((post, i) => (
-        <GridCell key={post.id} src={post.image_url} label={post.label} onClick={() => onPostClick(i)} />
+        <GridCell key={post.id} src={post.image_url} onClick={() => onPostClick(i)} />
       ))}
     </>
   )
@@ -464,7 +464,7 @@ function UserPostGrid({ posts, onPostClick }: { posts: UserPost[]; onPostClick: 
   return (
     <>
       {posts.map((post, i) => (
-        <GridCell key={post.id} src={post.image_url} label={post.label} onClick={() => onPostClick(i)} />
+        <GridCell key={post.id} src={post.image_url} onClick={() => onPostClick(i)} />
       ))}
     </>
   )
@@ -474,7 +474,7 @@ function DemoBarberPostGrid({ onPostClick }: { onPostClick: (i: number) => void 
   return (
     <>
       {POSTS.map((post, i) => (
-        <GridCell key={post.id} src={post.imageUrl ?? null} label={post.label} onClick={() => onPostClick(i)} />
+        <GridCell key={post.id} src={post.imageUrl ?? null} onClick={() => onPostClick(i)} />
       ))}
     </>
   )
@@ -483,14 +483,14 @@ function DemoBarberPostGrid({ onPostClick }: { onPostClick: (i: number) => void 
 function DemoPostGrid() {
   return (
     <>
-      {CUT_LOG.map((cut, i) => (
-        <GridCell key={i} src={null} label={cut.date} />
+      {CUT_LOG.map((_, i) => (
+        <GridCell key={i} src={null} />
       ))}
     </>
   )
 }
 
-function GridCell({ src, label, onClick }: { src?: string | null; label?: string | null; onClick?: () => void }) {
+function GridCell({ src, onClick }: { src?: string | null; onClick?: () => void }) {
   return (
     <div onClick={onClick} style={{
       aspectRatio: '1', cursor: onClick ? 'pointer' : 'default',
