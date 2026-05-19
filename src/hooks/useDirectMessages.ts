@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import type { ConvStatus, DirectMessage } from '../types/supabase'
 
 // Conversation entry with the peer's display info pre-joined so the list
@@ -124,7 +125,7 @@ export async function sendDirectMessage(meId: string, peerId: string, body: stri
   conversationId: string | null
   error: string | null
 }> {
-  const trimmed = body.trim()
+  const trimmed = limitText(body.trim(), TEXT_LIMITS.directMessage)
   if (!trimmed) return { conversationId: null, error: 'empty' }
   let conv = await findConversation(meId, peerId)
   if (!conv) {

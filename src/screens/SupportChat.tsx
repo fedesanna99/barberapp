@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { C } from '../lib/colors'
 import { Icon } from '../components/Icon'
 import { useSupportChat } from '../hooks/useSupportChat'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import type { SupportMessage } from '../types/supabase'
 
 interface Props {
@@ -119,7 +120,8 @@ export function SupportChat({ userId, onClose }: Props) {
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={e => setText(e.target.value)}
+            maxLength={TEXT_LIMITS.supportMessage}
+            onChange={e => setText(limitText(e.target.value, TEXT_LIMITS.supportMessage))}
             onKeyDown={handleKey}
             placeholder="Scrivi un messaggio…"
             rows={1}

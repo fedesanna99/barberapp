@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { C } from '../lib/colors'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import { Icon } from './Icon'
 import type { BarberInfo } from '../hooks/useBarberInfo'
 
@@ -14,6 +15,12 @@ const FIELDS: [keyof BarberInfo, string, string, string?][] = [
 
 // Permissive: + opzionale, almeno 7 caratteri tra cifre/spazi/parentesi/trattini.
 const PHONE_RE = /^[+]?[\d\s()-]{7,}$/
+const FIELD_LIMITS: Partial<Record<keyof BarberInfo, number>> = {
+  shop_name:   TEXT_LIMITS.shopName,
+  address:     TEXT_LIMITS.address,
+  phone:       TEXT_LIMITS.phone,
+  social_link: TEXT_LIMITS.socialLink,
+}
 
 function phoneError(v: string): string | null {
   const trimmed = v.trim()
@@ -35,7 +42,8 @@ export function EditBarberInfoSheet({
   useEffect(() => { setForm(initial) }, [initial])
 
   function set(key: keyof BarberInfo, val: string) {
-    setForm(prev => ({ ...prev, [key]: val }))
+    const max = FIELD_LIMITS[key]
+    setForm(prev => ({ ...prev, [key]: max ? limitText(val, max) : val }))
   }
 
   const phoneErr = phoneError(form.phone)
@@ -80,6 +88,7 @@ export function EditBarberInfoSheet({
                   type={inputType ?? 'text'}
                   inputMode={inputType === 'tel' ? 'tel' : undefined}
                   value={form[key]}
+                  maxLength={FIELD_LIMITS[key]}
                   onChange={e => set(key, e.target.value)}
                   placeholder={placeholder}
                   style={{

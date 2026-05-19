@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 
 export interface BarberInfo {
   shop_name: string
@@ -135,19 +136,26 @@ export function useBarberInfo(barberId: string | undefined, profileId: string | 
 
   async function saveInfo(next: BarberInfo): Promise<string | null> {
     setSaveError(null)
+    const clean: BarberInfo = {
+      ...next,
+      shop_name:   limitText(next.shop_name.trim(), TEXT_LIMITS.shopName),
+      address:     limitText(next.address.trim(), TEXT_LIMITS.address),
+      phone:       limitText(next.phone.trim(), TEXT_LIMITS.phone),
+      social_link: limitText(next.social_link.trim(), TEXT_LIMITS.socialLink),
+    }
     // Parse + validate the numeric defaults; fall back to current/sensible values
     // rather than rejecting outright (the input is text and may be empty mid-typing).
-    const slotMin = Math.max(1, Math.min(240, parseInt(next.default_slot_minutes, 10) || 30))
-    const price   = Math.max(0, parseFloat(next.default_price.replace(',', '.')) || 0)
-    setInfo({ ...next, default_slot_minutes: String(slotMin), default_price: String(price) })
+    const slotMin = Math.max(1, Math.min(240, parseInt(clean.default_slot_minutes, 10) || 30))
+    const price   = Math.max(0, parseFloat(clean.default_price.replace(',', '.')) || 0)
+    setInfo({ ...clean, default_slot_minutes: String(slotMin), default_price: String(price) })
     if (IS_DEMO || !barberId || !profileId) return null
     setSaving(true)
     try {
       const { error } = await supabase.from('barbers').update({
-        shop_name:            next.shop_name   || null,
-        phone:                next.phone       || null,
-        address:              next.address     || null,
-        social_link:          next.social_link || null,
+        shop_name:            clean.shop_name   || null,
+        phone:                clean.phone       || null,
+        address:              clean.address     || null,
+        social_link:          clean.social_link || null,
         default_slot_minutes: slotMin,
         default_price:        price,
       }).eq('id', barberId)
@@ -158,8 +166,8 @@ export function useBarberInfo(barberId: string | undefined, profileId: string | 
         return error.message
       }
 
-      if (next.address) {
-        const coords = await geocodeAddress(next.address)
+      if (clean.address) {
+        const coords = await geocodeAddress(clean.address)
         if (coords) {
           await supabase.from('profiles').update({ lat: coords.lat, lng: coords.lng }).eq('id', profileId)
         }

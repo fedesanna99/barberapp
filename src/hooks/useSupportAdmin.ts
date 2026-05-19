@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import type { SupportConversation, SupportMessage } from '../types/supabase'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import { demoStore } from './useSupportChat'
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -147,7 +148,7 @@ export function useSupportAdminChat(
   }, [conversationId])
 
   async function sendReply(content: string) {
-    const trimmed = content.trim()
+    const trimmed = limitText(content.trim(), TEXT_LIMITS.supportMessage)
     if (!trimmed || !adminId) return { error: 'missing' as const }
 
     if (IS_DEMO) {

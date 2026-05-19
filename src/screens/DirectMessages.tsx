@@ -4,6 +4,7 @@ import { Avatar } from '../components/Avatar'
 import { Icon } from '../components/Icon'
 import { ListRowSkeleton } from '../components/Skeleton'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import {
   useDirectMessagesList,
   useDirectThread,
@@ -297,11 +298,11 @@ function DMThread({ meId, peer, onBack, onClose, onToast }: {
         <div style={{ flex: 1, position: 'relative' }}>
           <textarea
             value={text}
-            onChange={e => setText(e.target.value.slice(0, 4000))}
+            onChange={e => setText(limitText(e.target.value, TEXT_LIMITS.directMessage))}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }}
             placeholder={status === 'closed' ? 'Scrivi per riaprire la conversazione…' : 'Scrivi un messaggio…'}
             rows={1}
-            maxLength={4000}
+            maxLength={TEXT_LIMITS.directMessage}
             style={{
               width: '100%', borderRadius: 'var(--r-pill)',
               border: `1px solid ${C.border}`, background: C.surfaceAlt,
@@ -310,13 +311,13 @@ function DMThread({ meId, peer, onBack, onClose, onToast }: {
               boxSizing: 'border-box',
             }}
           />
-          {text.length > 3800 && (
+          {text.length > TEXT_LIMITS.directMessage - 200 && (
             <span style={{
               position: 'absolute', right: 12, bottom: -16,
-              fontSize: 10, color: text.length >= 4000 ? C.red : C.hint,
+              fontSize: 10, color: text.length >= TEXT_LIMITS.directMessage ? C.red : C.hint,
               fontVariantNumeric: 'tabular-nums',
             }}>
-              {text.length}/4000
+              {text.length}/{TEXT_LIMITS.directMessage}
             </span>
           )}
         </div>

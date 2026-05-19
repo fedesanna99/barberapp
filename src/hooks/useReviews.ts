@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 
 export interface ReviewRow {
   id:           string
@@ -131,7 +132,7 @@ export function useReviews(barberId: string | undefined, userId: string | undefi
   const upsertReview = useCallback(async (rating: number, comment: string | null): Promise<{ error?: string }> => {
     if (!barberId) return { error: 'missing_barber' }
     if (rating < 1 || rating > 5) return { error: 'invalid_rating' }
-    const cleanComment = comment?.trim() || null
+    const cleanComment = comment ? limitText(comment.trim(), TEXT_LIMITS.review) || null : null
 
     if (IS_DEMO) {
       const cid = userId ?? 'demo-me'

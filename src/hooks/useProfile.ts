@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import type { Profile } from '../types/supabase'
 
 const DEMO_PROFILE: Profile = {
@@ -44,9 +45,16 @@ export function useProfile(userId: string | undefined) {
   type EditableFields = Pick<Profile, 'display_name' | 'bio' | 'lat' | 'lng'>
   async function updateProfile(updates: Partial<EditableFields>) {
     const prev = profile
-    setProfile(p => ({ ...p, ...updates }))
+    const cleanUpdates = { ...updates }
+    if (typeof cleanUpdates.display_name === 'string') {
+      cleanUpdates.display_name = limitText(cleanUpdates.display_name.trim(), TEXT_LIMITS.profileName)
+    }
+    if (typeof cleanUpdates.bio === 'string') {
+      cleanUpdates.bio = limitText(cleanUpdates.bio.trim(), TEXT_LIMITS.profileBio)
+    }
+    setProfile(p => ({ ...p, ...cleanUpdates }))
     if (IS_DEMO || !userId) return
-    const { error } = await supabase.from('profiles').update(updates).eq('id', userId)
+    const { error } = await supabase.from('profiles').update(cleanUpdates).eq('id', userId)
     if (error) {
       setProfile(prev)
       throw new Error(error.message)

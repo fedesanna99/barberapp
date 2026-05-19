@@ -18,6 +18,7 @@ import { uploadPostPhoto, uploadUserPostPhoto, validateImageType } from '../hook
 import { CommentsSheet } from './CommentsSheet'
 import { PostMedia } from '../components/PostMedia'
 import { SOFT_PHOTO_FILTER } from '../lib/photoTone'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import type { ToastEvent } from '../components/Toast'
 
 function toStoryBarber(b: BarberWithProfile): DemoBarber {
@@ -104,6 +105,8 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
   const [tagPick, setTagPick] = useState<{ id: string; name: string; role: 'client' | 'barber' } | null>(null)
 
   async function addPost(caption: string, label: string, file?: File): Promise<void> {
+    const cleanCaption = limitText(caption.trim(), TEXT_LIMITS.postCaption)
+    const cleanLabel = limitText(label.trim(), TEXT_LIMITS.postLabel)
     if (IS_DEMO) {
       const demoId = barberId ?? '1'
       feed.prependPost({
@@ -117,8 +120,8 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
         barberAvatarUrl: undefined,
         likesCount:      0,
         commentsCount:   0,
-        caption,
-        label,
+        caption: cleanCaption,
+        label: cleanLabel,
         createdAt: new Date().toISOString(),
         timeAgo:   'adesso',
         imageUrl:  file ? URL.createObjectURL(file) : undefined,
@@ -135,8 +138,8 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
       author_id: userId,
       barber_id: isBarber && barberId ? barberId : null,
       image_url: imageUrl,
-      caption,
-      label: isBarber ? label : null,
+      caption: cleanCaption,
+      label: isBarber ? cleanLabel : null,
       tagged_profile_id: tagPick?.id ?? null,
     }
     const [{ data: post, error }, barberQ, { data: profileRow }] = await Promise.all([
@@ -207,7 +210,7 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
   }
 
   async function saveCaption(post: FeedPost, next: string) {
-    const trimmed = next.trim()
+    const trimmed = limitText(next.trim(), TEXT_LIMITS.postCaption)
     if (trimmed === (post.caption ?? '').trim()) return
     if (IS_DEMO) {
       feed.updatePostCaption(post.id, trimmed)
@@ -251,7 +254,9 @@ export function Feed({ userId, barberId, onBook, onViewProfile, isBarber, showLi
           <div style={{ display: 'flex', gap: 14, padding: '4px 20px 18px', overflowX: 'auto' }}>
             {storyBarbers.map((b, i) => (
               <div key={b.id} onClick={() => onViewProfile(b)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', minWidth: 58 }}>
-                <Avatar initials={b.initials} size={54} ring={i < 3} />
+                <div style={{ width: 58, height: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Avatar initials={b.initials} size={54} ring={i < 3} />
+                </div>
                 <span style={{ fontSize: 11, fontWeight: 500, color: C.muted, maxWidth: 58, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {b.name.split(' ')[0]}
                 </span>
@@ -656,7 +661,8 @@ function EditCaptionSheet({ initial, onClose, onSave }: {
         <div style={{ padding: '4px 20px 14px' }}>
           <textarea
             value={text}
-            onChange={e => setText(e.target.value)}
+            maxLength={TEXT_LIMITS.postCaption}
+            onChange={e => setText(limitText(e.target.value, TEXT_LIMITS.postCaption))}
             rows={4}
             autoFocus
             style={{
@@ -753,7 +759,11 @@ function NewPostSheet({
     setLoading(true)
     setPostError(null)
     try {
-      await onAdd(caption.trim(), label.trim(), file ?? undefined)
+      await onAdd(
+        limitText(caption.trim(), TEXT_LIMITS.postCaption),
+        limitText(label.trim(), TEXT_LIMITS.postLabel),
+        file ?? undefined,
+      )
     } catch (err) {
       setPostError(err instanceof Error ? err.message : 'Caricamento fallito')
     } finally {
@@ -818,7 +828,8 @@ function NewPostSheet({
         <div style={{ padding: '14px 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <textarea
             value={caption}
-            onChange={e => setCaption(e.target.value)}
+            maxLength={TEXT_LIMITS.postCaption}
+            onChange={e => setCaption(limitText(e.target.value, TEXT_LIMITS.postCaption))}
             placeholder="Didascalia…"
             rows={3}
             style={{
@@ -831,7 +842,8 @@ function NewPostSheet({
           {isBarber && (
             <input
               value={label}
-              onChange={e => setLabel(e.target.value)}
+              maxLength={TEXT_LIMITS.postLabel}
+              onChange={e => setLabel(limitText(e.target.value, TEXT_LIMITS.postLabel))}
               placeholder="Etichetta stile (es. Skin fade + line up)"
               style={{
                 padding: '11px 14px', borderRadius: 'var(--r-md)',

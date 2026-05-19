@@ -14,16 +14,18 @@ interface Props {
   lat:       number
   lng:       number
   selected:  boolean
+  followed?: boolean
   onClick:   (id: string) => void
 }
 
 /**
  * Pari pin — paper disc with a thin ink ring when idle, fills clay
  * (the single accent) when selected so the chosen pin reads as the
- * one active element.
+ * one active element. Followed barbers get the small "top rated"
+ * notch so they read as saved/important on the map.
  */
 export const BarberMarker = memo(function BarberMarker({
-  id, name, rating, reviewsCount, lat, lng, selected, onClick,
+  id, name, rating, reviewsCount, lat, lng, selected, followed = false, onClick,
 }: Props) {
   const rd = ratingDisplay({ rating, reviewsCount })
   const size = selected ? 40 : 32
@@ -31,7 +33,7 @@ export const BarberMarker = memo(function BarberMarker({
     <Marker longitude={lng} latitude={lat} anchor="bottom" style={{ zIndex: selected ? 10 : 1 }}>
       <button
         type="button"
-        aria-label={rd.hasReviews ? `${name}, ${rd.label} stelle` : `${name}, nuovo`}
+        aria-label={`${rd.hasReviews ? `${name}, ${rd.label} stelle` : `${name}, nuovo`}${followed ? ', seguito' : ''}`}
         onClick={e => { e.stopPropagation(); onClick(id) }}
         style={{
           position: 'relative',
@@ -49,6 +51,13 @@ export const BarberMarker = memo(function BarberMarker({
         }}
       >
         <Icon name="user" size={selected ? 18 : 15} />
+        {followed && (
+          <span style={{
+            position: 'absolute', top: -3, right: -3,
+            width: 10, height: 10, borderRadius: '50%',
+            background: 'var(--clay-deep)', border: '2px solid var(--paper-3)',
+          }} />
+        )}
       </button>
     </Marker>
   )

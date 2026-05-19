@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import { StarRating } from './StarRating'
 import type { ReviewRow } from '../hooks/useReviews'
 
@@ -11,7 +12,7 @@ interface Props {
   onDelete?:  () => Promise<{ error?: string }>
 }
 
-const MAX_COMMENT = 500
+const MAX_COMMENT = TEXT_LIMITS.review
 
 export function ReviewSheet({ barberName, existing, onClose, onSubmit, onDelete }: Props) {
   const [rating,   setRating]   = useState<number>(existing?.rating ?? 0)
@@ -77,7 +78,8 @@ export function ReviewSheet({ barberName, existing, onClose, onSubmit, onDelete 
         <div style={{ padding: '14px 20px 6px' }}>
           <textarea
             value={comment}
-            onChange={e => setComment(e.target.value.slice(0, MAX_COMMENT))}
+            maxLength={MAX_COMMENT}
+            onChange={e => setComment(limitText(e.target.value, MAX_COMMENT))}
             placeholder="Racconta com'è andata (opzionale)…"
             rows={4}
             style={{

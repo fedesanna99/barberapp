@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon'
 import { ConfirmSheet } from '../components/ConfirmSheet'
 import { initialsFromName } from '../hooks/useFeed'
 import { useComments } from '../hooks/useComments'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import type { ToastEvent } from '../components/Toast'
 
 interface Props {
@@ -124,7 +125,8 @@ export function CommentsSheet({ postId, postLabel, userId, postOwnerProfileId, o
           <input
             ref={inputRef}
             value={text}
-            onChange={e => setText(e.target.value)}
+            maxLength={TEXT_LIMITS.comment}
+            onChange={e => setText(limitText(e.target.value, TEXT_LIMITS.comment))}
             onKeyDown={e => { if (e.key === 'Enter') submit() }}
             placeholder="Aggiungi un commento…"
             style={{

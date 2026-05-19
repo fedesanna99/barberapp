@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { C } from '../lib/colors'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import { Icon } from './Icon'
 
 export interface EditProfileForm {
@@ -58,7 +59,8 @@ export function EditProfileSheet({
           <Field label="Nome visualizzato">
             <input
               value={form.display_name}
-              onChange={e => setForm(prev => ({ ...prev, display_name: e.target.value }))}
+              maxLength={TEXT_LIMITS.profileName}
+              onChange={e => setForm(prev => ({ ...prev, display_name: limitText(e.target.value, TEXT_LIMITS.profileName) }))}
               placeholder="es. Mario Rossi"
               style={inputStyle}
             />
@@ -67,11 +69,13 @@ export function EditProfileSheet({
           <Field label="Bio">
             <textarea
               value={form.bio}
-              onChange={e => setForm(prev => ({ ...prev, bio: e.target.value }))}
+              maxLength={TEXT_LIMITS.profileBio}
+              onChange={e => setForm(prev => ({ ...prev, bio: limitText(e.target.value, TEXT_LIMITS.profileBio) }))}
               placeholder="Una breve descrizione di te"
               rows={3}
               style={{ ...inputStyle, resize: 'none' }}
             />
+            <CharCount value={form.bio.length} max={TEXT_LIMITS.profileBio} />
           </Field>
 
           {saveError && (
@@ -93,6 +97,10 @@ export function EditProfileSheet({
       </div>
     </div>
   )
+}
+
+function CharCount({ value, max }: { value: number; max: number }) {
+  return <span style={{ alignSelf: 'flex-end', fontSize: 11, color: C.hint, fontVariantNumeric: 'tabular-nums' }}>{value}/{max}</span>
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

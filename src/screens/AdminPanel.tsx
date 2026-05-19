@@ -8,6 +8,7 @@ import { useAdminLogs } from '../hooks/useAdminLogs'
 import { useSupportAdmin, useSupportAdminChat, type ConvWithUser } from '../hooks/useSupportAdmin'
 import { sendNotification } from '../hooks/useNotifications'
 import { sanitizeNotificationHtml } from '../lib/sanitizeHtml'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import type { UserRole, LogLevel, SupportMessage } from '../types/supabase'
 
 type AdminTab  = 'users' | 'logs' | 'support' | 'notify'
@@ -100,7 +101,13 @@ function AddUserModal({ onClose, onCreate }: {
           </button>
         </div>
 
-        <input placeholder="Nome visualizzato" value={name} onChange={e => setName(e.target.value)} style={inp} />
+        <input
+          placeholder="Nome visualizzato"
+          value={name}
+          maxLength={TEXT_LIMITS.profileName}
+          onChange={e => setName(limitText(e.target.value, TEXT_LIMITS.profileName))}
+          style={inp}
+        />
         <input placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} />
         <input placeholder="Password (min. 6 caratteri)" type="password" value={pw} onChange={e => setPw(e.target.value)} style={inp} />
 
@@ -684,7 +691,8 @@ function SupportThread({ conv, adminId, onBack }: { conv: ConvWithUser; adminId:
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={e => setText(e.target.value)}
+            maxLength={TEXT_LIMITS.supportMessage}
+            onChange={e => setText(limitText(e.target.value, TEXT_LIMITS.supportMessage))}
             onKeyDown={handleKey}
             placeholder="Rispondi all'utente…"
             rows={1}
@@ -901,9 +909,9 @@ function NotifyTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
         <label style={{ fontSize: 12.5, fontWeight: 500, color: C.muted }}>Titolo</label>
         <input
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={e => setTitle(limitText(e.target.value, TEXT_LIMITS.notificationTitle))}
           placeholder="es. Manutenzione programmata"
-          maxLength={120}
+          maxLength={TEXT_LIMITS.notificationTitle}
           style={{
             width: '100%', marginTop: 6, padding: '11px 14px', borderRadius: 'var(--r-md)',
             border: `1px solid ${C.border}`, background: C.bg,
@@ -939,7 +947,8 @@ function NotifyTab({ onToast }: { onToast: (t: ToastEvent) => void }) {
         ) : (
           <textarea
             value={body}
-            onChange={e => setBody(e.target.value)}
+            maxLength={TEXT_LIMITS.notificationBody}
+            onChange={e => setBody(limitText(e.target.value, TEXT_LIMITS.notificationBody))}
             placeholder="<p>Ciao!</p><p>Domani l'app sarà offline per 30 min.</p>"
             rows={8}
             style={{

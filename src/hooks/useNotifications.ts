@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import type { Notification } from '../types/supabase'
 
 // Notifications visible to the current user: own + broadcast (recipient_id IS NULL).
@@ -54,10 +55,13 @@ export async function sendNotification(params: {
   type?: string
 }): Promise<{ error: string | null }> {
   if (IS_DEMO) return { error: null }
+  const title = limitText(params.title.trim(), TEXT_LIMITS.notificationTitle)
+  const bodyHtml = params.bodyHtml ? limitText(params.bodyHtml.trim(), TEXT_LIMITS.notificationBody) || null : null
+  if (!title) return { error: 'Titolo obbligatorio' }
   const { error } = await supabase.from('notifications').insert({
     recipient_id: params.recipientId,
-    title:        params.title,
-    body_html:    params.bodyHtml ?? null,
+    title,
+    body_html:    bodyHtml,
     type:         params.type ?? 'admin',
   })
   return { error: error?.message ?? null }

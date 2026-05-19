@@ -16,6 +16,7 @@ interface Props {
   fallback:   LatLng
   selectedId: string | null
   onSelect:   (barber: DemoBarber) => void
+  followedProfileIds?: Set<string>
   centerOnUserRequest?: number
   onMapLoad?: () => void
   onError?:   () => void
@@ -64,7 +65,7 @@ function applyMinimalMapStyle(map: ReturnType<MapRef['getMap']>) {
 }
 
 export function MapView({
-  barbers, userCoords, fallback, selectedId, onSelect, centerOnUserRequest = 0, onMapLoad, onError,
+  barbers, userCoords, fallback, selectedId, onSelect, followedProfileIds, centerOnUserRequest = 0, onMapLoad, onError,
 }: Props) {
   const mapRef = useRef<MapRef | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -246,6 +247,7 @@ export function MapView({
             lat={lat}
             lng={lng}
             selected={selectedId === barber.id}
+            followed={!!barber.profileId && followedProfileIds?.has(barber.profileId)}
             onClick={handleMarkerClick}
           />
         )

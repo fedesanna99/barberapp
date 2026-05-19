@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import type { SupportConversation, SupportMessage } from '../types/supabase'
 
 // ── Shared demo store (mutable object so importers can mutate fields) ─────
@@ -96,7 +97,7 @@ export function useSupportChat(userId: string | undefined) {
   }
 
   async function sendMessage(content: string) {
-    const trimmed = content.trim()
+    const trimmed = limitText(content.trim(), TEXT_LIMITS.supportMessage)
     if (!trimmed || !userId) return { error: 'missing' as const }
 
     if (IS_DEMO) {

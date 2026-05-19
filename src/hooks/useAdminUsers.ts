@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { DEMO_ADMIN_USERS } from '../lib/demoData'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import type { UserRole } from '../types/supabase'
 
 export interface AdminUser {
@@ -51,9 +52,10 @@ export function useAdminUsers() {
   }
 
   async function createUser(email: string, password: string, displayName: string, role: UserRole) {
+    const cleanDisplayName = limitText(displayName.trim(), TEXT_LIMITS.profileName)
     if (IS_DEMO) {
       const newUser: AdminUser = {
-        id: `demo-${Date.now()}`, email, display_name: displayName, role,
+        id: `demo-${Date.now()}`, email, display_name: cleanDisplayName, role,
         is_admin: false,
         created_at: new Date().toISOString(),
       }
@@ -62,7 +64,7 @@ export function useAdminUsers() {
     }
 
     const { data, error: e } = await supabase.functions.invoke('admin-create-user', {
-      body: { email, password, displayName, role },
+      body: { email, password, displayName: cleanDisplayName, role },
     })
     if (e) return { error: e.message }
     if (data?.error) return { error: data.error }

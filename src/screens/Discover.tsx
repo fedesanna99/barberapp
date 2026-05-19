@@ -4,6 +4,7 @@ import { BARBERS } from '../lib/demoData'
 import type { DemoBarber } from '../lib/demoData'
 import { IS_DEMO } from '../lib/supabase'
 import { useBarbers, type SortMode } from '../hooks/useBarbers'
+import { useFollows } from '../hooks/useFollows'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { haversineKm } from '../lib/geo'
 import { accentFromId, initialsFromName } from '../hooks/useFeed'
@@ -57,6 +58,11 @@ export function Discover({ onBook, onViewProfile, myBarberId, userId }: Discover
 
   const { coords, denied, unavailable, fallback, locate } = useGeolocation()
   const { barbers: realBarbers, loading } = useBarbers(sort, coords?.lat, coords?.lng, search)
+  const follows = useFollows(userId)
+  const followedProfileIds = useMemo(
+    () => new Set(follows.filter(f => f.role === 'barber').map(f => f.profileId)),
+    [follows],
+  )
 
   useEffect(() => {
     if ((denied || unavailable) && !snackbarShown.shown) {
@@ -127,6 +133,7 @@ export function Discover({ onBook, onViewProfile, myBarberId, userId }: Discover
               fallback={fallback}
               selectedId={selected?.id ?? null}
               onSelect={setSelected}
+              followedProfileIds={followedProfileIds}
               centerOnUserRequest={centerOnUserRequest}
               onError={() => setMapErrored(true)}
             />

@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
 import { supabase, IS_DEMO } from '../lib/supabase'
 import { isValidEmail } from '../lib/validation'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import { Icon } from '../components/Icon'
 import { Button, PoleMark } from '../components/primitives'
 
@@ -47,6 +48,7 @@ export function Register({ onRegister, onGoToLogin }: Props) {
       setError('Completa la verifica anti-bot per continuare')
       return
     }
+    const cleanName = limitText(name.trim(), TEXT_LIMITS.profileName)
     setLoading(true)
     if (IS_DEMO) {
       await new Promise(r => setTimeout(r, 700))
@@ -57,7 +59,7 @@ export function Register({ onRegister, onGoToLogin }: Props) {
     const { error: e } = await supabase.auth.signUp({
       email, password,
       options: {
-        data: { full_name: name.trim(), role },
+        data: { full_name: cleanName, role },
         captchaToken: captchaToken ?? undefined,
       },
     })
@@ -134,7 +136,8 @@ export function Register({ onRegister, onGoToLogin }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
         <Field label="Nome completo">
           <input type="text" placeholder="Mario Rossi" value={name}
-            onChange={e => setName(e.target.value)} style={inputStyle()} />
+            maxLength={TEXT_LIMITS.profileName}
+            onChange={e => setName(limitText(e.target.value, TEXT_LIMITS.profileName))} style={inputStyle()} />
         </Field>
         <Field label="Email">
           <input type="email" placeholder="nome@esempio.com" value={email}

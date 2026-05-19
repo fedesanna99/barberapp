@@ -4,6 +4,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+const MAX_PROFILE_NAME = 60
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -40,6 +41,8 @@ Deno.serve(async (req) => {
     if (profile?.is_admin !== true) return json({ error: 'Forbidden' }, 403)
 
     const { email, password, displayName, role } = await req.json()
+    const cleanDisplayName = String(displayName ?? '').trim().slice(0, MAX_PROFILE_NAME)
+    if (!cleanDisplayName) return json({ error: 'Nome obbligatorio' }, 400)
 
     // Use fetch directly to avoid supabase-js browser-key check in Deno
     const adminHeaders = {
@@ -55,7 +58,7 @@ Deno.serve(async (req) => {
         email,
         password,
         email_confirm: true,
-        user_metadata: { full_name: displayName },
+        user_metadata: { full_name: cleanDisplayName },
       }),
     })
 
@@ -68,7 +71,7 @@ Deno.serve(async (req) => {
       await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${createData.id}`, {
         method: 'PATCH',
         headers: { ...adminHeaders, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ role, display_name: displayName }),
+        body: JSON.stringify({ role, display_name: cleanDisplayName }),
       })
     }
 

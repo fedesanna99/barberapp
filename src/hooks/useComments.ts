@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 
 export interface CommentRow {
   id:            string
@@ -87,13 +88,15 @@ export function useComments(postId: string | null, userId: string | undefined) {
 
   const add = useCallback(async (content: string): Promise<MutResult> => {
     if (!postId) return { error: null }
+    const cleanContent = limitText(content.trim(), TEXT_LIMITS.comment)
+    if (!cleanContent) return { error: null }
     if (IS_DEMO) {
       const c: CommentRow = {
         id:           'demo-' + crypto.randomUUID(),
         postId,
         authorId:     null,
         authorName:   'Tu',
-        content,
+        content:      cleanContent,
         likesCount:   0,
         likedByMe:    false,
         createdAt:    new Date().toISOString(),
@@ -110,7 +113,7 @@ export function useComments(postId: string | null, userId: string | undefined) {
       authorId:     userId,
       authorName:   meProfile?.name ?? 'Tu',
       authorAvatar: meProfile?.avatar,
-      content,
+      content:      cleanContent,
       likesCount:   0,
       likedByMe:    false,
       createdAt:    new Date().toISOString(),
@@ -118,7 +121,7 @@ export function useComments(postId: string | null, userId: string | undefined) {
     setComments(prev => [...prev, optimistic])
     const { data, error } = await supabase
       .from('comments')
-      .insert({ post_id: postId, author_id: userId, content })
+      .insert({ post_id: postId, author_id: userId, content: cleanContent })
       .select('id, created_at')
       .single()
     if (error || !data) {

@@ -15,8 +15,9 @@ import { useReviews } from '../hooks/useReviews'
 import { ReviewsList } from '../components/ReviewsList'
 import { uploadAvatar, uploadPostPhoto, uploadUserPostPhoto, validateImageType } from '../hooks/useUpload'
 import { supabase, IS_DEMO } from '../lib/supabase'
+import { TEXT_LIMITS, limitText } from '../lib/textLimits'
 import type { BookingWithBarber } from '../hooks/useBooking'
-import type { Post, UserPost } from '../types/supabase'
+import type { Post } from '../types/supabase'
 import type { ToastEvent } from '../components/Toast'
 
 type PostLike = {
@@ -59,7 +60,7 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
   const postInputRef   = useRef<HTMLInputElement>(null)
   const [uploading,        setUploading]        = useState(false)
   const [ownPosts,         setOwnPosts]         = useState<Post[]>([])
-  const [userPosts,        setUserPosts]        = useState<UserPost[]>([])
+  const [userPosts,        setUserPosts]        = useState<Post[]>([])
   const [showNewUserPost,  setShowNewUserPost]  = useState(false)
   const [showEditProfile,  setShowEditProfile]  = useState(false)
   const [selectedPostIdx, setSelectedPostIdx] = useState<number | null>(null)
@@ -85,11 +86,12 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
   useEffect(() => {
     if (isBarber || !userId || IS_DEMO) return
     supabase
-      .from('user_posts')
+      .from('posts')
       .select('*')
-      .eq('user_id', userId)
+      .eq('author_id', userId)
+      .is('barber_id', null)
       .order('created_at', { ascending: false })
-      .then(({ data }) => setUserPosts((data ?? []) as UserPost[]))
+      .then(({ data }) => setUserPosts((data ?? []) as Post[]))
   }, [isBarber, userId])
 
   const upcoming = bookings.filter(b => b.date >= TODAY && b.status !== 'cancelled')
@@ -174,11 +176,13 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
 
   async function addUserPost(caption: string, label: string, file?: File): Promise<void> {
     if (!userId) throw new Error('Non sei autenticato')
+    const cleanCaption = limitText(caption.trim(), TEXT_LIMITS.postCaption)
+    const cleanLabel = limitText(label.trim(), TEXT_LIMITS.postLabel)
     if (IS_DEMO) {
       setUserPosts(prev => [{
-        id: crypto.randomUUID(), user_id: userId,
+        id: crypto.randomUUID(), author_id: userId, barber_id: null,
         image_url: file ? URL.createObjectURL(file) : '',
-        caption, label, likes_count: 0,
+        caption: cleanCaption, label: cleanLabel, likes_count: 0, comments_count: 0, tagged_profile_id: null,
         created_at: new Date().toISOString(),
       }, ...prev])
       return
@@ -186,12 +190,12 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
     if (!file) throw new Error('Nessuna foto selezionata')
     const imageUrl = await uploadUserPostPhoto(file, userId)
     const { data, error } = await supabase
-      .from('user_posts')
-      .insert({ user_id: userId, image_url: imageUrl, caption, label })
+      .from('posts')
+      .insert({ author_id: userId, barber_id: null, image_url: imageUrl, caption: cleanCaption, label: cleanLabel })
       .select()
       .single()
     if (error) throw new Error(`Caricamento fallito: ${error.message}`)
-    if (data) setUserPosts(prev => [data as UserPost, ...prev])
+    if (data) setUserPosts(prev => [data as Post, ...prev])
   }
 
   const showBarberPosts     = isBarber && !isDemo
@@ -445,7 +449,7 @@ function OwnPostGrid({ posts, onPostClick }: { posts: PostLike[]; onPostClick: (
   )
 }
 
-function UserPostGrid({ posts, onPostClick }: { posts: UserPost[]; onPostClick: (i: number) => void }) {
+function UserPostGrid({ posts, onPostClick }: { posts: Post[]; onPostClick: (i: number) => void }) {
   if (posts.length === 0) {
     return (
       <div style={{ gridColumn: '1 / -1', padding: '48px 28px', textAlign: 'center' }}>
@@ -661,7 +665,7 @@ function NewUserPostSheet({
     setLoading(true)
     setPostError(null)
     try {
-      await onAdd(caption.trim(), label.trim(), file ?? undefined)
+      await onAdd(limitText(caption.trim(), TEXT_LIMITS.postCaption), limitText(label.trim(), TEXT_LIMITS.postLabel), file ?? undefined)
     } catch (err) {
       setPostError(err instanceof Error ? err.message : 'Caricamento fallito')
     } finally {
@@ -718,14 +722,16 @@ function NewUserPostSheet({
         <div style={{ padding: '14px 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <textarea
             value={caption}
-            onChange={e => setCaption(e.target.value)}
+            maxLength={TEXT_LIMITS.postCaption}
+            onChange={e => setCaption(limitText(e.target.value, TEXT_LIMITS.postCaption))}
             placeholder="Didascalia…"
             rows={3}
             style={{ padding: '11px 14px', borderRadius: 'var(--r-md)', border: `1px solid ${C.border}`, fontSize: 13.5, background: C.surfaceAlt, color: C.text, outline: 'none', fontFamily: 'inherit', resize: 'none' }}
           />
           <input
             value={label}
-            onChange={e => setLabel(e.target.value)}
+            maxLength={TEXT_LIMITS.postLabel}
+            onChange={e => setLabel(limitText(e.target.value, TEXT_LIMITS.postLabel))}
             placeholder="Etichetta stile (es. Skin fade + line up)"
             style={{ padding: '11px 14px', borderRadius: 'var(--r-md)', border: `1px solid ${C.border}`, fontSize: 13.5, background: C.surfaceAlt, color: C.text, outline: 'none', fontFamily: 'inherit' }}
           />
