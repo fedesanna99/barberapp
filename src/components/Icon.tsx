@@ -95,6 +95,23 @@ export function Icon({
   'aria-hidden': ariaHidden = true,
 }: IconProps) {
   const filled = weight === 'fill'
+  if (name === 'feed' && filled) {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        style={{ display: 'inline-block', flexShrink: 0, ...style }}
+        onClick={onClick}
+        className={className}
+        aria-hidden={ariaHidden}
+      >
+        <rect x="3" y="3" width="18" height="18" rx="2" fill={color} />
+        <line x1="5.5" y1="12" x2="18.5" y2="12" stroke="var(--paper-3)" strokeWidth={1.85} strokeLinecap="round" />
+      </svg>
+    )
+  }
   return (
     <svg
       width={size}

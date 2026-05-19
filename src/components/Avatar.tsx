@@ -7,6 +7,7 @@ interface AvatarProps {
   accent?:  string
   ring?:    boolean
   photo?:   string | null
+  photoFit?: React.CSSProperties['objectFit']
 }
 
 /**
@@ -17,13 +18,13 @@ interface AvatarProps {
  * pass a barber's tinted color; in the new system we ignore the tint and
  * stay on the carta-3 chip so the UI stays quiet.
  */
-export function Avatar({ initials, size = 40, ring = false, photo = null }: AvatarProps) {
+export function Avatar({ initials, size = 40, ring = false, photo = null, photoFit = 'cover' }: AvatarProps) {
   const inner = (
     <div style={{
       width:           size,
       height:          size,
       borderRadius:    '50%',
-      background:      photo ? '#1A1A1A' : C.surfaceAlt,
+      background:      photo && photoFit === 'cover' ? '#1A1A1A' : C.surfaceAlt,
       display:         'flex',
       alignItems:      'center',
       justifyContent:  'center',
@@ -39,7 +40,7 @@ export function Avatar({ initials, size = 40, ring = false, photo = null }: Avat
       flexShrink:      0,
     }}>
       {photo
-        ? <PhotoImage src={photo} position="center 38%" />
+        ? <PhotoImage src={photo} fit={photoFit} position={photoFit === 'cover' ? 'center 38%' : 'center'} />
         : initials
       }
     </div>

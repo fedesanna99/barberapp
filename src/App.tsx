@@ -26,7 +26,7 @@ import { ResetPassword } from './screens/ResetPassword'
 import type { DemoBarber, DemoDate } from './lib/demoData'
 
 const DEMO_BANNER_DISMISSED_KEY = 'cutbook_demo_banner_dismissed'
-const PULL_REFRESH_START_ZONE_PX = 140
+const PULL_REFRESH_START_ZONE_PX = 72
 
 function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
   return (
@@ -126,8 +126,8 @@ export default function App() {
 
   function isAtScrollableTop(target: EventTarget | null) {
     if (!(target instanceof Element)) return true
-    if (target.closest('input, textarea, select, [contenteditable="true"]')) return false
-    if (target.closest('.bb-sheet')) return false
+    if (target.closest('button, a, input, textarea, select, [contenteditable="true"], [role="button"]')) return false
+    if (target.closest('.bb-sheet, .bb-scrim')) return false
     const screen = target.closest('.bb-screen') as HTMLElement | null
     return !screen || screen.scrollTop <= 2
   }
@@ -371,7 +371,7 @@ export default function App() {
                   <Icon
                     name={icon}
                     size={22}
-                    weight={active ? 'fill' : 'regular'}
+                    weight={active && icon !== 'menu' ? 'fill' : 'regular'}
                     color={active ? 'var(--clay)' : 'var(--ink-50)'}
                   />
                   <span className="lbl">{label}</span>

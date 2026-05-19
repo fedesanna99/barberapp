@@ -227,7 +227,7 @@ export function Profile({ userId, isBarber, barberId, onToast }: Props) {
             style={{ position: 'relative', cursor: 'pointer' }}
             onClick={() => !uploading && avatarInputRef.current?.click()}
           >
-            <Avatar initials={ini} size={72} ring photo={avatarUrl ?? null} />
+            <Avatar initials={ini} size={72} ring photo={avatarUrl ?? null} photoFit="contain" />
             <div style={{
               position: 'absolute', bottom: 0, right: 0,
               width: 22, height: 22, borderRadius: '50%',
