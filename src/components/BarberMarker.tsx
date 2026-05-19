@@ -20,13 +20,12 @@ interface Props {
 /**
  * Pari pin — paper disc with a thin ink ring when idle, fills clay
  * (the single accent) when selected so the chosen pin reads as the
- * one active element. Top-rated barbers get a small clay-deep notch.
+ * one active element.
  */
 export const BarberMarker = memo(function BarberMarker({
   id, name, rating, reviewsCount, lat, lng, selected, onClick,
 }: Props) {
   const rd = ratingDisplay({ rating, reviewsCount })
-  const isTop = rd.hasReviews && rd.numeric >= 4.9
   const size = selected ? 40 : 32
   return (
     <Marker longitude={lng} latitude={lat} anchor="bottom" style={{ zIndex: selected ? 10 : 1 }}>
@@ -50,13 +49,6 @@ export const BarberMarker = memo(function BarberMarker({
         }}
       >
         <Icon name="user" size={selected ? 18 : 15} />
-        {isTop && (
-          <span style={{
-            position: 'absolute', top: -3, right: -3,
-            width: 10, height: 10, borderRadius: '50%',
-            background: 'var(--clay-deep)', border: '2px solid var(--paper-3)',
-          }} />
-        )}
       </button>
     </Marker>
   )

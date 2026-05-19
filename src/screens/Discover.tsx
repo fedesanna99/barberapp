@@ -52,6 +52,7 @@ export function Discover({ onBook, onViewProfile, myBarberId, userId }: Discover
   const [selected, setSelected] = useState<DemoBarber | null>(null)
   const [mapErrored, setMapErrored] = useState(false)
   const [snackbar, setSnackbar] = useState<string | null>(null)
+  const [centerOnUserRequest, setCenterOnUserRequest] = useState(0)
   const snackbarShown = useMemo(() => ({ shown: false }), [])
 
   const { coords, denied, unavailable, fallback, locate } = useGeolocation()
@@ -76,6 +77,11 @@ export function Discover({ onBook, onViewProfile, myBarberId, userId }: Discover
   }, [mapErrored, view])
 
   useEffect(() => { setSelected(null) }, [view])
+
+  function handleLocateClick() {
+    locate()
+    setCenterOnUserRequest(n => n + 1)
+  }
 
   const sourceBarbers: DemoBarber[] = IS_DEMO
     ? BARBERS
@@ -121,6 +127,7 @@ export function Discover({ onBook, onViewProfile, myBarberId, userId }: Discover
               fallback={fallback}
               selectedId={selected?.id ?? null}
               onSelect={setSelected}
+              centerOnUserRequest={centerOnUserRequest}
               onError={() => setMapErrored(true)}
             />
           </Suspense>
@@ -129,7 +136,7 @@ export function Discover({ onBook, onViewProfile, myBarberId, userId }: Discover
           <MapListToggle value={view} onChange={setView} />
 
           <button
-            onClick={locate}
+            onClick={handleLocateClick}
             aria-label="Trova la mia posizione"
             style={{
               position: 'absolute', right: 12, bottom: 12, zIndex: 10,

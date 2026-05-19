@@ -16,6 +16,7 @@ interface Props {
   fallback:   LatLng
   selectedId: string | null
   onSelect:   (barber: DemoBarber) => void
+  centerOnUserRequest?: number
   onMapLoad?: () => void
   onError?:   () => void
 }
@@ -63,7 +64,7 @@ function applyMinimalMapStyle(map: ReturnType<MapRef['getMap']>) {
 }
 
 export function MapView({
-  barbers, userCoords, fallback, selectedId, onSelect, onMapLoad, onError,
+  barbers, userCoords, fallback, selectedId, onSelect, centerOnUserRequest = 0, onMapLoad, onError,
 }: Props) {
   const mapRef = useRef<MapRef | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -78,18 +79,27 @@ export function MapView({
     zoom:      12,
   })
 
+  const centerOnUser = useCallback((duration = 700) => {
+    if (!userCoords) return
+    mapRef.current?.easeTo({
+      center:   [userCoords.lng, userCoords.lat],
+      zoom:     14,
+      duration,
+    })
+  }, [userCoords])
+
   // When the user finally allows geolocation, re-center once.
   const centeredOnUser = useRef(false)
   useEffect(() => {
     if (userCoords && !centeredOnUser.current) {
       centeredOnUser.current = true
-      mapRef.current?.easeTo({
-        center:   [userCoords.lng, userCoords.lat],
-        zoom:     13,
-        duration: 700,
-      })
+      centerOnUser(700)
     }
-  }, [userCoords])
+  }, [centerOnUser, userCoords])
+
+  useEffect(() => {
+    if (centerOnUserRequest > 0) centerOnUser(500)
+  }, [centerOnUser, centerOnUserRequest])
 
   // When there's no user geolocation, fit the map to include all barbers so
   // the user sees everyone (otherwise pins far from the fallback are hidden).
