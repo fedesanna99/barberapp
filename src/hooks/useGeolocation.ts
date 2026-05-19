@@ -19,16 +19,23 @@ export function useGeolocation(): GeoState {
       setUnavailable(true)
       return
     }
+    // Phase 1: fast low-accuracy fix via WiFi/cell (usually < 1 s, 5-min cache ok)
     navigator.geolocation.getCurrentPosition(
       p => {
         setCoords({ lat: p.coords.latitude, lng: p.coords.longitude })
         setDenied(false)
+        // Phase 2: silently refine with GPS in background
+        navigator.geolocation.getCurrentPosition(
+          p2 => setCoords({ lat: p2.coords.latitude, lng: p2.coords.longitude }),
+          () => { /* keep phase-1 coords */ },
+          { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },
+        )
       },
       err => {
         if (err.code === err.PERMISSION_DENIED) setDenied(true)
         else setUnavailable(true)
       },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 },
+      { enableHighAccuracy: false, timeout: 5_000, maximumAge: 300_000 },
     )
   }, [])
 

@@ -501,15 +501,6 @@ function GridCell({ src, label, onClick }: { src?: string | null; label?: string
         ? <PhotoImage src={src} tone="soft" />
         : <Icon name="scissors" size={26} color={C.hint} />
       }
-      {label && (
-        <div style={{
-          position: 'absolute', bottom: 6, left: 6, right: 6,
-          fontSize: 10, color: C.bg, fontWeight: 500,
-          background: 'rgba(20,17,13,0.55)',
-          padding: '2px 8px', borderRadius: 9999,
-          textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{label}</div>
-      )}
     </div>
   )
 }

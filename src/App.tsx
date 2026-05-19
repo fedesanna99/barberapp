@@ -27,6 +27,7 @@ import type { DemoBarber, DemoDate } from './lib/demoData'
 
 const DEMO_BANNER_DISMISSED_KEY = 'cutbook_demo_banner_dismissed'
 const PULL_REFRESH_START_ZONE_PX = 72
+const PULL_DEAD_ZONE_PX = 10
 
 function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
   return (
@@ -79,6 +80,7 @@ const ADMIN_NAV: { id: ScreenId; icon: IconName; label: string }[] = [
   { id: 'feed',     icon: 'feed',     label: 'Feed'    },
   { id: 'discover', icon: 'map',      label: 'Esplora' },
   { id: 'admin',    icon: 'shield',   label: 'Admin'   },
+  { id: 'profile',  icon: 'user',     label: 'Profilo' },
   { id: 'menu',     icon: 'menu',     label: 'Menu'    },
 ]
 
@@ -124,12 +126,27 @@ export default function App() {
     }
   }, [session, roleIsBarber, roleIsAdmin, loading])
 
+  function getScrollableAncestor(target: EventTarget | null): HTMLElement | null {
+    if (!(target instanceof Element)) return null
+    let el: Element | null = target
+    while (el && el !== document.body) {
+      if (el instanceof HTMLElement) {
+        const { overflowY } = getComputedStyle(el)
+        if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+          return el
+        }
+      }
+      el = el.parentElement
+    }
+    return null
+  }
+
   function isAtScrollableTop(target: EventTarget | null) {
     if (!(target instanceof Element)) return true
     if (target.closest('button, a, input, textarea, select, [contenteditable="true"], [role="button"]')) return false
     if (target.closest('.bb-sheet, .bb-scrim')) return false
-    const screen = target.closest('.bb-screen') as HTMLElement | null
-    return !screen || screen.scrollTop <= 2
+    const scrollable = getScrollableAncestor(target)
+    return !scrollable || scrollable.scrollTop <= 2
   }
 
   function handleTouchStart(e: TouchEvent<HTMLDivElement>) {
@@ -148,7 +165,17 @@ export default function App() {
       setPullDistance(0)
       return
     }
-    setPullDistance(Math.min(96, delta * 0.55))
+    // If the scroll container has scrolled (browser gave priority to scroll), cancel pull
+    const scrollable = getScrollableAncestor(e.target)
+    if (scrollable && scrollable.scrollTop > 2) {
+      pullTracking.current = false
+      pullStartY.current = null
+      setPullDistance(0)
+      return
+    }
+    // Dead zone: don't show indicator until > PULL_DEAD_ZONE_PX of intentional pull
+    const effectiveDelta = Math.max(0, delta - PULL_DEAD_ZONE_PX)
+    setPullDistance(Math.min(96, effectiveDelta * 0.55))
   }
 
   function handleTouchEnd() {
