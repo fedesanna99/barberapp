@@ -709,7 +709,7 @@ export type DirectMessage       = Database['public']['Tables']['direct_messages'
 
 // Joined shapes used by hooks
 export type BarberWithProfile = Barber & {
-  profile: Pick<Profile, 'display_name' | 'avatar_url' | 'lat' | 'lng'>
+  profile: Pick<Profile, 'display_name' | 'avatar_url' | 'lat' | 'lng' | 'role'>
 }
 
 export type PostWithBarber = Post & {

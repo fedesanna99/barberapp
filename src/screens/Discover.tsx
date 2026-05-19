@@ -20,6 +20,7 @@ interface DiscoverProps {
   onBook:        (barber: DemoBarber) => void
   onViewProfile: (barber: DemoBarber) => void
   myBarberId?:   string
+  userId?:       string
 }
 
 function toDisplayBarber(b: BarberWithProfile, userLat?: number, userLng?: number): DemoBarber {
@@ -44,7 +45,7 @@ function toDisplayBarber(b: BarberWithProfile, userLat?: number, userLng?: numbe
   }
 }
 
-export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
+export function Discover({ onBook, onViewProfile, myBarberId, userId }: DiscoverProps) {
   const [view, setView]       = useState<DiscoverView>('map')
   const [sort, setSort]       = useState<SortMode>('nearby')
   const [search, setSearch]   = useState('')
@@ -80,14 +81,19 @@ export function Discover({ onBook, onViewProfile, myBarberId }: DiscoverProps) {
     ? BARBERS
     : realBarbers.map(b => toDisplayBarber(b, coords?.lat, coords?.lng))
 
+  const visibleBarbers = sourceBarbers.filter(b =>
+    (!myBarberId || String(b.id) !== String(myBarberId)) &&
+    (!userId || String(b.profileId) !== String(userId))
+  )
+
   const q = search.trim().toLowerCase()
   const filtered: DemoBarber[] = IS_DEMO && q
-    ? sourceBarbers.filter(b =>
+    ? visibleBarbers.filter(b =>
         b.name.toLowerCase().includes(q) ||
         b.city.toLowerCase().includes(q) ||
         b.tags.some(t => t.toLowerCase().includes(q)),
       )
-    : sourceBarbers
+    : visibleBarbers
 
   const sortedList: DemoBarber[] = IS_DEMO
     ? [...filtered].sort((a, b) => {

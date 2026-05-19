@@ -2,6 +2,7 @@ import { memo } from 'react'
 import { Marker } from 'react-map-gl/maplibre'
 import { C } from '../lib/colors'
 import { ratingDisplay } from '../lib/rating'
+import { Icon } from './Icon'
 
 interface Props {
   id:        string
@@ -22,7 +23,7 @@ interface Props {
  * one active element. Top-rated barbers get a small clay-deep notch.
  */
 export const BarberMarker = memo(function BarberMarker({
-  id, name, initials, rating, reviewsCount, lat, lng, selected, onClick,
+  id, name, rating, reviewsCount, lat, lng, selected, onClick,
 }: Props) {
   const rd = ratingDisplay({ rating, reviewsCount })
   const isTop = rd.hasReviews && rd.numeric >= 4.9
@@ -48,13 +49,7 @@ export const BarberMarker = memo(function BarberMarker({
           transition: 'all 180ms var(--ease)',
         }}
       >
-        <span style={{
-          fontFamily: 'var(--font-display)', fontWeight: 700,
-          fontSize: selected ? 14 : 12, letterSpacing: '-0.02em',
-          lineHeight: 1,
-        }}>
-          {initials.charAt(0)}
-        </span>
+        <Icon name="user" size={selected ? 18 : 15} />
         {isTop && (
           <span style={{
             position: 'absolute', top: -3, right: -3,

@@ -298,7 +298,7 @@ export default function App() {
         ) : (
           <>
             {screen === 'feed'      && <Feed     key={`feed-${refreshNonce}`} userId={userId} barberId={barberId} onBook={setBookingBarber} onViewProfile={setProfileBarber} isBarber={isBarber} showLiked={showLikedFeed} onShowLikedChange={setShowLikedFeed} showSaved={showSavedFeed} onShowSavedChange={setShowSavedFeed} onToast={setToast} />}
-            {screen === 'discover'  && <Discover key={`discover-${refreshNonce}`} onBook={setBookingBarber} onViewProfile={setProfileBarber} myBarberId={barberId} />}
+            {screen === 'discover'  && <Discover key={`discover-${refreshNonce}`} onBook={setBookingBarber} onViewProfile={setProfileBarber} myBarberId={barberId} userId={userId} />}
             {screen === 'profile'   && <Profile key={`profile-${refreshNonce}`} userId={userId} isBarber={isBarber} barberId={barberId} onToast={setToast} />}
             {isBarber && (
               <div key={`dashboard-${refreshNonce}`} style={{ flex: screen === 'dashboard' ? 1 : 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>

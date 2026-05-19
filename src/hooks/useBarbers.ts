@@ -51,7 +51,7 @@ export function useBarbers(
       const rows = (barbersData ?? []) as Barber[]
       const profileIds = [...new Set(rows.map(b => b.profile_id))]
       const { data: profilesData } = profileIds.length > 0
-        ? await supabase.from('profiles').select('id, display_name, avatar_url, lat, lng').in('id', profileIds)
+        ? await supabase.from('profiles').select('id, display_name, avatar_url, lat, lng, role').in('id', profileIds)
         : { data: [] }
 
       if (cancelled) return
@@ -60,8 +60,8 @@ export function useBarbers(
 
       let result: BarberWithProfile[] = rows.map(b => ({
         ...b,
-        profile: profileMap[b.profile_id] ?? { display_name: null, avatar_url: null, lat: null, lng: null },
-      }))
+        profile: profileMap[b.profile_id] ?? { display_name: null, avatar_url: null, lat: null, lng: null, role: 'client' },
+      })).filter(b => b.profile.role === 'barber')
 
       if (search.trim()) {
         const q = search.trim().toLowerCase()
