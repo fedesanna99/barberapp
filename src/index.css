@@ -243,6 +243,9 @@ code, kbd, samp {
   overflow: hidden;
   overscroll-behavior: contain;
   box-shadow: 0 0 0 1px var(--ink-08), 0 24px 60px -24px rgba(46,42,37,0.14);
+  /* iOS PWA standalone mode: keep content out from under the notch /
+     dynamic island. 0 in browser and Android with no notch — unchanged. */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .bb-pull-refresh {
