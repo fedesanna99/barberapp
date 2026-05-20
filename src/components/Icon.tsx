@@ -83,6 +83,11 @@ export type IconProps = {
   'aria-hidden'?: boolean
 }
 
+// Global icon scale. Bumped slightly (May 2026) on user request — applied
+// here so every <Icon> in the app scales together, both default-sized and
+// those passing explicit size={...}. Tweak this single number to retune.
+const ICON_SCALE = 1.15
+
 export function Icon({
   name,
   size = 22,
@@ -94,12 +99,13 @@ export function Icon({
   className,
   'aria-hidden': ariaHidden = true,
 }: IconProps) {
+  const renderSize = Math.round(size * ICON_SCALE)
   const filled = weight === 'fill'
   if (name === 'feed' && filled) {
     return (
       <svg
-        width={size}
-        height={size}
+        width={renderSize}
+        height={renderSize}
         viewBox="0 0 24 24"
         fill="none"
         style={{ display: 'inline-block', flexShrink: 0, ...style }}
@@ -114,8 +120,8 @@ export function Icon({
   }
   return (
     <svg
-      width={size}
-      height={size}
+      width={renderSize}
+      height={renderSize}
       viewBox="0 0 24 24"
       fill={filled ? color : 'none'}
       stroke={filled ? 'none' : color}
