@@ -14,9 +14,10 @@ import { useAutoAccept } from '../hooks/useAutoAccept'
 import { useBarberVacation } from '../hooks/useBarberVacation'
 import { useBarberInfo } from '../hooks/useBarberInfo'
 import { Icon } from '../components/Icon'
+import { ServicesTab } from './ServicesTab'
 import type { ToastEvent } from '../components/Toast'
 
-type DashTab = 'bookings' | 'availability'
+type DashTab = 'bookings' | 'availability' | 'services'
 
 interface BookingRow {
   id: string
@@ -76,8 +77,9 @@ export function BarberDashboard({ barberId, userId, onToast }: {
 
       <div style={{ display: 'flex', padding: '0 20px 14px', gap: 0, flexShrink: 0, background: C.bg }}>
         <div style={{ display: 'flex', background: C.surface, borderRadius: 'var(--r-md)', padding: 3, flex: 1, border: `1px solid ${C.border}` }}>
-          {(['bookings', 'availability'] as DashTab[]).map(t => {
+          {(['bookings', 'services', 'availability'] as DashTab[]).map(t => {
             const active = tab === t
+            const label = t === 'bookings' ? 'Prenotazioni' : t === 'services' ? 'Servizi' : 'Disponibilità'
             return (
               <button
                 key={t}
@@ -87,12 +89,12 @@ export function BarberDashboard({ barberId, userId, onToast }: {
                   background: active ? C.bg : 'transparent',
                   color:      active ? C.text : C.muted,
                   border: 'none', borderRadius: 8,
-                  fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+                  fontFamily: 'inherit', fontSize: 12, fontWeight: 500,
                   cursor: 'pointer',
                   boxShadow: active ? 'var(--shadow-card)' : 'none',
                 }}
               >
-                {t === 'bookings' ? 'Prenotazioni' : 'Disponibilità'}
+                {label}
               </button>
             )
           })}
@@ -101,7 +103,9 @@ export function BarberDashboard({ barberId, userId, onToast }: {
 
       {tab === 'bookings'
         ? <BookingsTab barberId={barberId} onToast={onToast} />
-        : <AvailabilityTab barberId={barberId} />
+        : tab === 'services'
+          ? <ServicesTab barberId={barberId} onToast={onToast} />
+          : <AvailabilityTab barberId={barberId} />
       }
 
       {showEditInfo && (

@@ -107,6 +107,22 @@ export const DEMO_AVAIL: DemoAvailRow[] = [
 export const SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','17:00']
 export const TAKEN_INDICES = new Set([1, 4, 7])
 
+// ── Demo services (used in BookingSheet when IS_DEMO) ──────────────────────
+
+export interface DemoService {
+  id: string
+  name: string
+  price: number
+  duration_minutes: number
+}
+
+export const DEMO_SERVICES: DemoService[] = [
+  { id: 's1', name: 'Taglio classico', price: 15, duration_minutes: 30 },
+  { id: 's2', name: 'Barba',           price: 10, duration_minutes: 20 },
+  { id: 's3', name: 'Taglio + Barba',  price: 22, duration_minutes: 45 },
+  { id: 's4', name: 'Fade',            price: 18, duration_minutes: 30 },
+]
+
 const DAY_NAMES  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 

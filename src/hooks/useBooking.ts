@@ -13,6 +13,9 @@ export function useBooking() {
     barberId: string
     date: Date
     timeSlot: string
+    serviceId?: string
+    paymentStatus?: 'pending_cash' | 'pending_online' | 'paid'
+    stripePaymentIntentId?: string
   }) {
     setLoading(true)
     const d = params.date
@@ -21,10 +24,13 @@ export function useBooking() {
     const { data, error } = await supabase
       .from('bookings')
       .insert({
-        client_id: params.clientId,
-        barber_id: params.barberId,
-        date:      dateStr,
-        time_slot: params.timeSlot,
+        client_id:                 params.clientId,
+        barber_id:                 params.barberId,
+        date:                      dateStr,
+        time_slot:                 params.timeSlot,
+        ...(params.serviceId && { service_id: params.serviceId }),
+        payment_status:            params.paymentStatus ?? 'pending_cash',
+        ...(params.stripePaymentIntentId && { stripe_payment_intent_id: params.stripePaymentIntentId }),
         // M1: insert as 'pending' so the barber can confirm/decline
       })
       .select()
