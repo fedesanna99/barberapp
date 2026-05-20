@@ -24,6 +24,7 @@ import { DirectMessages } from './screens/DirectMessages'
 import { Login } from './screens/Login'
 import { Register } from './screens/Register'
 import { ResetPassword } from './screens/ResetPassword'
+import { PWAUpdatePrompt } from './components/PWAUpdatePrompt'
 import type { DemoBarber } from './lib/demoData'
 
 const DEMO_BANNER_DISMISSED_KEY = 'cutbook_demo_banner_dismissed'
@@ -417,6 +418,7 @@ export default function App() {
           <div className="bb-safe-bot" />
         </nav>
       )}
+      <PWAUpdatePrompt />
     </div>
   )
 }
