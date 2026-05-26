@@ -185,7 +185,18 @@ function BookingsTab({ barberId, onToast }: {
     if (isDemo) {
       setDemoList(prev => prev.map(b => b.status === 'pending' ? { ...b, status: 'confirmed' as const } : b))
     } else {
-      runAutoAccept(real.filter(b => b.status === 'pending'))
+      // FIX #3-bis: NON auto-confermare booking ancora in attesa di pagamento
+      // online (payment_status='pending_online' significa che il PI è stato
+      // creato ma il webhook non ha ancora promosso a 'paid'). Senza questo
+      // filtro, una booking online apparirebbe confermata sulla dashboard del
+      // barbiere PRIMA che il cliente abbia effettivamente pagato.
+      // Quando il webhook flippa a 'paid', Realtime UPDATE triggera l'effect
+      // su [real] e l'auto-accept fires correttamente.
+      // 'failed' è escluso difensivamente — la booking verrà cancellata da cron.
+      runAutoAccept(real.filter(b =>
+        b.status === 'pending' &&
+        (b.payment_status === 'pending_cash' || b.payment_status === 'paid')
+      ))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoAccept, isDemo])

@@ -15,13 +15,22 @@ Guida operativa per portare la build di produzione in linea. Va seguita **per in
 
 > Senza `VITE_SUPABASE_URL` l'app si rifiuta di partire (guard in [src/main.tsx](src/main.tsx)). Niente più "demo mode silenzioso" in produzione.
 
-### Opzionali
+### Opzionali (frontend, prefisso `VITE_`)
 
 | Nome                       | Effetto se mancante                                                                                       |
 |----------------------------|-----------------------------------------------------------------------------------------------------------|
 | `VITE_HCAPTCHA_SITE_KEY`   | I form auth non mostrano captcha (usare solo in dev).                                                     |
 | `VITE_MAPTILER_KEY`        | La mappa Discover usa OpenFreeMap (community, **non-commercial** — non adatto a produzione SaaS).         |
 | `VITE_MAINTENANCE`         | Se `'true'`, l'app mostra la pagina manutenzione PRIMA di Supabase. Usare per push schema/deploy critici. |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Pagamenti online disabilitati silenziosamente. BookingSheet offre solo "Paga in loco". Vedi §Stripe.  |
+
+### Secret server-side (su Supabase Edge Functions, **NON** prefisso `VITE_`)
+
+| Nome                       | Dove                                                                                                       |
+|----------------------------|------------------------------------------------------------------------------------------------------------|
+| `STRIPE_SECRET_KEY`        | `supabase secrets set STRIPE_SECRET_KEY=sk_...` — usato da create-payment-intent e stripe-webhook.        |
+| `STRIPE_WEBHOOK_SECRET`    | `supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...` — verifica firma HMAC dei webhook. Vedi §Webhook.  |
+| `ALLOWED_ORIGIN`           | `supabase secrets set ALLOWED_ORIGIN=https://your-domain.vercel.app` — restringe CORS su create-payment-intent. Fallback `*` se omesso (accettabile in dev, sconsigliato in produzione). |
 
 ### Come impostarle su Vercel
 
@@ -33,9 +42,21 @@ Guida operativa per portare la build di produzione in linea. Va seguita **per in
 
 ## 2. Configurazione Supabase
 
+### 2.0 Ordine OBBLIGATORIO di prima installazione
+
+Se questo è il primo deploy in un nuovo progetto Supabase (o stai applicando per la prima volta la mig. 038), segui questa sequenza **esatta**. Invertire i passi 1↔2 fa fallire la mig. 038 in modo loud (errore `feature_not_supported` su `pg_cron`); non è catastrofico, ma richiede rollback parziale del DDL già applicato dalla 038 prima di ritentare.
+
+1. **Abilita pg_cron** da Supabase Dashboard → Database → Extensions → cerca `pg_cron` → toggle ON. Non c'è equivalente SQL: `CREATE EXTENSION pg_cron` richiede superuser, che Supabase non concede.
+2. **Applica le migrations** con `supabase db push` (vedi §2.1). Verifica che mig. 038 termini senza errori; in particolare che il blocco finale `cron.schedule('cleanup-abandoned-online-bookings', ...)` non sollevi exception.
+3. **Deploy delle Edge Functions** (vedi §2.3): `admin-create-user`, `create-payment-intent`, `stripe-webhook`.
+4. **Set dei secret runtime** (vedi §1 + §Stripe): `supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=... ALLOWED_ORIGIN=...`. Senza, le edge functions partono ma rispondono 500 alla prima invocazione.
+5. **Webhook endpoint** su Stripe Dashboard (vedi §Webhook setup): l'URL deve esistere prima di pubblicare la PWA, altrimenti i pagamenti completati su Stripe non aggiornano il DB.
+
+> ⚠️ **Rollback se ordine invertito:** se hai fatto `supabase db push` PRIMA di abilitare pg_cron, la mig. 038 ha applicato schema/trigger/function/policy ma è abortita sul blocco cron. Il DB è in stato consistente (la transazione è atomica per blocco DO) ma il cleanup non è schedulato. Fix: abilita pg_cron dal Dashboard, poi rieseegui SOLO il blocco DO finale di `038_payment_security.sql` (l'unico non-idempotente al re-run; il resto è già `IF NOT EXISTS` / `CREATE OR REPLACE`).
+
 ### 2.1 Applica le migrations
 
-Cartella: `supabase/migrations/`. Numerate `001` → `032`, vanno applicate **in ordine**. Da Supabase SQL Editor o `supabase db push`:
+Cartella: `supabase/migrations/`. Numerate `001` → `038`, vanno applicate **in ordine**. Da Supabase SQL Editor o `supabase db push`:
 
 ```bash
 # se usi la CLI:
@@ -44,6 +65,14 @@ supabase db push
 ```
 
 > ⚠️ Migration **032_booking_slots_view.sql** è obbligatoria pre-lancio: chiude un leak RLS che esponeva tutte le prenotazioni a qualunque utente autenticato. Senza, va via privacy.
+
+> ⚠️ Migration **038_payment_security.sql** è obbligatoria se attivi i pagamenti online: chiude i finding F001/F002/F004/F007 (vedi `FIX_PAYMENT_NOTES.md`). Senza, un utente con DevTools potrebbe scrivere `payment_status='paid'` su una booking senza pagare. La migration aggiunge:
+> - lo stato `'failed'` al CHECK constraint su `payment_status`;
+> - 3 function `SECURITY DEFINER` (`mark_booking_paid`, `mark_booking_payment_failed`, `mark_booking_refunded`) — l'unica via per transizionare a paid/failed/refunded;
+> - estensione del trigger `bookings_prevent_immutable_change` che pinna `payment_status` e `stripe_payment_intent_id` contro UPDATE da client;
+> - restringimento della policy `bookings_insert` (no `payment_status='paid'` su INSERT, no `stripe_payment_intent_id` settato dal client);
+> - indice partial su `stripe_payment_intent_id` (lookup webhook);
+> - pg_cron job per cleanup booking abbandonate. **Richiede pg_cron abilitato PRIMA dell'apply** — vedi §2.0 punto 1. Senza, la mig. 038 fallisce loud con `feature_not_supported`.
 
 ### 2.2 OAuth — Google login (Redirect URLs allowlist)
 
@@ -62,13 +91,80 @@ Site URL (sezione superiore): impostala sul dominio di produzione.
 
 ### 2.3 Deploy delle Edge Functions
 
-L'unica funzione è `admin-create-user` (creazione utenti dall'AdminPanel). Va deployata manualmente:
+Le edge functions sono tre:
 
 ```bash
 supabase functions deploy admin-create-user
+supabase functions deploy create-payment-intent
+supabase functions deploy stripe-webhook
 ```
 
-> ⚠️ Senza questo deploy, l'AdminPanel **non** può creare nuovi utenti. La funzione usa internamente la `SERVICE_ROLE_KEY` di Supabase: assicurati che le env vars di runtime della funzione siano popolate (Supabase le imposta automaticamente: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`).
+| Function | Scopo | Quando è obbligatoria |
+|----------|-------|-----------------------|
+| `admin-create-user`     | Creazione utenti dall'AdminPanel (richiede `is_admin=true` sul chiamante). | Per AdminPanel. |
+| `create-payment-intent` | Crea Stripe PaymentIntent autorizzato server-side per una booking esistente. Riceve `{bookingId}`, NON `amount`. | Per pagamenti online. |
+| `stripe-webhook`        | Riceve eventi Stripe (`payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`). Unica fonte di verità per transizioni `paid` / `failed` / `refunded`. | Per pagamenti online. |
+
+> ⚠️ Senza il deploy di `create-payment-intent` e `stripe-webhook`, i pagamenti online non funzionano (toast d'errore al click su "Paga ora"). Setta anche i secret runtime (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `ALLOWED_ORIGIN`) — vedi §1 secret e §Stripe sotto.
+
+> ⚠️ `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` sono pre-impostati da Supabase nelle Edge Functions; non vanno settati a mano.
+
+### Stripe setup
+
+1. **Account Stripe** (test mode va bene per dev/staging). Dashboard → Developers → API keys:
+   - copia **Publishable key** in Vercel come `VITE_STRIPE_PUBLISHABLE_KEY`;
+   - copia **Secret key** su Supabase: `supabase secrets set STRIPE_SECRET_KEY=sk_test_...`.
+
+2. **Restringi CORS** dell'edge function `create-payment-intent` al dominio di prod:
+   ```bash
+   supabase secrets set ALLOWED_ORIGIN=https://your-domain.vercel.app
+   ```
+   Se omesso, l'edge function risponde con `Access-Control-Allow-Origin: *` (OK in dev, sconsigliato in prod).
+
+### Webhook setup
+
+1. **Crea il webhook endpoint** su Stripe Dashboard → Developers → Webhooks → Add endpoint:
+   - URL: `https://<project-ref>.supabase.co/functions/v1/stripe-webhook`
+   - Eventi da sottoscrivere (almeno):
+     - `payment_intent.succeeded`
+     - `payment_intent.payment_failed`
+     - `charge.refunded`
+
+2. Stripe genera un **Signing secret** (`whsec_...`). Settalo su Supabase:
+   ```bash
+   supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_xxx
+   ```
+
+3. **Test locale con Stripe CLI**:
+   ```bash
+   # Forward eventi al webhook locale (richiede supabase functions serve attivo)
+   stripe listen --forward-to http://localhost:54321/functions/v1/stripe-webhook
+   # In altra shell: triggera un test
+   stripe trigger payment_intent.succeeded
+   ```
+
+4. **Rotation del webhook signing secret.** Se cambi URL endpoint (es. nuovo project ref, dominio diverso) o sospetti compromissione: su Stripe Dashboard → Webhooks → endpoint → "Roll secret" → genera nuovo `whsec_...` → `supabase secrets set STRIPE_WEBHOOK_SECRET=<nuovo>`. Stripe accetta entrambi i secret per 24h durante la rotation grace window — nessun downtime se redeploy entro quel periodo.
+
+### Cleanup pagamenti abbandonati
+
+Una booking in `payment_status='pending_online'` occupa lo slot (perché ha `status='pending'` e il partial unique index `bookings_no_double` blocca duplicati). Se l'utente abbandona durante il pagamento, lo slot resta bloccato finché qualcosa non rimuove la riga.
+
+**Soluzione default (mig. 038):** pg_cron job ogni 5 min:
+```sql
+DELETE FROM bookings
+ WHERE payment_status = 'pending_online'
+   AND created_at < now() - interval '15 minutes';
+```
+Lo slot si libera entro 15-20 min dall'abbandono.
+
+**Se pg_cron non è disponibile** sul tuo piano Supabase (es. Free): la mig. 038 termina con `RAISE EXCEPTION feature_not_supported`. Due opzioni:
+- Upgrade a un piano che include pg_cron (Pro+).
+- Skip manuale del blocco cron in mig. 038 e deploy di una scheduled edge function `cleanup-abandoned-bookings` triggerata da Vercel Cron / Upstash QStash / GitHub Actions. Schema:
+
+```bash
+# Esempio: function "cleanup-abandoned-bookings" + cron Vercel/Upstash
+# Implementazione lasciata come follow-up; il pattern è banale.
+```
 
 ### 2.4 Storage buckets
 
