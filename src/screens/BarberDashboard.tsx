@@ -12,7 +12,7 @@ import { useBarberBookings, useBooking, type BookingWithClient } from '../hooks/
 import { useAvailabilitySettings } from '../hooks/useAvailabilitySettings'
 import { useAutoAccept } from '../hooks/useAutoAccept'
 import { useBarberVacation } from '../hooks/useBarberVacation'
-import { useBarberInfo } from '../hooks/useBarberInfo'
+import { useBarberInfo, type BarberInfo } from '../hooks/useBarberInfo'
 import { Icon } from '../components/Icon'
 import { ServicesTab } from './ServicesTab'
 import type { ToastEvent } from '../components/Toast'
@@ -105,7 +105,7 @@ export function BarberDashboard({ barberId, userId, onToast }: {
         ? <BookingsTab barberId={barberId} onToast={onToast} />
         : tab === 'services'
           ? <ServicesTab barberId={barberId} onToast={onToast} />
-          : <AvailabilityTab barberId={barberId} />
+          : <AvailabilityTab barberId={barberId} info={info} saving={saving} onSaveInfo={saveInfo} onToast={onToast} />
       }
 
       {showEditInfo && (
@@ -330,7 +330,13 @@ function BookingsTab({ barberId, onToast }: {
 
 /* ---- Availability tab ------------------------------------------------- */
 
-function AvailabilityTab({ barberId }: { barberId?: string }) {
+function AvailabilityTab({ barberId, info, saving, onSaveInfo, onToast }: {
+  barberId?:    string
+  info:         BarberInfo
+  saving:       boolean
+  onSaveInfo:   (next: BarberInfo) => Promise<string | null>
+  onToast?:     (t: ToastEvent | null) => void
+}) {
   const isDemo = IS_DEMO || !barberId
   const { rows: real, upsertDay, removeDay } = useAvailabilitySettings(barberId)
   const [demoRows, setDemoRows] = useState<DemoAvailRow[]>(DEMO_AVAIL)
@@ -383,7 +389,189 @@ function AvailabilityTab({ barberId }: { barberId?: string }) {
           />
         )
       })}
+
+      <CancellationPolicySection
+        info={info}
+        saving={saving}
+        onSaveInfo={onSaveInfo}
+        onToast={onToast}
+        isDemo={isDemo}
+      />
     </div>
+  )
+}
+
+/* ---- Cancellation policy section (Pari V4 Sez A) --------------------- */
+
+const CANCEL_WINDOW_PRESETS = [4, 12, 24, 48, 72, 168] as const
+
+function CancellationPolicySection({ info, saving, onSaveInfo, onToast, isDemo }: {
+  info:       BarberInfo
+  saving:     boolean
+  onSaveInfo: (next: BarberInfo) => Promise<string | null>
+  onToast?:   (t: ToastEvent | null) => void
+  isDemo:     boolean
+}) {
+  const currentWindow = Math.max(0, Math.min(168, parseInt(info.cancellation_window_hours, 10) || 24))
+  const [showCustom, setShowCustom] = useState(false)
+  const [customValue, setCustomValue] = useState(String(currentWindow))
+
+  async function handleWindowChange(h: number) {
+    if (h === currentWindow) return
+    if (isDemo) {
+      onToast?.({ kind: 'info', title: 'Demo mode', message: 'Le modifiche non vengono salvate.' })
+      return
+    }
+    const err = await onSaveInfo({ ...info, cancellation_window_hours: String(h) })
+    if (err) {
+      onToast?.({ kind: 'error', title: 'Salvataggio fallito', message: err })
+    } else {
+      onToast?.({ kind: 'success', title: 'Politica di cancellazione aggiornata.' })
+      setShowCustom(false)
+    }
+  }
+
+  function handleCustomSave() {
+    const n = parseInt(customValue, 10)
+    if (!Number.isFinite(n) || n < 0 || n > 168) {
+      onToast?.({ kind: 'error', title: 'Valore non valido', message: 'Inserisci un numero da 0 a 168.' })
+      return
+    }
+    void handleWindowChange(n)
+  }
+
+  const isPreset = CANCEL_WINDOW_PRESETS.includes(currentWindow as typeof CANCEL_WINDOW_PRESETS[number])
+
+  return (
+    <section style={{ marginTop: 28, paddingTop: 22, borderTop: `1px solid ${C.border}` }}>
+      <div className="bb-eyebrow" style={{ marginBottom: 8 }}>Politica di cancellazione</div>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.018em', color: C.text, margin: '0 0 6px' }}>
+        Quanto prima il cliente può annullare gratis?
+      </h3>
+      <p style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.55, margin: '0 0 14px' }}>
+        I clienti che annullano entro questa finestra ricevono il rimborso completo. Oltre, lo slot si libera ma non c'è rimborso.
+      </p>
+
+      {/* Chip presets */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+        {CANCEL_WINDOW_PRESETS.map(h => {
+          const isOn = h === currentWindow
+          return (
+            <button
+              key={h}
+              onClick={() => handleWindowChange(h)}
+              disabled={saving}
+              style={{
+                display: 'inline-flex', alignItems: 'baseline', gap: 4,
+                padding: '8px 14px', borderRadius: 'var(--r-pill)',
+                background: isOn ? 'var(--clay)' : 'var(--paper-3)',
+                border: `1px solid ${isOn ? 'var(--clay)' : 'var(--ink-15)'}`,
+                color: isOn ? 'var(--paper-3)' : C.text,
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                opacity: saving ? 0.6 : 1,
+                transition: 'all 120ms var(--ease)',
+              }}
+            >
+              <span className="bb-mono" style={{ fontWeight: 600 }}>{h === 168 ? '1' : h}</span>
+              <span style={{ fontSize: 11, opacity: 0.85 }}>{h === 168 ? 'sett' : 'h'}</span>
+            </button>
+          )
+        })}
+        <button
+          onClick={() => setShowCustom(s => !s)}
+          disabled={saving}
+          style={{
+            padding: '8px 14px', borderRadius: 'var(--r-pill)',
+            background: showCustom || !isPreset ? 'var(--clay-soft)' : 'var(--paper-3)',
+            border: `1px solid ${showCustom || !isPreset ? 'var(--clay)' : 'var(--ink-15)'}`,
+            color: C.text,
+            fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+            cursor: saving ? 'not-allowed' : 'pointer',
+            opacity: saving ? 0.6 : 1,
+          }}
+        >
+          Personalizza{!isPreset && currentWindow !== 0 ? ` · ${currentWindow}h` : ''}
+        </button>
+      </div>
+
+      {/* Custom input (collapsible) */}
+      {showCustom && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14 }}>
+          <input
+            type="number"
+            min={0}
+            max={168}
+            value={customValue}
+            onChange={e => setCustomValue(e.target.value)}
+            placeholder="0-168"
+            style={{
+              width: 100, padding: '8px 12px', borderRadius: 'var(--r-md)',
+              border: `1px solid ${C.border}`, background: 'var(--paper-3)',
+              color: C.text, fontFamily: 'var(--font-mono)', fontSize: 14,
+            }}
+          />
+          <span style={{ fontSize: 13, color: C.muted }}>ore</span>
+          <button
+            onClick={handleCustomSave}
+            disabled={saving}
+            style={{
+              padding: '8px 14px', borderRadius: 'var(--r-md)',
+              background: 'var(--ink)', color: 'var(--paper-3)',
+              border: '1px solid var(--ink)',
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+              cursor: saving ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Salva
+          </button>
+        </div>
+      )}
+
+      {/* Current value display + aside */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '14px 16px', borderRadius: 'var(--r-md)',
+        background: 'var(--paper-2)', border: `1px solid ${C.border}`,
+        marginBottom: 12,
+      }}>
+        <div>
+          <div className="bb-eyebrow" style={{ marginBottom: 4 }}>Finestra attuale</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span className="bb-mono" style={{ fontFamily: 'var(--font-display-serif)', fontSize: 32, fontWeight: 400, color: C.text, lineHeight: 1 }}>
+              {currentWindow}
+            </span>
+            <span style={{ fontSize: 13, color: C.muted }}>ore</span>
+          </div>
+        </div>
+        <div style={{ fontSize: 11.5, color: C.muted, textAlign: 'right', lineHeight: 1.45, maxWidth: 180 }}>
+          Le prenotazioni in essere mantengono la finestra del momento della prenotazione.
+        </div>
+      </div>
+
+      {/* Edge case: 0h warning callout */}
+      {currentWindow === 0 && (
+        <div style={{
+          display: 'flex', gap: 12, padding: '12px 14px',
+          borderRadius: 'var(--r-md)',
+          background: 'var(--rust-soft)',
+          border: '1px solid rgba(176,94,72,.25)',
+          marginBottom: 12,
+        }}>
+          <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 9999, background: 'var(--rust)', flexShrink: 0 }} />
+          <div style={{ fontSize: 12.5, lineHeight: 1.5, color: C.text }}>
+            <strong>Cancellazione gratuita disabilitata.</strong>
+            <div style={{ marginTop: 4, color: 'var(--rust)' }}>
+              I clienti pagano alla prenotazione e <strong>non riceveranno rimborso</strong> in caso di cancellazione. Tu puoi ancora rimborsarli manualmente.
+            </div>
+          </div>
+        </div>
+      )}
+
+      <p style={{ fontSize: 11.5, color: C.muted, margin: 0, lineHeight: 1.5 }}>
+        Se metti <span className="bb-mono">0h</span>, nessun cliente può cancellare gratis — comunicalo chiaramente sul tuo profilo.
+      </p>
+    </section>
   )
 }
 

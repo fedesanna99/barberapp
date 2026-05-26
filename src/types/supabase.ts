@@ -10,6 +10,15 @@ export type BookingStatus = 'pending' | 'confirmed' | 'done' | 'cancelled' | 'de
 // 'pending_online' = PI creato, in attesa che il webhook promuova a 'paid'.
 // Le transizioni paid/failed/refunded sono enforced server-side (mig. 038 trigger).
 export type PaymentStatus = 'pending_cash' | 'pending_online' | 'paid' | 'refunded' | 'failed'
+
+// PR-tris mig. 040. Traccia esito del refund Stripe per cancel/decline/auto_expire:
+//   'none'                  → default (cash, fuori window, mai richiesto)
+//   'succeeded'             → refund Stripe completato
+//   'failed_pending_manual' → refund Stripe rifiutato, supporto manuale
+//   'resolved_manually'     → supporto ha rimborsato a mano, alert risolto
+// Scritto SOLO da refund-booking edge function (service_role; trigger immutable
+// blocca client/barber UPDATE).
+export type RefundStatus = 'none' | 'succeeded' | 'failed_pending_manual' | 'resolved_manually'
 // Task 9 — 'admin' is no longer a value of `profiles.role`; instead `profiles.is_admin`
 // is a separate boolean flag. The union here matches the DB CHECK constraint.
 export type UserRole = 'client' | 'barber'
@@ -515,6 +524,7 @@ export type Database = {
           payment_status: PaymentStatus
           stripe_payment_intent_id: string | null
           cancellation_window_hours: number
+          refund_status: RefundStatus
           created_at: string
         }
         Insert: {
@@ -528,13 +538,14 @@ export type Database = {
           payment_status?: PaymentStatus
           stripe_payment_intent_id?: string | null
           cancellation_window_hours?: number  // snapshot trigger lo popola se null
+          refund_status?: RefundStatus        // default 'none', mig. 040
           created_at?: string
         }
         Update: {
           status?: BookingStatus
           payment_status?: PaymentStatus
           // cancellation_window_hours è immutabile post-INSERT (trigger anti-cheat);
-          // service_role può comunque cambiarla via edge function (admin override).
+          // refund_status è scritto solo da refund-booking (service_role, mig. 040).
         }
         Relationships: [
           {
@@ -549,6 +560,13 @@ export type Database = {
             columns: ['barber_id']
             isOneToOne: false
             referencedRelation: 'barbers'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'bookings_service_id_fkey'
+            columns: ['service_id']
+            isOneToOne: false
+            referencedRelation: 'services'
             referencedColumns: ['id']
           }
         ]

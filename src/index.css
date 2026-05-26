@@ -4,7 +4,7 @@
    Theme is toggled with class "dark" on <html> (see useTheme.ts).
    ============================================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap");
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -88,9 +88,10 @@
   --color-border-tertiary:       var(--ink-15);
 
   /* ---- TYPE ---- */
-  --font-display:     "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
-  --font-body:        "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  --font-mono:        "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display:        "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  --font-display-serif:  "Instrument Serif", "Times New Roman", serif;
+  --font-body:           "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono:           "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --t-eyebrow:        500 11.5px/1.4 var(--font-body);
   --t-label:          500 12.5px/1.4 var(--font-body);
@@ -410,6 +411,26 @@ code, kbd, samp {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-50);
+}
+
+/* PR-tris V4 — display serif headings (Instrument Serif) per sheet/section
+   titles. Pattern: H2-display per i titoli dei sheet conferma (es. "Annulli
+   la prenotazione."), accanto a .bb-eyebrow uppercase. */
+.bb-h2-display {
+  font-family: var(--font-display-serif);
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: -.022em;
+  font-weight: 400;
+  margin: 0;
+  color: var(--ink);
+}
+
+/* PR-tris V4 — mono utility per tutti i numeri (ore, prezzi, finestre,
+   importi refund). Pattern uso: <span className="bb-mono">{value}</span>. */
+.bb-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ============================================================
