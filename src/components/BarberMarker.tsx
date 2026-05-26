@@ -50,6 +50,8 @@ export const BarberMarker = memo(function BarberMarker({
           transition: 'all 180ms var(--ease)',
         }}
       >
+        {/* Blocco 4 — clay pulse halo dietro il pin selezionato (Q6) */}
+        {selected && <span className="barber-marker__halo" aria-hidden />}
         <Icon name="user" size={selected ? 18 : 15} />
         {followed && (
           <span style={{

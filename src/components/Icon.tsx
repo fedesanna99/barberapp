@@ -14,7 +14,7 @@ export type IconName =
   | 'feed' | 'map' | 'user' | 'menu' | 'shop'
   | 'chat' | 'bell' | 'heart' | 'bookmark' | 'search' | 'pin'
   | 'calendar' | 'scissors' | 'star' | 'settings' | 'clock' | 'send'
-  | 'caret' | 'caretDown' | 'close' | 'back' | 'share' | 'funnel'
+  | 'caret' | 'caret-right' | 'caret-up' | 'caretDown' | 'close' | 'back' | 'share' | 'funnel'
   | 'list' | 'help' | 'refresh' | 'google' | 'plus' | 'check'
   | 'image' | 'mic' | 'instagram' | 'tiktok' | 'globe' | 'eye' | 'lock'
   | 'shield' | 'logout' | 'edit' | 'trash' | 'phone' | 'mail' | 'info'
@@ -39,6 +39,8 @@ const GLYPHS: Record<IconName, ReactNode> = {
   clock: <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>,
   send: <><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></>,
   caret: <polyline points="9 18 15 12 9 6" />,
+  'caret-right': <polyline points="9 18 15 12 9 6" />,
+  'caret-up': <polyline points="6 15 12 9 18 15" />,
   caretDown: <polyline points="6 9 12 15 18 9" />,
   close: <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>,
   back: <><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></>,
