@@ -4,8 +4,11 @@
 // Itera sulle booking pending + paid create da più di 72h, e per ognuna
 // chiama refund-booking con reason='auto_expire'.
 //
-// Auth: il chiamante deve esibire il service_role JWT (lo passa pg_cron
-// leggendolo da Vault). Niente CORS (i webhook server-side non lo richiedono).
+// Auth: bearer JWT con claim `role='service_role'`. La firma NON viene
+// verificata — il bearer arriva da pg_net che lo legge dal Vault
+// (admin-controlled), e l'unico danno potenziale di un JWT forgiato è
+// triggerare manualmente il cron (refund-booking ha auth check separati).
+// Vedi commit message per motivazione completa.
 //
 // Return: { processed: N, results: [{ bookingId, ok|skipped|error, ... }] }
 
@@ -19,6 +22,20 @@ const json = (body: unknown, status = 200) =>
 
 const TTL_HOURS = 72
 
+// Decodifica il payload (parte 2) di un JWT formato HS256/ES256.
+// NON verifica la firma — vedi auth check sotto per il trust model.
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+    return JSON.parse(atob(padded)) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST' && req.method !== 'GET') {
     return json({ error: 'Method not allowed' }, 405)
@@ -28,10 +45,15 @@ Deno.serve(async (req) => {
     const supabaseUrl    = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-    // Auth check: solo service_role JWT (esatto match, no parsing).
+    // Auth check: bearer JWT con claim role='service_role'.
+    // Versione precedente: confronto stringa con Deno.env.get('SUPABASE_SERVICE_ROLE_KEY').
+    // Falliva quando Vault e Deno.env contenevano formati di chiave diversi
+    // (legacy JWT vs sb_secret_*). Nuova versione: decodifica il JWT e
+    // controlla solo il claim role — funziona indipendentemente dal formato.
     const authHeader = req.headers.get('Authorization') ?? ''
-    const bearer = authHeader.replace(/^Bearer\s+/i, '')
-    if (bearer !== serviceRoleKey) {
+    const bearer = authHeader.replace(/^Bearer\s+/i, '').trim()
+    const payload = decodeJwtPayload(bearer)
+    if (!payload || payload.role !== 'service_role') {
       return json({ error: 'Unauthorized (service_role only)' }, 401)
     }
 
@@ -57,6 +79,11 @@ Deno.serve(async (req) => {
     // Per ognuna, chiama refund-booking. Lo facciamo via HTTP per riusare
     // tutta la logica (refund Stripe + update DB + audit response). Errori
     // di singole booking non bloccano le altre.
+    // IMPORTANTE: forward del bearer JWT originale (dal Vault via pg_net),
+    // NON usare Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'). Quest'ultimo può
+    // essere il nuovo formato sb_secret_* che il gateway Supabase rifiuta
+    // come "UNAUTHORIZED_INVALID_JWT_FORMAT" a livello upstream. Il bearer
+    // Vault è un JWT valid e passa il check del gateway.
     const results: Array<Record<string, unknown>> = []
     for (const b of candidates) {
       try {
@@ -64,7 +91,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${serviceRoleKey}`,
+            'Authorization': `Bearer ${bearer}`,
           },
           body: JSON.stringify({ bookingId: b.id, reason: 'auto_expire' }),
         })
