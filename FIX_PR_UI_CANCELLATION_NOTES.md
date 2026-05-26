@@ -89,3 +89,22 @@ Eseguito autonomamente nel Step 13 dopo deploy (gate utente prima).
 - `tsc --noEmit` → **0 errori**
 - `vite build` → **success** in ~4s, solo warning preesistente sul chunk maplibre-gl (>500 kB) non causato da questa PR
 - Lint: non eseguito (no `pnpm lint` configurato; tsc copre già la maggior parte dei check)
+
+## 8. DEBT (da chiudere prima di considerare la PR davvero chiusa)
+
+- **Smoke test visuale UI**: lo Step 9 originale (30+ checkbox in §4) NON è stato eseguito. Da fare a deployment completato, lato utente, prima di considerare la PR davvero chiusa. Coprirsi: light/dark mode, tutti i 3 variant del sheet, alert sticky + banner cleared, micro-copy e toast variants.
+
+## 9. Post-deploy verification (PR-tris commit/deploy/test)
+
+Eseguiti il 2026-05-26 dopo commit `ac9ea34` + merge `38a06a5`:
+
+- **Mig 040 applied**: `040 | 040 | 040` (Local + Remote OK)
+- **Column `bookings.refund_status`**: data_type=USER-DEFINED, is_nullable=NO, default=`'none'::refund_status_enum` OK
+- **Enum `refund_status_enum`**: 4 valori (`none`, `succeeded`, `failed_pending_manual`, `resolved_manually`) OK
+- **Backfill NULL check**: COUNT=0 OK
+- **Edge function `refund-booking`**: VERSION 4, ACTIVE, updated 2026-05-26 15:32:02 UTC OK
+- **TEST 9 BLOCKER (refund failure path)**: **PASS**
+  - Booking: `pi_TEST_FAKE_9`, payment_status=paid, status=pending
+  - Response: HTTP 200, `refund_failed:true`, `refund_failed_reason:"No such payment_intent: 'pi_TEST_FAKE_9'"`
+  - DB finale: `status='cancelled', payment_status='paid', refund_status='failed_pending_manual'`
+  - Cleanup booking di test eseguito (DELETE OK)
