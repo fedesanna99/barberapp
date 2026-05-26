@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 60" fill="none">
+  
+  <rect x="6" y="10" width="5" height="40" rx="2.5" fill="#46413B"></rect>
+  <rect x="14" y="10" width="5" height="40" rx="2.5" fill="#B07F61"></rect>
+  <rect x="22" y="10" width="5" height="40" rx="2.5" fill="#46413B"></rect>
+  <text x="34" y="40" font-family="Geist, -apple-system, BlinkMacSystemFont, system-ui, sans-serif" font-size="30" font-weight="700" letter-spacing="-0.035em" fill="#46413B">Barberbook</text>
+</svg>

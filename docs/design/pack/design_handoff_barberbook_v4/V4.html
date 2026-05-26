@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V4 · Pari + Mappa</title>
+<link rel="icon" href="v4_pari_mappa/assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+
+<style>
+  :root {
+    --paper: #F4F0E8;
+    --paper-2: #FCFAF5;
+    --bg: #EAE4D7;
+    --ink: #1F1B16;
+    --ink-80: rgba(31,27,22,0.78);
+    --ink-60: rgba(31,27,22,0.58);
+    --ink-40: rgba(31,27,22,0.36);
+    --ink-15: rgba(31,27,22,0.13);
+    --ink-08: rgba(31,27,22,0.07);
+    --clay: #B07F61;
+    --clay-deep: #8E6244;
+    --sage: #7C8C6E;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: "Geist", -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .hero {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 48px 40px 8px;
+    text-align: center;
+  }
+  .hero__eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+    margin-bottom: 16px;
+  }
+  .hero__eyebrow .new {
+    padding: 3px 10px;
+    background: var(--ink);
+    color: var(--paper-2);
+    border-radius: 9999px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+  .hero__title {
+    font-family: "Instrument Serif", serif;
+    font-size: 64px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin: 0 0 14px;
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .hero__title em { color: var(--clay); font-style: italic; }
+  .hero__lede {
+    max-width: 640px;
+    margin: 0 auto;
+    color: var(--ink-80);
+    font-size: 15.5px;
+    line-height: 1.6;
+  }
+
+  /* ============================================================
+     STAGE — big phone in center with screen switcher
+     ============================================================ */
+  .stage {
+    max-width: 1500px;
+    margin: 32px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+
+  /* Tabs */
+  .screen-tabs {
+    display: flex; justify-content: center;
+    gap: 6px;
+    padding: 6px;
+    background: var(--paper-2);
+    border: 1px solid var(--ink-15);
+    border-radius: 9999px;
+    width: fit-content;
+    margin: 0 auto;
+    box-shadow: 0 2px 10px -3px rgba(31,27,22,0.08);
+  }
+  .screen-tabs__btn {
+    padding: 8px 16px;
+    border-radius: 9999px;
+    border: none;
+    background: transparent;
+    font: 500 13px "Geist", sans-serif;
+    color: var(--ink-60);
+    cursor: pointer;
+    letter-spacing: -0.005em;
+    transition: all 200ms cubic-bezier(.2,.8,.2,1);
+    white-space: nowrap;
+  }
+  .screen-tabs__btn:hover { color: var(--ink); }
+  .screen-tabs__btn.active {
+    background: var(--ink);
+    color: var(--paper-2);
+  }
+  .screen-tabs__btn .star {
+    color: var(--clay);
+    margin-right: 4px;
+  }
+  .screen-tabs__btn.active .star { color: var(--paper-2); opacity: 0.7; }
+
+  /* Phone */
+  .stage__main {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 60px;
+    align-items: center;
+    margin-top: 40px;
+  }
+  @media (max-width: 1100px) {
+    .stage__main { grid-template-columns: 1fr; gap: 36px; }
+  }
+
+  .stage__phone {
+    display: flex; justify-content: center;
+  }
+  .phone {
+    width: 100%;
+    max-width: 520px;
+    aspect-ratio: 430 / 540;
+    background: #0a0907;
+    border-radius: 56px;
+    padding: 14px;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.6),
+      0 30px 80px -22px rgba(31,27,22,0.45),
+      0 12px 32px -10px rgba(31,27,22,0.30);
+    position: relative;
+  }
+  .phone__notch {
+    position: absolute;
+    top: 24px; left: 50%;
+    transform: translateX(-50%);
+    width: 130px; height: 34px;
+    background: #000;
+    border-radius: 9999px;
+    z-index: 3;
+  }
+  .phone__screen {
+    width: 100%; height: 100%;
+    border-radius: 44px;
+    overflow: hidden;
+    background: var(--paper-2);
+    position: relative;
+  }
+  .phone__screen img,
+  .phone__screen iframe {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+    border: 0;
+    opacity: 0;
+    transition: opacity 260ms cubic-bezier(.2,.8,.2,1);
+  }
+  .phone__screen img.active,
+  .phone__screen iframe.active {
+    opacity: 1;
+    position: relative;
+  }
+  .phone__screen img:not(.active),
+  .phone__screen iframe:not(.active) {
+    position: absolute;
+    top: 0; left: 0;
+  }
+  .phone__loading {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px;
+    background: var(--paper-2);
+    color: var(--ink-60);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .phone__loading .dots {
+    display: inline-flex; gap: 5px;
+  }
+  .phone__loading .dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--clay);
+    animation: dotPulse 1.4s ease-in-out infinite;
+  }
+  .phone__loading .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .phone__loading .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotPulse {
+    0%, 80%, 100% { opacity: 0.3; }
+    40% { opacity: 1; }
+  }
+
+  /* Info side */
+  .stage__info {
+    max-width: 460px;
+  }
+  .stage__id {
+    display: inline-block;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: var(--clay);
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .stage__name {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin: 0 0 14px;
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .stage__name em { font-style: normal; color: var(--clay); }
+  .stage__desc {
+    color: var(--ink-80);
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 20px;
+  }
+  .stage__desc strong { color: var(--ink); font-weight: 500; }
+
+  .stage__bullets {
+    margin: 24px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .stage__bullet {
+    display: flex; gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--ink-08);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-80);
+  }
+  .stage__bullet:last-child { border-bottom: 1px solid var(--ink-08); }
+  .stage__bullet__icon {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--ink);
+    color: var(--paper-2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .stage__bullet strong { color: var(--ink); font-weight: 500; }
+
+  .stage__actions {
+    margin-top: 28px;
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .stage__btn {
+    background: var(--ink);
+    color: var(--paper-2);
+    border: none;
+    padding: 14px 22px;
+    border-radius: 9999px;
+    font: 500 14px/1 "Geist", sans-serif;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: transform 180ms cubic-bezier(.2,.8,.2,1);
+  }
+  .stage__btn:active { transform: scale(0.97); }
+  .stage__btn.ghost {
+    background: transparent;
+    color: var(--ink);
+    box-shadow: 0 0 0 1px var(--ink-15) inset;
+  }
+  .stage__btn .arrow { transition: transform 200ms cubic-bezier(.2,.8,.2,1); }
+  .stage__btn:hover .arrow { transform: translateX(3px); }
+
+  /* ============================================================
+     Footer note
+     ============================================================ */
+  .foot {
+    max-width: 1500px;
+    margin: 80px auto 60px;
+    padding: 32px 40px 0;
+    border-top: 1px solid var(--ink-08);
+    color: var(--ink-60);
+    font-size: 13px;
+    line-height: 1.55;
+    display: flex; justify-content: space-between; gap: 28px; flex-wrap: wrap;
+  }
+  .foot a { color: var(--clay); text-decoration: none; font-weight: 500; }
+  .foot a:hover { color: var(--clay-deep); }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero__eyebrow">
+    <span style="display: inline-flex; align-items: center; gap: 8px;">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+        <rect x="6"  y="4" width="4" height="24" rx="2" fill="#1F1B16"/>
+        <rect x="14" y="4" width="4" height="24" rx="2" fill="#B07F61"/>
+        <rect x="22" y="4" width="4" height="24" rx="2" fill="#1F1B16"/>
+      </svg>
+      Barberbook · V4 · Pari + Mappa
+    </span>
+    <span class="new">La versione scelta</span>
+  </div>
+  <h1 class="hero__title">La versione <em>scelta.</em></h1>
+  <p class="hero__lede">
+    Tutto V1 — palette, tipografia, schermate, flussi — con <strong style="color:var(--ink); font-weight:500">una sola differenza</strong>: l'Esplora ora è una mappa-prima rivestita in Pari.
+  </p>
+</section>
+
+<!-- Tabs to switch screens -->
+<div class="screen-tabs" id="tabs">
+  <button class="screen-tabs__btn active" data-screen="esplora"><span class="star">★</span>Esplora</button>
+  <button class="screen-tabs__btn" data-screen="welcome">Welcome</button>
+  <button class="screen-tabs__btn" data-screen="feed">Feed</button>
+  <button class="screen-tabs__btn" data-screen="profilo">Profilo</button>
+  <button class="screen-tabs__btn" data-screen="menu">Menu</button>
+</div>
+
+<!-- Stage with big phone + info -->
+<section class="stage">
+  <div class="stage__main">
+    <div class="stage__phone">
+      <div class="phone">
+        <div class="phone__notch"></div>
+        <div class="phone__screen">
+          <div class="phone__loading" id="loading">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect x="6"  y="4" width="4" height="24" rx="2" fill="#1F1B16"/>
+              <rect x="14" y="4" width="4" height="24" rx="2" fill="#B07F61"/>
+              <rect x="22" y="4" width="4" height="24" rx="2" fill="#1F1B16"/>
+            </svg>
+            <div>Caricamento</div>
+            <div class="dots"><span></span><span></span><span></span></div>
+          </div>
+          <iframe id="screen-iframe" title="V4 live" loading="lazy"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage__info" id="info">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div>
+    <strong style="color: var(--ink); font-weight: 500;">V4 · Pari + Mappa</strong> · 13 schermate · livello hi-fi · italiano
+  </div>
+  <div style="text-align: right;">
+    <a href="V1 Pages.html">Tutte le pagine V1 (canvas)</a> &nbsp;·&nbsp;
+    <a href="V4 Esplora.html">Confronto Esplora V1 vs V3 vs V4</a>
+  </div>
+</footer>
+
+<script>
+  const SCREENS = {
+    esplora: {
+      id: "01 · Esplora",
+      name: "La mappa, <em>in Pari.</em>",
+      desc: "Il <strong>cuore di V4</strong>. La mappa-prima di V3 rivestita in palette V1: carta calda, strade chiare, parchi sage. Pin price-pill in paper-3 con dot semantico (sage = aperto, clay = occupato, ink = chiuso).",
+      bullets: [
+        "Bottom sheet con <strong>3 snap</strong>: peek (carosello) · lista · card del barbiere selezionato.",
+        "Agenda pill <strong>sempre visibile</strong> in alto: il prossimo appuntamento è a un tap.",
+        "Tap su un pin → card sheet con <strong>slot di oggi</strong> + Prenota CTA inline.",
+        "Bottom-nav <strong>resta</strong> (Feed · Esplora · Profilo · Menu) per coerenza con V1.",
+      ],
+    },
+    welcome: {
+      id: "02 · Welcome",
+      name: "La <em>prima impressione.</em>",
+      desc: "Schermata di benvenuto identica a V1. <strong>PoleMark</strong> grande, claim editoriale in Instrument Serif italic, due CTA dirette.",
+      bullets: [
+        "Marchio Barberbook a 64×64 in inchiostro + clay.",
+        "Claim italic: <em>\"La sedia giusta, prenotata in 10 secondi.\"</em>",
+        "Sub-copy in 2 righe + 2 CTA (Inizia · Accedi).",
+        "Anteprima notifica in fondo per dare un assaggio del prodotto.",
+      ],
+    },
+    feed: {
+      id: "03 · Feed",
+      name: "La timeline <em>dei tagli.</em>",
+      desc: "Il social layer. Stories dei barbieri seguiti in alto, post 4:5 con caption sotto. <strong>Voce editoriale calma.</strong>",
+      bullets: [
+        "Stories row in cima: ring clay quando un barbiere ha contenuti non visti.",
+        "Post con foto 4:5, like + commenti + save.",
+        "Counter in <strong>Geist Mono</strong> per i like (\"142 ♡\").",
+        "Bottone notifiche in alto a destra.",
+      ],
+    },
+    profilo: {
+      id: "04 · Profilo",
+      name: "<em>Identità</em> + portfolio.",
+      desc: "Avatar grande, stat strip, griglia dei tagli passati. Il tuo profilo è anche il <strong>tuo portfolio.</strong>",
+      bullets: [
+        "Hero: avatar 80×80 + nome H1 + bio.",
+        "Stat strip mono: tagli · barbieri preferiti · follower.",
+        "Griglia 3×N dei tagli passati (aspect 1:1).",
+        "Sezione preferenze: stile, frequenza, pagamento, notifiche.",
+      ],
+    },
+    menu: {
+      id: "05 · Menu",
+      name: "Le <em>scorciatoie.</em>",
+      desc: "Una sola schermata per tutte le impostazioni e gli overlay: appuntamenti, notifiche, messaggi, supporto, tema.",
+      bullets: [
+        "Card raggruppate con voci stile iOS list.",
+        "Toggle tema light / dark / auto.",
+        "Accesso rapido a I miei appuntamenti.",
+        "Notifiche, messaggi, supporto in fondo.",
+      ],
+    },
+  };
+
+  const tabsEl = document.getElementById('tabs');
+  const infoEl = document.getElementById('info');
+  const iframeEl = document.getElementById('screen-iframe');
+  const loadingEl = document.getElementById('loading');
+
+  // map tab id → V4 URL
+  function urlFor(name) {
+    if (name === 'welcome') {
+      return 'v4_pari_mappa/index.html?auth=welcome&hideTweaks=1&frame=0';
+    }
+    return `v4_pari_mappa/index.html?skipAuth=1&tab=${name}&role=client&hideTweaks=1&frame=0`;
+  }
+
+  let firstLoad = true;
+  iframeEl.addEventListener('load', () => {
+    if (loadingEl) loadingEl.style.opacity = '0';
+    iframeEl.classList.add('active');
+  });
+
+  function setScreen(name) {
+    // tabs
+    tabsEl.querySelectorAll('.screen-tabs__btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.screen === name);
+    });
+    // iframe — fade out, then change src, fade in on load
+    iframeEl.classList.remove('active');
+    if (loadingEl) loadingEl.style.opacity = '1';
+    iframeEl.src = urlFor(name);
+    // info
+    const s = SCREENS[name];
+    infoEl.innerHTML = `
+      <div class="stage__id">${s.id}</div>
+      <h2 class="stage__name">${s.name}</h2>
+      <p class="stage__desc">${s.desc}</p>
+      <ul class="stage__bullets">
+        ${s.bullets.map((b, i) => `
+          <li class="stage__bullet">
+            <span class="stage__bullet__icon">${String(i+1).padStart(2,'0')}</span>
+            <span>${b}</span>
+          </li>
+        `).join('')}
+      </ul>
+      <div class="stage__actions">
+        <a class="stage__btn" href="v4_pari_mappa/index.html?skipAuth=1&tab=${name === 'welcome' ? 'esplora' : name}${name === 'welcome' ? '&auth=welcome' : ''}&role=client&hideTweaks=1">
+          Apri live <span class="arrow">→</span>
+        </a>
+        <a class="stage__btn ghost" href="v4_pari_mappa/index.html?skipAuth=1&tab=${name === 'welcome' ? 'esplora' : name}&role=client">
+          Apri con tweaks
+        </a>
+      </div>
+    `;
+  }
+
+  tabsEl.addEventListener('click', e => {
+    const btn = e.target.closest('.screen-tabs__btn');
+    if (btn) setScreen(btn.dataset.screen);
+  });
+
+  setScreen('esplora');
+</script>
+
+</body>
+</html>

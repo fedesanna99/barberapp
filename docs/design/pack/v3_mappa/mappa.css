@@ -1,0 +1,283 @@
+/* ============================================================
+   Barberbook · MAPPA (V3) — map-first experimental
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap");
+
+:root {
+  /* Surfaces — light warm but slightly cooler than Pari */
+  --bg:        #F2EDE3;
+  --bg-2:      #E8E1D4;
+  --surface:   #FFFFFF;
+  --line:      rgba(43, 38, 32, 0.10);
+  --line-strong: rgba(43, 38, 32, 0.20);
+
+  /* Ink */
+  --ink:       #1F1B16;
+  --ink-80:    rgba(31, 27, 22, 0.78);
+  --ink-60:    rgba(31, 27, 22, 0.58);
+  --ink-40:    rgba(31, 27, 22, 0.36);
+  --ink-25:    rgba(31, 27, 22, 0.22);
+  --ink-15:    rgba(31, 27, 22, 0.13);
+
+  /* Map specific — saturated, mapbox-y */
+  --map-bg:        #DDD6C2;
+  --map-land:      #E5DECC;
+  --map-park:      #B8C9A8;
+  --map-water:     #A8BFCB;
+  --map-road:      #FFFFFF;
+  --map-road-edge: #C8BFA8;
+  --map-grid:      rgba(43, 38, 32, 0.05);
+
+  /* Accents (saturated, map-grade) */
+  --pin-open:    #2F7A4D;     /* deep green — available now */
+  --pin-busy:    #C26A33;     /* deep orange — busy */
+  --pin-closed:  #8C5B4A;     /* clay-brown — closed */
+  --pin-selected:#1F1B16;     /* ink — selected */
+
+  --accent:     #C2562C;     /* primary action */
+  --accent-deep:#A14622;
+  --accent-soft:#F4D9C8;
+
+  /* Type */
+  --font-sans:  "Geist", -apple-system, system-ui, sans-serif;
+  --font-mono:  "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Radii — generous */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-pill: 9999px;
+
+  /* Shadows */
+  --shadow-card:  0 1px 2px rgba(31,27,22,0.06), 0 4px 12px -6px rgba(31,27,22,0.10);
+  --shadow-float: 0 6px 22px -8px rgba(31,27,22,0.22), 0 0 0 1px rgba(31,27,22,0.06);
+  --shadow-sheet: 0 -20px 50px -20px rgba(31,27,22,0.25);
+
+  /* Motion */
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --ease-spring: cubic-bezier(.34,1.4,.64,1);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
+html, body {
+  margin: 0; height: 100%; background: #DDD6C2; color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
+}
+body {
+  display: flex; justify-content: center; align-items: stretch;
+}
+#root {
+  width: 100%; max-width: 430px; height: 100%;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  box-shadow: 0 0 60px -20px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+@media (min-width: 720px) {
+  body { padding: 24px 0; background: #C8BFA8; }
+  #root { height: calc(100vh - 48px); max-height: 900px; align-self: center; border-radius: 38px; }
+}
+
+.mappa-app {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+}
+
+.mappa-screen { flex: 1; position: relative; overflow: hidden; }
+
+/* === MAP === */
+.mappa-canvas {
+  position: absolute; inset: 0;
+  background: var(--map-land);
+  overflow: hidden;
+}
+.mappa-canvas svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* === PIN === */
+.mappa-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  cursor: pointer;
+  z-index: 10;
+}
+.mappa-pin__body {
+  width: 38px; height: 38px;
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-45deg);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 10px -3px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.95);
+  transition: transform 220ms var(--ease-spring);
+}
+.mappa-pin__body > * { transform: rotate(45deg); }
+.mappa-pin:hover .mappa-pin__body { transform: rotate(-45deg) translateY(-2px); }
+.mappa-pin.selected .mappa-pin__body {
+  width: 52px; height: 52px;
+  box-shadow: 0 6px 14px -3px rgba(0,0,0,0.4), 0 0 0 3px rgba(255,255,255,1), 0 0 0 6px rgba(31,27,22,0.18);
+}
+.mappa-pin.cluster .mappa-pin__body {
+  border-radius: 50%;
+  background: var(--ink);
+  width: 44px; height: 44px;
+}
+.mappa-pin.cluster .mappa-pin__body > * { transform: none; }
+
+/* === BOTTOM SHEET === */
+.mappa-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  box-shadow: var(--shadow-sheet);
+  transition: transform 320ms var(--ease), height 320ms var(--ease);
+  z-index: 50;
+  display: flex; flex-direction: column;
+}
+.mappa-sheet__grab {
+  width: 100%;
+  padding: 10px 0 6px;
+  display: flex; justify-content: center;
+  flex-shrink: 0;
+  cursor: grab;
+}
+.mappa-sheet__grab::before {
+  content: "";
+  width: 44px; height: 5px;
+  border-radius: 9999px;
+  background: var(--ink-25);
+}
+.mappa-sheet__body {
+  flex: 1; overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* === FLOATING CONTROLS === */
+.mappa-fab {
+  position: absolute;
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: none;
+  box-shadow: var(--shadow-float);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  z-index: 40;
+  color: var(--ink);
+}
+
+/* === SEARCH BAR === */
+.mappa-search {
+  position: absolute; top: 18px; left: 18px; right: 78px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 16px;
+  background: var(--surface);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-float);
+  z-index: 40;
+  cursor: text;
+}
+.mappa-search input {
+  flex: 1; border: none; background: none; outline: none;
+  font-family: var(--font-sans);
+  font-size: 14px; color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.mappa-search input::placeholder { color: var(--ink-40); }
+
+/* === CHIPS === */
+.mappa-chip-row {
+  position: absolute;
+  top: 78px; left: 0; right: 0;
+  display: flex; gap: 6px;
+  padding: 0 18px 6px;
+  overflow-x: auto;
+  z-index: 30;
+}
+.mappa-chip {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 12px;
+  background: var(--surface);
+  border-radius: var(--r-pill);
+  box-shadow: 0 2px 8px -3px rgba(31,27,22,0.18), 0 0 0 1px var(--line);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+}
+.mappa-chip.active {
+  background: var(--ink); color: var(--surface);
+  box-shadow: 0 2px 8px -3px rgba(31,27,22,0.30);
+}
+
+/* === BUTTONS === */
+.mappa-btn {
+  background: var(--ink); color: var(--surface);
+  border: none;
+  padding: 14px 20px;
+  border-radius: var(--r-pill);
+  font-family: var(--font-sans);
+  font-size: 14px; font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  transition: transform 180ms var(--ease);
+}
+.mappa-btn:active { transform: scale(0.98); }
+.mappa-btn.accent { background: var(--accent); }
+.mappa-btn.accent:hover { background: var(--accent-deep); }
+.mappa-btn.ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--line-strong) inset;
+}
+.mappa-btn.block { width: 100%; }
+.mappa-btn.tall { padding: 16px 22px; font-size: 15px; }
+
+/* === STAT NUMBER === */
+.mappa-stat-num {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0;
+}
+
+/* === TIME SLOT === */
+.mappa-slot {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 11px 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  text-align: center;
+  cursor: pointer;
+  color: var(--ink);
+  transition: all 120ms var(--ease);
+}
+.mappa-slot:hover { background: var(--surface); }
+.mappa-slot.selected {
+  background: var(--ink); color: var(--surface);
+  border-color: var(--ink);
+}
+.mappa-slot.taken {
+  color: var(--ink-25);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+/* === KEYFRAMES === */
+@keyframes pulse-pin {
+  0%, 100% { box-shadow: 0 6px 14px -3px rgba(0,0,0,0.4), 0 0 0 3px rgba(255,255,255,1), 0 0 0 4px rgba(31,27,22,0.18); }
+  50% { box-shadow: 0 6px 14px -3px rgba(0,0,0,0.4), 0 0 0 3px rgba(255,255,255,1), 0 0 0 12px rgba(31,27,22,0); }
+}
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes slideUp { from { transform: translateY(12px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }

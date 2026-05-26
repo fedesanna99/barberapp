@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barberbook · V1 vs V3</title>
+<link rel="icon" href="v1_pari/assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+
+<style>
+  :root {
+    --paper: #F4F0E8;
+    --paper-2: #FCFAF5;
+    --ink: #1F1B16;
+    --ink-80: rgba(31,27,22,0.78);
+    --ink-60: rgba(31,27,22,0.58);
+    --ink-40: rgba(31,27,22,0.36);
+    --ink-15: rgba(31,27,22,0.13);
+    --ink-08: rgba(31,27,22,0.07);
+    --clay: #B07F61;
+    --clay-deep: #8E6244;
+    --map-orange: #C2562C;
+    --pin-open: #2F7A4D;
+    --line: var(--ink-15);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body {
+    font-family: "Geist", -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* ============================================================
+     HEADER
+     ============================================================ */
+  .hero {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 64px 40px 24px;
+  }
+  .hero__eyebrow {
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .mark {
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .hero__title {
+    font-family: "Instrument Serif", "Times New Roman", serif;
+    font-size: 60px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin: 0 0 18px;
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .hero__title em { color: var(--clay); }
+  .hero__title em.orange { color: var(--map-orange); }
+  .hero__lede {
+    max-width: 700px;
+    margin: 0;
+    color: var(--ink-80);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  .hero__lede strong { color: var(--ink); font-weight: 500; }
+
+  /* Match state banner */
+  .match {
+    max-width: 1400px;
+    margin: 24px auto 0;
+    padding: 0 40px;
+    display: flex; align-items: center; gap: 12px;
+    flex-wrap: wrap;
+  }
+  .match__chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px 6px 8px;
+    border-radius: 9999px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-80);
+  }
+  .match__chip.winner {
+    background: var(--ink);
+    color: var(--paper-2);
+    border-color: var(--ink);
+  }
+  .match__chip .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--clay);
+    display: inline-block;
+  }
+  .match__chip.v3 .dot { background: var(--map-orange); }
+  .match__chip strong { font-weight: 500; }
+
+  /* ============================================================
+     RAIL — 2 columns
+     ============================================================ */
+  .rail {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 30px 40px 60px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+  }
+  @media (max-width: 1024px) { .rail { grid-template-columns: 1fr; gap: 60px; } }
+
+  .version {
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .version__header {
+    width: 100%;
+    margin-bottom: 22px;
+    text-align: left;
+  }
+  .version__tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 12px 4px 8px;
+    border-radius: 9999px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+    margin-bottom: 14px;
+  }
+  .version__tag .swatch {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: inline-block;
+  }
+  .version.v-1 .version__tag .swatch { background: var(--clay); }
+  .version.v-3 .version__tag .swatch { background: var(--map-orange); }
+
+  .version__tag.winner {
+    background: var(--ink);
+    color: var(--paper-2);
+    border-color: var(--ink);
+  }
+
+  .version__name {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 42px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin: 0;
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .version.v-1 .version__name em { font-style: normal; color: var(--clay); }
+  .version.v-3 .version__name em { font-style: normal; color: var(--map-orange); }
+
+  .version__tagline {
+    margin-top: 10px;
+    color: var(--ink-60);
+    font-size: 14.5px;
+    line-height: 1.55;
+    max-width: 480px;
+  }
+
+  /* ============================================================
+     iPhone frame
+     ============================================================ */
+  .phone {
+    --phone-w: 440px;
+    --phone-h: 920px;
+    --bezel: 13px;
+    --radius: 58px;
+
+    width: var(--phone-w);
+    height: var(--phone-h);
+    max-width: 100%;
+    background: #0a0907;
+    border-radius: var(--radius);
+    padding: var(--bezel);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.6),
+      0 22px 60px -20px rgba(31,27,22,0.4),
+      0 8px 22px -10px rgba(31,27,22,0.25);
+    position: relative;
+    overflow: hidden;
+  }
+  .phone__notch {
+    position: absolute;
+    top: 22px; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 34px;
+    background: #000;
+    border-radius: 9999px;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .phone__screen {
+    width: 100%; height: 100%;
+    border-radius: calc(var(--radius) - var(--bezel));
+    overflow: hidden;
+    background: #fff;
+    position: relative;
+  }
+  .phone__screen iframe {
+    width: 100%; height: 100%;
+    border: 0; display: block;
+  }
+
+  /* ============================================================
+     KEYNOTES under each phone
+     ============================================================ */
+  .keynotes {
+    margin-top: 24px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .keynote {
+    display: flex; gap: 12px;
+    padding: 14px 0;
+    border-top: 1px solid var(--ink-08);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-80);
+  }
+  .keynote:last-child { border-bottom: 1px solid var(--ink-08); }
+  .keynote__icon {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: var(--ink-60);
+    font-weight: 600;
+  }
+  .keynote strong { color: var(--ink); font-weight: 500; }
+
+  .v-3 .keynote__icon { background: rgba(194,86,44,0.06); color: var(--map-orange); border-color: rgba(194,86,44,0.15); }
+
+  /* ============================================================
+     PITCH — V3's case for itself
+     ============================================================ */
+  .pitch {
+    max-width: 1400px;
+    margin: 24px auto 60px;
+    padding: 0 40px;
+  }
+  .pitch__inner {
+    background: var(--ink);
+    color: var(--paper-2);
+    border-radius: 22px;
+    padding: 48px 48px 44px;
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 900px) { .pitch__inner { grid-template-columns: 1fr; padding: 32px; gap: 28px; } }
+
+  .pitch__eyebrow {
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(252,250,245,0.55);
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .pitch__title {
+    font-family: "Instrument Serif", serif;
+    font-size: 44px;
+    line-height: 1.02;
+    letter-spacing: -0.022em;
+    margin: 0;
+    font-weight: 400;
+  }
+  .pitch__title em { color: var(--map-orange); font-style: italic; }
+  .pitch__copy {
+    margin-top: 18px;
+    color: rgba(252,250,245,0.72);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .pitch__copy strong { color: var(--paper-2); font-weight: 500; }
+
+  .pitch__points {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .pitch__point {
+    background: rgba(252,250,245,0.04);
+    border: 1px solid rgba(252,250,245,0.10);
+    border-radius: 14px;
+    padding: 18px 18px 16px;
+  }
+  .pitch__point__num {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: var(--map-orange);
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .pitch__point__title {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    color: var(--paper-2);
+    margin-bottom: 4px;
+  }
+  .pitch__point__body {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: rgba(252,250,245,0.62);
+  }
+
+  /* ============================================================
+     DIFF TABLE
+     ============================================================ */
+  .diff {
+    max-width: 1400px;
+    margin: 0 auto 80px;
+    padding: 0 40px;
+  }
+  .diff__title {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+  .diff__lede {
+    color: var(--ink-60);
+    margin: 0 0 30px;
+    font-size: 15px;
+    line-height: 1.55;
+    max-width: 640px;
+  }
+  .diff__table {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--paper-2);
+  }
+  .diff__row {
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr;
+    align-items: stretch;
+    border-bottom: 1px solid var(--line);
+  }
+  .diff__row:last-child { border-bottom: 0; }
+  .diff__row.head {
+    background: var(--paper);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+  }
+  .diff__cell {
+    padding: 16px 18px;
+    border-left: 1px solid var(--line);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-80);
+  }
+  .diff__cell:first-child { border-left: 0; color: var(--ink-60); font-weight: 500; }
+  .diff__cell strong { color: var(--ink); font-weight: 500; }
+  .diff__cell .badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 9999px;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-left: 6px;
+    vertical-align: 1px;
+  }
+  .diff__cell .badge.win { background: var(--ink); color: var(--paper-2); }
+
+  /* ============================================================
+     Bottom CTA
+     ============================================================ */
+  .cta {
+    max-width: 1400px;
+    margin: 0 auto 100px;
+    padding: 40px;
+    border-radius: 22px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 28px; flex-wrap: wrap;
+  }
+  .cta__title {
+    font-family: "Instrument Serif", serif;
+    font-size: 30px;
+    line-height: 1.05;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  .cta__title em { color: var(--map-orange); font-style: italic; }
+  .cta__lede { margin: 0; color: var(--ink-60); font-size: 14px; line-height: 1.55; max-width: 560px; }
+  .cta__buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+  .cta__btn {
+    background: var(--ink);
+    color: var(--paper-2);
+    border: none;
+    padding: 14px 20px;
+    border-radius: 9999px;
+    font: 500 13.5px/1 "Geist", sans-serif;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    transition: transform 180ms cubic-bezier(.2,.8,.2,1);
+  }
+  .cta__btn:active { transform: scale(0.97); }
+  .cta__btn.ghost {
+    background: transparent;
+    color: var(--ink);
+    box-shadow: 0 0 0 1px var(--line-strong, var(--ink-15)) inset;
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero__eyebrow">
+    <span class="mark">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden>
+        <rect x="6"  y="4" width="4" height="24" rx="2" fill="#1F1B16"/>
+        <rect x="14" y="4" width="4" height="24" rx="2" fill="#B07F61"/>
+        <rect x="22" y="4" width="4" height="24" rx="2" fill="#1F1B16"/>
+      </svg>
+      Barberbook
+    </span>
+    · campionato a 2
+  </div>
+  <h1 class="hero__title">Il <em>raffinato</em> contro <em class="orange">lo sfidante.</em></h1>
+  <p class="hero__lede">
+    <strong>V1 · Pari raffinato</strong> è la versione "definitiva per ora" — fedele al DNA esistente (carta, clay, inchiostro), con più aria e gerarchie più decise. <strong>V3 · Mappa-prima</strong> è lo sfidante: niente bottom-nav, niente schermate separate. La mappa È l'app. Tutto succede sopra. <strong>Schiaccia "Guarda demo"</strong> dentro V3 per vedere il flusso completo in 25 secondi.
+  </p>
+</section>
+
+<div class="match">
+  <span class="match__chip winner v-1">
+    <span class="dot"></span>
+    <strong>V1 · Pari raffinato</strong> · campione in carica
+  </span>
+  <span style="color: var(--ink-40); font-size: 13px;">vs</span>
+  <span class="match__chip v3">
+    <span class="dot"></span>
+    <strong>V3 · Mappa-prima</strong> · sfidante
+  </span>
+</div>
+
+<!-- 2 PHONES RAIL -->
+<section class="rail">
+  <!-- V1 -->
+  <div class="version v-1">
+    <div class="version__header">
+      <div class="version__tag winner"><span class="swatch" style="background: var(--clay)"></span>Campione · V1 Pari</div>
+      <h2 class="version__name">Più aria,<br><em>più mestiere.</em></h2>
+      <p class="version__tagline">Stesso DNA: carta calda, clay, inchiostro. Cosa cambia: tipografia più decisa, schermo Esplora ridisegnato attorno alla mappa, stati delle prenotazioni più leggibili.</p>
+    </div>
+    <div class="phone">
+      <div class="phone__notch"></div>
+      <div class="phone__screen">
+        <iframe src="v1_pari/index.html" title="V1 Pari raffinato" loading="lazy"></iframe>
+      </div>
+    </div>
+    <div class="keynotes">
+      <div class="keynote"><span class="keynote__icon">1</span><span><strong>Mappa Esplora ricostruita</strong> attorno a marker, anteprima e snap sheet.</span></div>
+      <div class="keynote"><span class="keynote__icon">2</span><span><strong>Tipografia display più decisa</strong>: titoli 32–46px, tracking stretto.</span></div>
+      <div class="keynote"><span class="keynote__icon">3</span><span><strong>Bottega-dashboard</strong> con vista giornata in mono, agenda visiva.</span></div>
+      <div class="keynote"><span class="keynote__icon">4</span><span>Tutti gli stati hanno una <strong>voce coerente</strong>.</span></div>
+    </div>
+  </div>
+
+  <!-- V3 -->
+  <div class="version v-3">
+    <div class="version__header">
+      <div class="version__tag"><span class="swatch"></span>Sfidante · V3 Mappa-prima</div>
+      <h2 class="version__name">La mappa <em>è l'app.</em></h2>
+      <p class="version__tagline">Niente bottom-nav, niente schermate separate. Mappa stile Mapbox sempre presente. Bottom-sheet con 4 stati (peek, lista, scheda barbiere, agenda, profilo). Booking inline. Schiaccia <strong>Guarda demo</strong> nella mappa per il flusso completo.</p>
+    </div>
+    <div class="phone">
+      <div class="phone__notch"></div>
+      <div class="phone__screen">
+        <iframe src="v3_mappa/index.html" title="V3 Mappa-prima" loading="lazy"></iframe>
+      </div>
+    </div>
+    <div class="keynotes">
+      <div class="keynote"><span class="keynote__icon">1</span><span><strong>3 snap del sheet</strong>: peek (carosello), lista, card del barbiere.</span></div>
+      <div class="keynote"><span class="keynote__icon">2</span><span>Pin <strong>color-coded</strong> per stato + prezzo in mono direttamente sul pin.</span></div>
+      <div class="keynote"><span class="keynote__icon">3</span><span>Agenda e Profilo sono <strong>sheet sopra la mappa</strong>, mai schermi separati.</span></div>
+      <div class="keynote"><span class="keynote__icon">4</span><span><strong>"Ripeti l'ultimo"</strong>: 1-tap per riprenotare il taglio precedente.</span></div>
+      <div class="keynote"><span class="keynote__icon">5</span><span><strong>Demo guidata integrata</strong>: l'app si muove da sola attraverso il flusso chiave.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- V3 PITCH -->
+<section class="pitch">
+  <div class="pitch__inner">
+    <div>
+      <div class="pitch__eyebrow">L'argomento di V3</div>
+      <h2 class="pitch__title">"Quando prenoto, <em>guardo dove</em> non <em>cosa</em>."</h2>
+      <p class="pitch__copy">
+        Le app di prenotazione tradizionali sono cataloghi: tab "Esplora", tab "Vicino", tab "Preferiti". V3 ribalta la cosa: <strong>la mappa è il catalogo</strong>, perché quando vuoi tagliarti i capelli alle 18 di mercoledì la domanda vera è "chi mi prende ora, vicino a me, al prezzo giusto". Tutto il resto è secondario — quindi diventa un sheet, mai uno schermo.
+      </p>
+    </div>
+    <div class="pitch__points">
+      <div class="pitch__point">
+        <div class="pitch__point__num">01</div>
+        <div class="pitch__point__title">Zero schermate</div>
+        <div class="pitch__point__body">Agenda, profilo, scheda barbiere, prenotazione: tutto vive sopra la mappa come sheet. Nessun cambio di contesto.</div>
+      </div>
+      <div class="pitch__point">
+        <div class="pitch__point__num">02</div>
+        <div class="pitch__point__title">Decisione in 1 sguardo</div>
+        <div class="pitch__point__body">Verde = aperto. Arancio = occupato. Marrone = chiuso. Il prezzo è sul pin. Sai tutto prima di toccare.</div>
+      </div>
+      <div class="pitch__point">
+        <div class="pitch__point__num">03</div>
+        <div class="pitch__point__title">Ripeti in 1 tap</div>
+        <div class="pitch__point__body">Il 70% dei clienti ritorna sempre dallo stesso barbiere. "Ripeti l'ultimo" è un bottone nell'Agenda.</div>
+      </div>
+      <div class="pitch__point">
+        <div class="pitch__point__num">04</div>
+        <div class="pitch__point__title">Booking inline</div>
+        <div class="pitch__point__body">Slot di oggi visibili nella scheda. Tap diretto = sheet di booking sopra la mappa. Niente sequenza di pagine.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON TABLE -->
+<section class="diff">
+  <h2 class="diff__title">Dove vince ciascuna.</h2>
+  <p class="diff__lede">
+    Entrambe parlano italiano, prenotano lo stesso modo, hanno la stessa data. Cambia <strong>quanto la mappa pesa</strong> e <strong>quanto ti fa decidere in fretta</strong>.
+  </p>
+  <div class="diff__table">
+    <div class="diff__row head">
+      <div class="diff__cell">&nbsp;</div>
+      <div class="diff__cell">V1 · Pari raffinato</div>
+      <div class="diff__cell">V3 · Mappa-prima</div>
+    </div>
+    <div class="diff__row">
+      <div class="diff__cell">Mood</div>
+      <div class="diff__cell">Editoriale calmo, bottega di giorno <span class="badge win">comfort</span></div>
+      <div class="diff__cell">Strumentale, mappa di città <span class="badge win">velocità</span></div>
+    </div>
+    <div class="diff__row">
+      <div class="diff__cell">Palette</div>
+      <div class="diff__cell">Carta <strong>#FCFAF5</strong> · clay <strong>#B07F61</strong> · ink <strong>#46413B</strong></div>
+      <div class="diff__cell">Sabbia <strong>#F2EDE3</strong> · arancio <strong>#C2562C</strong> · ink <strong>#1F1B16</strong></div>
+    </div>
+    <div class="diff__row">
+      <div class="diff__cell">Navigazione</div>
+      <div class="diff__cell">Bottom-nav classica · 4 tab</div>
+      <div class="diff__cell"><strong>Zero bottom-nav</strong> · tutto sopra la mappa</div>
+    </div>
+    <div class="diff__row">
+      <div class="diff__cell">Esplora</div>
+      <div class="diff__cell">Mappa + lista a toggle</div>
+      <div class="diff__cell"><strong>La mappa È esplora</strong>, sempre visibile</div>
+    </div>
+    <div class="diff__row">
+      <div class="diff__cell">Decisione visiva</div>
+      <div class="diff__cell">Lista con rating + distanza</div>
+      <div class="diff__cell"><strong>Pin color-coded + prezzo</strong>: tutto in 1 sguardo</div>
+    </div>
+    <div class="diff__row">
+      <div class="diff__cell">Tempo a prenotazione</div>
+      <div class="diff__cell">~4 tap (esplora → barbiere → servizio → ora)</div>
+      <div class="diff__cell"><strong>~2 tap</strong> (pin → slot di oggi) o ripeti = 1 tap</div>
+    </div>
+    <div class="diff__row">
+      <div class="diff__cell">Per chi è</div>
+      <div class="diff__cell">Vuole l'app esistente migliorata, basso rischio</div>
+      <div class="diff__cell">Vuole battere Google Maps sul terreno geo</div>
+    </div>
+    <div class="diff__row">
+      <div class="diff__cell">Rischio</div>
+      <div class="diff__cell">Basso · costruita su pattern noti</div>
+      <div class="diff__cell">Alto · pattern nuovo, da testare con utenti</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div>
+    <h3 class="cta__title">V3 può <em>davvero</em> vincere?</h3>
+    <p class="cta__lede">
+      Posso fare A/B testabili in alto fedeltà, aggiungere altri flussi (registrazione barbiere, dashboard, recensioni, messaggi), o ibridare V1 e V3 (palette di V1 + map-first di V3).
+    </p>
+  </div>
+  <div class="cta__buttons">
+    <button class="cta__btn" onclick="window.open('v3_mappa/index.html', '_blank')">Apri V3 a tutto schermo</button>
+    <button class="cta__btn ghost" onclick="window.open('v1_pari/index.html', '_blank')">Apri V1 a tutto schermo</button>
+  </div>
+</section>
+
+</body>
+</html>

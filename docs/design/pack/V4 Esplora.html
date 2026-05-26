@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V4 · Pari + Mappa</title>
+<link rel="icon" href="v4_pari_mappa/assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+
+<style>
+  :root {
+    --paper: #F4F0E8;
+    --paper-2: #FCFAF5;
+    --bg: #EAE4D7;
+    --ink: #1F1B16;
+    --ink-80: rgba(31,27,22,0.78);
+    --ink-60: rgba(31,27,22,0.58);
+    --ink-40: rgba(31,27,22,0.36);
+    --ink-15: rgba(31,27,22,0.13);
+    --ink-08: rgba(31,27,22,0.07);
+    --clay: #B07F61;
+    --clay-deep: #8E6244;
+    --sage: #7C8C6E;
+    --map-orange: #C2562C;
+    --line: var(--ink-15);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: "Geist", -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* HERO */
+  .hero {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 48px 40px 20px;
+  }
+  .hero__eyebrow {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+    margin-bottom: 16px;
+  }
+  .hero__eyebrow .new {
+    padding: 3px 10px;
+    background: var(--ink);
+    color: var(--paper-2);
+    border-radius: 9999px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+  .hero__title {
+    font-family: "Instrument Serif", serif;
+    font-size: 64px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin: 0 0 18px;
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .hero__title em { color: var(--clay); font-style: italic; }
+  .hero__lede {
+    max-width: 720px;
+    margin: 0;
+    color: var(--ink-80);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .hero__lede strong { color: var(--ink); font-weight: 500; }
+
+  /* EQUATION */
+  .equation {
+    max-width: 1600px;
+    margin: 28px auto 0;
+    padding: 0 40px;
+    display: flex; align-items: center; justify-content: flex-start;
+    gap: 18px; flex-wrap: wrap;
+  }
+  .equation__chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px 7px 8px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: 9999px;
+    font-size: 13px;
+    color: var(--ink-80);
+  }
+  .equation__chip strong { color: var(--ink); font-weight: 500; }
+  .equation__chip .dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .equation__chip.v1 .dot { background: var(--clay); }
+  .equation__chip.v3 .dot { background: var(--map-orange); }
+  .equation__chip.v4 {
+    background: var(--ink);
+    color: var(--paper-2);
+    border-color: var(--ink);
+  }
+  .equation__chip.v4 strong { color: var(--paper-2); }
+  .equation__chip.v4 .dot { background: var(--clay); box-shadow: 0 0 0 2px var(--ink); }
+  .equation__op {
+    font-family: "Instrument Serif", serif;
+    font-size: 28px;
+    color: var(--ink-40);
+    margin: 0 4px;
+  }
+
+  /* COMPARISON */
+  .compare {
+    max-width: 1600px;
+    margin: 48px auto 0;
+    padding: 0 40px;
+  }
+  .compare__title {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 36px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin: 0 0 10px;
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .compare__sub {
+    color: var(--ink-60);
+    margin: 0 0 36px;
+    font-size: 15px;
+    max-width: 720px;
+    line-height: 1.55;
+  }
+  .compare__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 1200px) { .compare__grid { grid-template-columns: 1fr; gap: 60px; max-width: 480px; margin: 0 auto; } }
+
+  .col {
+    display: flex; flex-direction: column;
+  }
+  .col__header { margin-bottom: 18px; }
+  .col__tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 12px 4px 8px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: 9999px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .col__tag .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .col.v1 .col__tag .dot { background: var(--clay); }
+  .col.v3 .col__tag .dot { background: var(--map-orange); }
+  .col.v4 .col__tag { background: var(--ink); color: var(--paper-2); border-color: var(--ink); }
+  .col.v4 .col__tag .dot { background: var(--clay); box-shadow: 0 0 0 2px var(--ink); }
+
+  .col__name {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 26px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin: 0 0 8px;
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .col__name em { font-style: normal; color: var(--clay); }
+  .col.v3 .col__name em { color: var(--map-orange); }
+  .col.v4 .col__name em { color: var(--clay); }
+  .col__desc {
+    color: var(--ink-60);
+    font-size: 13.5px;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  .phone {
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 480 / 980;
+    background: #0a0907;
+    border-radius: 56px;
+    padding: 11px;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.6),
+      0 22px 60px -22px rgba(31,27,22,0.38),
+      0 8px 24px -10px rgba(31,27,22,0.22);
+    position: relative;
+    overflow: hidden;
+  }
+  .phone__notch {
+    position: absolute;
+    top: 20px; left: 50%;
+    transform: translateX(-50%);
+    width: 118px; height: 32px;
+    background: #000;
+    border-radius: 9999px;
+    z-index: 3;
+  }
+  .phone__screen {
+    width: 100%; height: 100%;
+    border-radius: 46px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .phone__screen iframe {
+    width: 100%; height: 100%;
+    border: 0; display: block;
+  }
+
+  .col__bullets {
+    margin: 20px 0 0;
+    padding: 0;
+    list-style: none;
+    width: 100%;
+    max-width: 480px;
+  }
+  .col__bullet {
+    display: flex; gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid var(--ink-08);
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--ink-80);
+  }
+  .col__bullet:last-child { border-bottom: 1px solid var(--ink-08); }
+  .col__bullet__icon {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    color: var(--ink-60);
+    font-weight: 600;
+  }
+  .col.v4 .col__bullet__icon { background: var(--ink); color: var(--paper-2); border-color: var(--ink); }
+  .col__bullet strong { color: var(--ink); font-weight: 500; }
+
+  /* VERDICT */
+  .verdict {
+    max-width: 1600px;
+    margin: 64px auto 0;
+    padding: 0 40px;
+  }
+  .verdict__card {
+    background: var(--ink);
+    color: var(--paper-2);
+    border-radius: 22px;
+    padding: 44px 48px;
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 900px) { .verdict__card { grid-template-columns: 1fr; padding: 32px; gap: 28px; } }
+
+  .verdict__eyebrow {
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(252,250,245,0.55);
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .verdict__title {
+    font-family: "Instrument Serif", serif;
+    font-size: 48px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin: 0;
+    font-weight: 400;
+  }
+  .verdict__title em { color: var(--clay); font-style: italic; }
+  .verdict__body {
+    margin: 18px 0 0;
+    color: rgba(252,250,245,0.72);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .verdict__body strong { color: var(--paper-2); font-weight: 500; }
+
+  .verdict__points {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .verdict__point {
+    background: rgba(252,250,245,0.05);
+    border: 1px solid rgba(252,250,245,0.10);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .verdict__point__num {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: var(--clay);
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .verdict__point__title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--paper-2);
+    letter-spacing: -0.015em;
+    margin-bottom: 4px;
+  }
+  .verdict__point__body {
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgba(252,250,245,0.60);
+  }
+
+  /* CTA STRIP */
+  .cta {
+    max-width: 1600px;
+    margin: 56px auto 64px;
+    padding: 0 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap;
+  }
+  .cta__copy {
+    flex: 1; min-width: 280px;
+  }
+  .cta__title {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 32px;
+    line-height: 1.05;
+    margin: 0 0 8px;
+    letter-spacing: -0.025em;
+  }
+  .cta__lede {
+    margin: 0;
+    color: var(--ink-60);
+    font-size: 14.5px;
+    line-height: 1.55;
+    max-width: 540px;
+  }
+  .cta__buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+  .cta__btn {
+    background: var(--ink);
+    color: var(--paper-2);
+    border: none;
+    padding: 14px 20px;
+    border-radius: 9999px;
+    font: 500 13.5px/1 "Geist", sans-serif;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    transition: transform 180ms cubic-bezier(.2,.8,.2,1);
+    text-decoration: none;
+    display: inline-block;
+  }
+  .cta__btn:active { transform: scale(0.97); }
+  .cta__btn.ghost {
+    background: transparent;
+    color: var(--ink);
+    box-shadow: 0 0 0 1px var(--line) inset;
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero__eyebrow">
+    <span style="display: inline-flex; align-items: center; gap: 8px;">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+        <rect x="6"  y="4" width="4" height="24" rx="2" fill="#1F1B16"/>
+        <rect x="14" y="4" width="4" height="24" rx="2" fill="#B07F61"/>
+        <rect x="22" y="4" width="4" height="24" rx="2" fill="#1F1B16"/>
+      </svg>
+      Barberbook · V4
+    </span>
+    <span class="new">Nuova proposta</span>
+    · Pari + Mappa-prima
+  </div>
+  <h1 class="hero__title">L'ibrido: <em>il meglio di entrambi.</em></h1>
+  <p class="hero__lede">
+    <strong>V4</strong> è 100% V1 — stessa palette carta · inchiostro · clay, stessa tipografia Geist, stessi 12 schermi e flussi di prenotazione del campione — ma <strong>nell'Esplora abbiamo trapiantato la mappa-prima di V3</strong>: niente toggle mappa/lista, niente schermate separate. Mappa sempre presente come canvas, bottom sheet con snap (peek → lista → card barbiere), pin price-pill color-coded per stato. Tutto rivestito in Pari.
+  </p>
+</section>
+
+<div class="equation">
+  <span class="equation__chip v1"><span class="dot"></span><strong>V1</strong> · Pari raffinato</span>
+  <span class="equation__op">+</span>
+  <span class="equation__chip v3"><span class="dot"></span><strong>V3</strong> · Mappa-prima</span>
+  <span class="equation__op">=</span>
+  <span class="equation__chip v4"><span class="dot"></span><strong>V4</strong> · Pari + Mappa</span>
+</div>
+
+<!-- SIDE-BY-SIDE: Esplora screen in V1, V3, V4 -->
+<section class="compare">
+  <h2 class="compare__title">Lo stesso schermo, tre versioni.</h2>
+  <p class="compare__sub">L'<strong>Esplora</strong> a confronto. V1 ha mappa + lista a toggle (sicuro, conosciuto). V3 ha la mappa come canvas (rivoluzionario, ma molto fuori dal brand). V4 prende l'UX di V3 e la riveste in Pari — <strong>l'evoluzione naturale di V1</strong> senza romperla.</p>
+
+  <div class="compare__grid">
+
+    <div class="col v1">
+      <div class="col__header">
+        <span class="col__tag"><span class="dot"></span>V1 · originale</span>
+        <h3 class="col__name">Mappa <em>+ lista</em></h3>
+        <p class="col__desc">Toggle in alto, mappa in alto della schermata, lista lunga sotto. Familiare ma divide l'attenzione.</p>
+      </div>
+      <div class="phone">
+        <div class="phone__notch"></div>
+        <div class="phone__screen">
+          <img src="screenshots/esplora-v1.png" alt="V1 Esplora" loading="lazy" style="width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+        </div>
+      </div>
+      <ul class="col__bullets">
+        <li class="col__bullet"><span class="col__bullet__icon">1</span><span>Toggle <strong>Mappa / Lista</strong> in alto a destra.</span></li>
+        <li class="col__bullet"><span class="col__bullet__icon">2</span><span>La lista è la modalità primaria.</span></li>
+        <li class="col__bullet"><span class="col__bullet__icon">3</span><span>Pin con prezzo, anteprima card in basso.</span></li>
+      </ul>
+    </div>
+
+    <div class="col v3">
+      <div class="col__header">
+        <span class="col__tag"><span class="dot"></span>V3 · sperimentale</span>
+        <h3 class="col__name">La mappa <em>è l'app</em></h3>
+        <p class="col__desc">Niente bottom nav. Mappa fullscreen come canvas. Sheet sopra a 3 stati (peek / lista / card). Fuori palette V1.</p>
+      </div>
+      <div class="phone">
+        <div class="phone__notch"></div>
+        <div class="phone__screen">
+          <img src="screenshots/esplora-v3.png" alt="V3 Mappa-prima" loading="lazy" style="width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+        </div>
+      </div>
+      <ul class="col__bullets">
+        <li class="col__bullet"><span class="col__bullet__icon">1</span><span>Zero bottom-nav. Tutto vive sopra la mappa.</span></li>
+        <li class="col__bullet"><span class="col__bullet__icon">2</span><span>Pin color-coded per stato + prezzo mono.</span></li>
+        <li class="col__bullet"><span class="col__bullet__icon">3</span><span>Mood "arancio mappa", distante dal brand.</span></li>
+      </ul>
+    </div>
+
+    <div class="col v4">
+      <div class="col__header">
+        <span class="col__tag"><span class="dot"></span>V4 · l'ibrido vincente</span>
+        <h3 class="col__name">Mappa-prima, <em>in Pari</em></h3>
+        <p class="col__desc">Stessa UX di V3 (snap sheet, pin price-pill, agenda pill), <strong>rivestita in carta/clay/ink</strong>. Bottom nav mantenuto: l'Esplora è una tab, non l'intera app.</p>
+      </div>
+      <div class="phone">
+        <div class="phone__notch"></div>
+        <div class="phone__screen">
+          <img src="screenshots/esplora-v4.png" alt="V4 Pari Mappa" loading="lazy" style="width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
+        </div>
+      </div>
+      <ul class="col__bullets">
+        <li class="col__bullet"><span class="col__bullet__icon">1</span><span>Mappa <strong>warm paper + cream</strong> con strade chiare. Niente arancio.</span></li>
+        <li class="col__bullet"><span class="col__bullet__icon">2</span><span>Pin price-pill in paper-3 con dot sage/clay/ink per stato.</span></li>
+        <li class="col__bullet"><span class="col__bullet__icon">3</span><span>Bottom-nav <strong>rimane</strong> (Feed / Esplora / Profilo / Menu) — coerenza V1.</span></li>
+        <li class="col__bullet"><span class="col__bullet__icon">4</span><span>Sheet snap a 3 stati, agenda pill ink, filtri in chip Pari.</span></li>
+        <li class="col__bullet"><span class="col__bullet__icon">5</span><span>Tap pin → card con <strong>slot di oggi</strong> + Prenota CTA inline.</span></li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- VERDICT -->
+<section class="verdict">
+  <div class="verdict__card">
+    <div>
+      <div class="verdict__eyebrow">L'argomento di V4</div>
+      <h2 class="verdict__title">"Pari resta. <em>Solo l'Esplora cambia.</em>"</h2>
+      <p class="verdict__body">
+        V1 era già il campione perché era <strong>fedele all'esistente</strong>. Il rischio di V3 era abbandonare il brand. V4 dimostra che si può <strong>tenere V1 al 100%</strong> e cambiare solo la schermata dove cambiare conta davvero: l'Esplora — il punto di entrata della prenotazione. Tutto il resto (feed, profilo, booking, bottega, login) resta identico a V1.
+      </p>
+    </div>
+    <div class="verdict__points">
+      <div class="verdict__point">
+        <div class="verdict__point__num">01</div>
+        <div class="verdict__point__title">Rischio minimo</div>
+        <div class="verdict__point__body">Solo 1 schermata cambia. 12/13 sono ancora V1, già validate.</div>
+      </div>
+      <div class="verdict__point">
+        <div class="verdict__point__num">02</div>
+        <div class="verdict__point__title">Brand integro</div>
+        <div class="verdict__point__body">Niente nuovi colori, niente nuovi font. Solo CSS variables Pari.</div>
+      </div>
+      <div class="verdict__point">
+        <div class="verdict__point__num">03</div>
+        <div class="verdict__point__title">2 tap a prenotare</div>
+        <div class="verdict__point__body">Pin → slot inline. Mezzo del tempo di V1, sullo schermo di entrata.</div>
+      </div>
+      <div class="verdict__point">
+        <div class="verdict__point__num">04</div>
+        <div class="verdict__point__title">Bottom-nav resta</div>
+        <div class="verdict__point__body">Feed/Profilo/Menu sempre raggiungibili. Niente shock di pattern.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="cta__copy">
+    <h3 class="cta__title">Procediamo con V4?</h3>
+    <p class="cta__lede">
+      L'Esplora di V4 è già completa e usabile. Posso aggiornarlo come la versione "definitiva" del design system e rigenerare il pacchetto di handoff per Claude Code, oppure continuiamo a iterare sul map UX.
+    </p>
+  </div>
+  <div class="cta__buttons">
+    <a class="cta__btn" href="v4_pari_mappa/index.html?skipAuth=1&amp;tab=esplora&amp;hideTweaks=1" target="_blank">Apri V4 fullscreen</a>
+    <a class="cta__btn ghost" href="Barberbook Redesign.html">Confronto generale V1 vs V3</a>
+    <a class="cta__btn ghost" href="V1 Pages.html">Tutte le pagine V1</a>
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,249 @@
+/* ============================================================
+   Barberbook · Design System tokens
+   Modern minimal · warm neutral · low contrast · one quiet accent.
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap");
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  /* ============================================================
+     SURFACES — paper-3 is the canonical page background.
+     Linen variants are for sectioned bands and subtle layering.
+     ============================================================ */
+  --paper-3:          #FCFAF5;   /* page background — clean warm cream */
+  --paper-2:          #F9F6EF;   /* lifted card / input */
+  --paper:            #F4F0E8;   /* card surface */
+  --linen:            #EDE9E1;   /* sectioned band, sheet background */
+  --linen-2:          #E4DFD5;   /* deepest neutral */
+
+  /* Convenience aliases — semantic role names. */
+  --bg:               var(--paper-3);
+  --bg-2:             var(--paper-2);
+  --surface:          var(--paper);
+  --surface-deep:     var(--linen);
+
+  /* ============================================================
+     INK — warm graphite, intentionally softened. Lower contrast
+     against linen than a true black would give. All other ink
+     tones are alpha-derived so they tint the surface beneath.
+     ============================================================ */
+  --ink:              #46413B;   /* warm graphite, ~5.8:1 on linen */
+  --ink-80:           rgba(70, 65, 59, 0.80);
+  --ink-60:           rgba(70, 65, 59, 0.58);
+  --ink-50:           rgba(70, 65, 59, 0.46);
+  --ink-40:           rgba(70, 65, 59, 0.36);
+  --ink-25:           rgba(70, 65, 59, 0.22);
+  --ink-15:           rgba(70, 65, 59, 0.13);
+  --ink-08:           rgba(70, 65, 59, 0.07);
+  --ink-04:           rgba(70, 65, 59, 0.04);
+
+  /* ============================================================
+     ACCENT — muted clay. The one warm pop, deliberately
+     desaturated and slightly lifted so it sits *with* the
+     linen, not against it.
+     ============================================================ */
+  --clay:             #B07F61;   /* primary accent */
+  --clay-deep:        #8E6244;   /* hover / pressed */
+  --clay-soft:        #E7DACD;   /* tone-on-tone surface */
+  --clay-tint:        rgba(176, 127, 97, 0.10);
+
+  /* ============================================================
+     SEMANTIC — sage (success), rust (danger). Both muted to
+     match the low-contrast ethos.
+     ============================================================ */
+  --sage:             #7C8C6E;
+  --sage-soft:        #DDE3D5;
+  --rust:             #B05E48;
+  --rust-soft:        #EEDCD3;
+
+  --scrim:            rgba(46, 42, 37, 0.34);
+  --border:           var(--ink-15);
+
+  /* ---- Type ---- */
+  --font-display:     "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  --font-body:        "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono:        "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Type scale (semantic). Display gets tight tracking, body relaxes. */
+  --t-eyebrow:        500 11.5px/1.4 var(--font-body);
+  --t-label:          500 12.5px/1.4 var(--font-body);
+  --t-body:           400 14px/1.55 var(--font-body);
+  --t-body-strong:    600 14px/1.5 var(--font-body);
+  --t-caption:        400 12.5px/1.45 var(--font-body);
+  --t-mono:           500 13px/1.4 var(--font-mono);
+
+  --t-h1:             500 36px/1.05 var(--font-display);
+  --t-h2:             500 26px/1.15 var(--font-display);
+  --t-h3:             500 20px/1.2 var(--font-display);
+  --t-h4:             500 16px/1.25 var(--font-display);
+
+  --tracking-display: -0.022em;
+  --tracking-body:    -0.005em;
+
+  /* ============================================================
+     RADII — three sizes only.
+     ============================================================ */
+  --r-sm:             8px;
+  --r-md:             12px;
+  --r-lg:             18px;
+  --r-pill:           9999px;
+
+  /* ============================================================
+     SHADOW — soft, low. Most lift comes from a hairline +
+     a faint tonal background, not heavy drop shadow.
+     ============================================================ */
+  --shadow-card:      0 1px 2px rgba(43,39,35,0.04), 0 0 0 1px rgba(43,39,35,0.06);
+  --shadow-lift:      0 4px 14px -6px rgba(43,39,35,0.10), 0 0 0 1px rgba(43,39,35,0.05);
+  --shadow-sheet:     0 -10px 30px -12px rgba(43,39,35,0.14);
+  --shadow-toast:     0 14px 36px -14px rgba(43,39,35,0.22);
+
+  /* ============================================================
+     SPACING — 4px base, named t-shirts.
+     ============================================================ */
+  --s-1:              4px;
+  --s-2:              8px;
+  --s-3:              12px;
+  --s-4:              16px;
+  --s-5:              20px;
+  --s-6:              24px;
+  --s-7:              32px;
+  --s-8:              40px;
+  --s-9:              56px;
+
+  /* ============================================================
+     MOTION
+     ============================================================ */
+  --ease:             cubic-bezier(.2, .8, .2, 1);
+  --ease-spring:      cubic-bezier(.34, 1.4, .64, 1);
+  --d-fast:           120ms;
+  --d-med:            200ms;
+  --d-slow:           320ms;
+
+  color-scheme: light;
+}
+
+/* ============================================================
+   SEMANTIC ELEMENT RULES — gentle defaults so any HTML lifted
+   into this system looks at home without per-element styling.
+   ============================================================ */
+body {
+  margin: 0;
+  background: var(--paper-3);
+  color: var(--ink);
+  font: var(--t-body);
+  letter-spacing: var(--tracking-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+  color: var(--ink);
+  margin: 0;
+  font-weight: 500;
+}
+h1 { font-size: 36px; line-height: 1.05; }
+h2 { font-size: 26px; line-height: 1.15; }
+h3 { font-size: 20px; line-height: 1.2;  }
+h4 { font-size: 16px; line-height: 1.25; }
+
+p, li {
+  color: var(--ink-80);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+code, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--ink-04);
+  padding: 1px 6px;
+  border-radius: 6px;
+  color: var(--ink);
+}
+
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
+
+/* ============================================================
+   DARK THEME — warm near-black surfaces, bone-white ink.
+   Activated by `data-theme="dark"` on <html>. All semantic
+   aliases inherit, so most components flip without touching them.
+   ============================================================ */
+[data-theme="dark"] {
+  /* Surfaces — graduated from deep to slightly-lifted, warm undertone */
+  --paper-3:        #14110D;   /* page background */
+  --paper-2:        #1B1814;   /* lifted card / input */
+  --paper:          #221E1A;   /* card surface */
+  --linen:          #2A2520;   /* sectioned band */
+  --linen-2:        #332D26;   /* deepest neutral */
+
+  /* Ink — warm bone, intentionally a touch off-white so it doesn't glare */
+  --ink:            #ECE5D6;
+  --ink-80:         rgba(236, 229, 214, 0.82);
+  --ink-60:         rgba(236, 229, 214, 0.62);
+  --ink-50:         rgba(236, 229, 214, 0.50);
+  --ink-40:         rgba(236, 229, 214, 0.38);
+  --ink-25:         rgba(236, 229, 214, 0.24);
+  --ink-15:         rgba(236, 229, 214, 0.14);
+  --ink-08:         rgba(236, 229, 214, 0.08);
+  --ink-04:         rgba(236, 229, 214, 0.04);
+
+  /* Accents — clay stays the same hex; soft/deep flip for dark surfaces.
+     applyAccent() overwrites these inline for non-default palettes, with
+     matching dark variants — see prototype-app.jsx. */
+  --clay-deep:      #D9B091;
+  --clay-soft:      rgba(176, 127, 97, 0.20);
+  --clay-tint:      rgba(176, 127, 97, 0.16);
+
+  --sage:           #9DB089;
+  --sage-soft:      rgba(157, 176, 137, 0.18);
+  --rust:           #D27F66;
+  --rust-soft:      rgba(210, 127, 102, 0.18);
+
+  --scrim:          rgba(0, 0, 0, 0.58);
+  --border:         var(--ink-15);
+
+  /* Shadows — barely visible on dark, so we lean on hairlines.
+     The 1px outline ring uses warm white at very low alpha so the
+     edge reads as a soft separation, not a hard line. */
+  --shadow-card:    0 1px 2px rgba(0,0,0,0.30), 0 0 0 1px rgba(236,229,214,0.04);
+  --shadow-lift:    0 6px 18px -8px rgba(0,0,0,0.55), 0 0 0 1px rgba(236,229,214,0.05);
+  --shadow-sheet:   0 -14px 36px -14px rgba(0,0,0,0.55);
+  --shadow-toast:   0 16px 40px -14px rgba(0,0,0,0.55);
+
+  color-scheme: dark;
+}
+
+/* The toast inverts itself by tying bg to --ink — in dark that becomes
+   a light pill on a dark canvas. Re-tone the secondary message line so
+   it stays readable against the new (light) background. */
+[data-theme="dark"] .bb-toast {
+  color: #1B1814;
+}
+[data-theme="dark"] .bb-toast .msg {
+  color: rgba(27, 24, 20, 0.62);
+}
+
+/* Pill `ink` tone uses bg=--ink, fg=--linen. In dark that's light-on-dark
+   collapsing into a low-contrast smear; re-tone the fg to a clear value. */
+[data-theme="dark"] .bb-pill-ink {
+  background: var(--ink) !important;
+  color: var(--paper-3) !important;
+}
+
+/* Quick utility for design system preview cards */
+.bb-eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-50);
+}
