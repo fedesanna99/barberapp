@@ -82,6 +82,15 @@ supabase db push
 >
 > Stessa nota cron della 038: il secondo job (`auto-decline-expired-bookings`, schedule `0 * * * *`) va schedulato via Dashboard. Pre-requisito: Vault secret `service_role_key` esistente (vedi §Vault setup).
 
+> ⚠️ Migration **040_refund_status.sql** — UI cancellation booking lifecycle (PR-tris). Aggiunge:
+> - Enum `refund_status_enum` (`none` / `succeeded` / `failed_pending_manual` / `resolved_manually`);
+> - colonna `bookings.refund_status` (default `none`, NOT NULL), backfill a `succeeded` per le righe storiche già `payment_status='refunded'`;
+> - estende trigger immutable con pinning di `refund_status` (solo service_role può scriverlo);
+> - `REVOKE UPDATE (refund_status) ON bookings FROM authenticated, anon` come defense-in-depth;
+> - indice partial `idx_bookings_refund_status_failed` per la query alert sticky (`refund_status='failed_pending_manual'`).
+>
+> Coordinamento con edge function: `refund-booking` (re-deployare in §2.3) ora popola `refund_status='succeeded'` su Stripe success, e `'failed_pending_manual'` invece di 500 su Stripe error → la cancellazione va avanti, lo slot si libera, solo il refund resta pending. Niente nuovi cron, niente nuovi secret.
+
 ### 2.2 OAuth — Google login (Redirect URLs allowlist)
 
 Authentication → **URL Configuration** → **Redirect URLs**: aggiungi:

@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V4 · Booking Lifecycle</title>
+<link rel="icon" href="v4_pari_mappa/assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+
+<style>
+  :root {
+    --paper-3:#FCFAF5; --paper-2:#F9F6EF; --paper:#F4F0E8; --linen:#EDE9E1; --linen-2:#E4DFD5;
+    --ink:#46413B; --ink-80:rgba(70,65,59,.78); --ink-60:rgba(70,65,59,.58); --ink-50:rgba(70,65,59,.46);
+    --ink-40:rgba(70,65,59,.36); --ink-25:rgba(70,65,59,.22); --ink-15:rgba(70,65,59,.13);
+    --ink-08:rgba(70,65,59,.07); --ink-04:rgba(70,65,59,.04);
+    --clay:#B07F61; --clay-deep:#8E6244; --clay-soft:#E7DACD;
+    --sage:#7C8C6E; --sage-soft:#DDE3D5; --rust:#B05E48; --rust-soft:#EEDCD3;
+    --r-sm:8px; --r-md:12px; --r-lg:18px;
+    --ease:cubic-bezier(.2,.8,.2,1);
+    --bg:#EAE4D7;
+  }
+  .dark {
+    --paper-3:#14110D; --paper-2:#1B1814; --paper:#221E1A; --linen:#2A2520; --linen-2:#332D26;
+    --ink:#ECE5D6; --ink-80:rgba(236,229,214,.82); --ink-60:rgba(236,229,214,.62);
+    --ink-50:rgba(236,229,214,.50); --ink-40:rgba(236,229,214,.38); --ink-25:rgba(236,229,214,.24);
+    --ink-15:rgba(236,229,214,.14); --ink-08:rgba(236,229,214,.08); --ink-04:rgba(236,229,214,.04);
+    --clay-soft:rgba(176,127,97,.20); --sage:#9DB089; --sage-soft:rgba(157,176,137,.18);
+    --rust:#D27F66; --rust-soft:rgba(210,127,102,.18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body { font: 14px/1.55 "Geist", system-ui, sans-serif; letter-spacing: -.005em; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+  .mono { font-family: "Geist Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  /* ───── Page chrome ───── */
+  .hero { max-width: 1500px; margin: 0 auto; padding: 56px 56px 32px; }
+  .hero__eyebrow { font-size: 11.5px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .hero__title { font-family: "Instrument Serif", serif; font-size: 60px; line-height: 1; letter-spacing: -.025em; margin: 0 0 18px; font-weight: 400; }
+  .hero__title em { color: var(--clay); font-style: italic; }
+  .hero__lede { max-width: 760px; margin: 0; color: var(--ink-80); font-size: 15.5px; line-height: 1.6; }
+  .hero__lede strong { color: var(--ink); font-weight: 500; }
+  .section { max-width: 1500px; margin: 0 auto; padding: 56px 56px 0; }
+  .section__head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 28px; padding-bottom: 14px; border-bottom: 1px solid var(--ink-15); }
+  .section__num { font-family: "Geist Mono", monospace; font-size: 13px; color: var(--clay); font-weight: 600; }
+  .section__title { font-family: "Instrument Serif", serif; font-style: italic; font-size: 32px; line-height: 1; letter-spacing: -.025em; margin: 0; font-weight: 400; }
+  .section__sub { color: var(--ink-60); font-size: 14px; margin: 0 0 0 auto; max-width: 560px; text-align: right; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; margin-bottom: 24px; }
+  .row--triple { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 1100px) { .row, .row--triple { grid-template-columns: 1fr; } }
+  .col h3 { margin: 0 0 10px; font-size: 13px; font-weight: 500; color: var(--ink); }
+  .col h3 .badge { margin-left: 8px; font-size: 10px; padding: 2px 8px; border-radius: 9999px; background: var(--ink-04); color: var(--ink-60); letter-spacing: .04em; text-transform: uppercase; vertical-align: 2px; }
+  .col h3 .badge.d { background: #14110D; color: #ECE5D6; }
+  .col h3 .badge.r { background: var(--rust-soft); color: var(--rust); }
+  .col h3 .badge.s { background: var(--sage-soft); color: var(--sage); }
+
+  .surface { background: var(--paper-3); border-radius: var(--r-lg); overflow: hidden; color: var(--ink); box-shadow: 0 12px 32px -16px rgba(31,27,22,.18), 0 0 0 1px var(--ink-08); }
+
+  /* ───── primitives ───── */
+  .eyebrow { font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-50); }
+  .h3 { font: 600 19px/1.2 "Geist", sans-serif; letter-spacing: -.022em; color: var(--ink); margin: 0; }
+  .h2-display { font-family: "Instrument Serif", serif; font-size: 22px; line-height: 1.15; letter-spacing: -.022em; font-weight: 400; margin: 0; }
+
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 9999px; border: 1px solid var(--ink-15); background: var(--paper-3); font-size: 12.5px; color: var(--ink); font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .chip .num { font-family: "Geist Mono", monospace; font-weight: 600; }
+  .chip--on { background: var(--clay); color: var(--paper-3); border-color: var(--clay); box-shadow: 0 2px 6px -2px rgba(176,127,97,.40); }
+  .chip--on .num { color: var(--paper-3); }
+  .chip--warn { background: var(--rust); color: var(--paper-3); border-color: var(--rust); box-shadow: 0 2px 6px -2px rgba(176,94,72,.40); }
+  .chip--warn .num { color: var(--paper-3); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 18px; border-radius: var(--r-md); border: 1px solid var(--ink-15); background: var(--paper-3); color: var(--ink); font: 500 14px/1 "Geist", sans-serif; letter-spacing: -.005em; cursor: pointer; transition: transform 120ms var(--ease); }
+  .btn:active { transform: scale(.985); }
+  .btn--primary { background: var(--ink); color: var(--paper-3); border-color: var(--ink); }
+  .btn--rust { background: var(--rust); color: var(--paper-3); border-color: var(--rust); }
+  .btn--rust-ghost { background: transparent; color: var(--rust); border-color: var(--rust); }
+  .btn--block { width: 100%; }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.sage { background: var(--sage); }
+  .dot.clay { background: var(--clay); }
+  .dot.rust { background: var(--rust); }
+
+  .callout { border-radius: var(--r-md); padding: 12px 14px 12px 16px; display: flex; gap: 12px; border: 1px solid var(--ink-15); background: var(--paper-2); }
+  .callout--rust { border-color: rgba(176,94,72,.30); background: var(--rust-soft); }
+  .callout__bar { width: 3px; align-self: stretch; border-radius: 9999px; background: var(--ink-40); }
+  .callout--rust .callout__bar { background: var(--rust); }
+  .callout__body { font-size: 12.5px; line-height: 1.5; color: var(--ink-80); }
+  .callout__body strong { color: var(--ink); font-weight: 500; }
+  .callout--rust .callout__body strong { color: var(--rust); }
+
+  .rationale { margin-top: 24px; padding: 22px 24px; border-radius: var(--r-lg); background: var(--paper-2); border: 1px solid var(--ink-08); }
+  .rationale h4 { margin: 0 0 14px; font-size: 11.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--clay); }
+  .rationale dl { margin: 0; display: grid; grid-template-columns: minmax(160px, max-content) 1fr; gap: 12px 24px; }
+  .rationale dt { font-size: 13px; font-weight: 500; color: var(--ink); }
+  .rationale dd { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink-80); }
+  .rationale dd strong { color: var(--ink); font-weight: 500; }
+  .rationale dd em { font-style: normal; color: var(--clay); font-weight: 500; }
+
+  /* A · cancellation window setting */
+  .pad { padding: 20px; }
+  .set-current { margin-top: 8px; padding: 14px 16px; border-radius: var(--r-md); background: var(--paper-2); border: 1px solid var(--ink-08); display: flex; align-items: baseline; gap: 14px; justify-content: space-between; }
+  .set-current__label { font-size: 11px; color: var(--ink-50); letter-spacing: .06em; text-transform: uppercase; font-weight: 500; }
+  .set-current__value { font-family: "Geist Mono", monospace; font-size: 28px; font-weight: 600; color: var(--clay); letter-spacing: -.02em; line-height: 1; display: inline-flex; align-items: baseline; gap: 6px; }
+  .set-current__value sub { font-size: 13px; color: var(--ink-60); font-weight: 500; vertical-align: baseline; }
+  .set-help { margin-top: 10px; font-size: 12px; line-height: 1.5; color: var(--ink-60); }
+  .set-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0 14px; }
+
+  /* B · profile chip */
+  .prof-hero { padding: 22px 20px 18px; background: linear-gradient(180deg, var(--linen) 0%, var(--paper-3) 100%); border-bottom: 1px solid var(--ink-08); }
+  .prof-hero__top { display: flex; align-items: center; gap: 14px; }
+  .prof-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--clay-soft); display: flex; align-items: center; justify-content: center; font-family: "Geist Mono", monospace; font-weight: 600; color: var(--clay-deep); font-size: 17px; border: 2px solid var(--paper-3); box-shadow: 0 0 0 1px var(--clay); flex-shrink: 0; }
+  .prof-name { font-family: "Instrument Serif", serif; font-size: 26px; font-weight: 400; letter-spacing: -.025em; line-height: 1.05; color: var(--ink); margin: 0; }
+  .prof-meta { margin-top: 4px; font-size: 12.5px; color: var(--ink-60); }
+  .prof-stats { display: flex; gap: 18px; margin-top: 16px; flex-wrap: wrap; }
+  .prof-stat { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-80); }
+  .prof-stat .v { font-family: "Geist Mono", monospace; font-weight: 600; color: var(--ink); }
+  .trust { margin-top: 18px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px 8px 10px; background: var(--clay-soft); border-radius: 9999px; font-size: 12.5px; color: var(--clay-deep); font-weight: 500; letter-spacing: -.005em; }
+  .trust .ic { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; color: var(--clay); }
+  .trust .num { font-family: "Geist Mono", monospace; font-weight: 600; color: var(--clay-deep); }
+  .prof-tags { padding: 14px 20px 20px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .prof-tags .tag { padding: 5px 11px; background: var(--paper-2); border-radius: 9999px; border: 1px solid var(--ink-15); font-size: 11.5px; color: var(--ink-80); }
+
+  /* C · appt cards */
+  .appt-card { border: 1px solid var(--ink-08); border-radius: var(--r-md); padding: 16px; background: var(--paper-3); }
+  .appt-row { display: flex; gap: 14px; align-items: flex-start; }
+  .appt-date { flex-shrink: 0; width: 56px; padding: 8px 0 9px; background: var(--paper-2); border-radius: var(--r-sm); text-align: center; border: 1px solid var(--ink-08); }
+  .appt-date .d { font-size: 10px; color: var(--ink-60); letter-spacing: .08em; text-transform: uppercase; font-weight: 500; }
+  .appt-date .n { font-family: "Geist Mono", monospace; font-size: 22px; font-weight: 600; line-height: 1; color: var(--ink); margin: 2px 0; }
+  .appt-date .m { font-size: 10px; color: var(--ink-60); letter-spacing: .04em; }
+  .appt-info { flex: 1; min-width: 0; }
+  .appt-time { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .appt-time .t { font-family: "Geist Mono", monospace; font-size: 13px; font-weight: 600; color: var(--ink); }
+  .appt-time .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-40); }
+  .appt-time .s { font-size: 12px; color: var(--ink-60); }
+  .appt-info .name { font-family: "Instrument Serif", serif; font-size: 18px; font-weight: 400; line-height: 1.1; color: var(--ink); letter-spacing: -.022em; }
+  .appt-info .where { margin-top: 3px; font-size: 11.5px; color: var(--ink-60); }
+  .appt-status { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .stchip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 500; }
+  .stchip.sage { background: var(--sage-soft); color: var(--sage); }
+  .stchip.clay { background: var(--clay-soft); color: var(--clay-deep); }
+  .stchip.ink  { background: var(--ink-04); color: var(--ink-60); }
+  .appt-price { font-family: "Geist Mono", monospace; font-size: 12px; color: var(--ink-60); font-weight: 500; }
+  .appt-actions { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--ink-08); display: flex; gap: 8px; align-items: center; }
+  .appt-actions .btn { padding: 9px 14px; font-size: 13px; }
+  .appt-actions .spacer { flex: 1; }
+  .appt-note { font-size: 11px; color: var(--ink-50); }
+  .appt-note.warn { color: var(--rust); }
+
+  /* sheet */
+  .sheet { padding: 18px 20px 20px; background: var(--paper-3); border-radius: var(--r-lg); border: 1px solid var(--ink-08); box-shadow: 0 -10px 30px -12px rgba(43,39,35,.14); }
+  .sheet__grab { width: 40px; height: 4px; background: var(--ink-15); border-radius: 9999px; margin: 0 auto 14px; }
+  .refund-line { margin-top: 14px; padding: 12px 14px; background: var(--paper-2); border-radius: var(--r-sm); border: 1px solid var(--ink-08); display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; }
+  .refund-line .label { color: var(--ink-60); }
+  .refund-line .amount { font-family: "Geist Mono", monospace; font-weight: 600; font-size: 16px; color: var(--sage); }
+  .refund-line .amount.none { color: var(--rust); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+  .sheet-actions { display: flex; flex-direction: column; gap: 8px; }
+
+  /* toast */
+  .toast { padding: 14px 14px 14px 16px; background: var(--paper-3); border-radius: var(--r-md); border: 1px solid var(--ink-15); box-shadow: 0 14px 36px -14px rgba(43,39,35,.22); display: flex; gap: 14px; align-items: flex-start; max-width: 380px; }
+  .toast--rust { background: var(--rust-soft); border-color: rgba(176,94,72,.25); }
+  .toast__bar { width: 3px; align-self: stretch; border-radius: 9999px; }
+  .toast__bar.sage { background: var(--sage); }
+  .toast__bar.rust { background: var(--rust); }
+  .toast__title { font-size: 14px; font-weight: 500; color: var(--ink); letter-spacing: -.01em; }
+  .toast__sub { margin-top: 2px; font-size: 12px; color: var(--ink-60); line-height: 1.5; }
+  .toast--rust .toast__sub { color: var(--rust); }
+  .toast__sub .mono { color: var(--ink); font-weight: 500; }
+  .toast--rust .toast__sub .mono { color: var(--rust); }
+
+  /* edge state — refund failed alert in MyAppointments */
+  .alert-card { padding: 14px 16px; background: var(--rust-soft); border: 1px solid rgba(176,94,72,.30); border-radius: var(--r-md); display: flex; gap: 12px; align-items: flex-start; }
+  .alert-card__icon { width: 28px; height: 28px; border-radius: 50%; background: var(--rust); color: var(--paper-3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 600; }
+  .alert-card__body { flex: 1; min-width: 0; font-size: 13px; line-height: 1.5; color: var(--ink); }
+  .alert-card__title { font-weight: 500; margin-bottom: 3px; }
+  .alert-card__sub { color: var(--rust); font-size: 12px; }
+  .alert-card__cta { margin-top: 10px; }
+
+  .foot { max-width: 1500px; margin: 80px auto 60px; padding: 32px 56px 0; border-top: 1px solid var(--ink-15); color: var(--ink-60); font-size: 13px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero__eyebrow">
+    <span style="display:inline-flex; align-items:center; gap:8px;">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+        <rect x="6" y="4" width="4" height="24" rx="2" fill="#46413B"/>
+        <rect x="14" y="4" width="4" height="24" rx="2" fill="#B07F61"/>
+        <rect x="22" y="4" width="4" height="24" rx="2" fill="#46413B"/>
+      </svg>
+      Barberbook · V4 · Booking Lifecycle
+    </span>
+    · Cancellazione · Refund · Trust
+  </div>
+  <h1 class="hero__title">Annulla, <em>rimborsa, libera.</em></h1>
+  <p class="hero__lede">
+    Quattro componenti per chiudere il ciclo della prenotazione in coerenza con la palette Pari V4. Coprono il <strong>setting lato barbiere</strong> (cancellation window 0-168h), il <strong>trust signal lato cliente</strong> sul profilo pubblico, i <strong>3 stati del bottone Annulla</strong> in MyAppointments con i loro sheet di conferma, e le <strong>4 varianti di toast</strong> post-cancellazione + 1 edge state per fallimento refund Stripe. Light e dark mode affiancati. Decisioni e rationale in fondo a ogni sezione.
+  </p>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     A · CANCELLATION WINDOW SETTING (bottega dashboard barbiere)
+     ════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section__head">
+    <span class="section__num">A</span>
+    <h2 class="section__title">Cancellation window.</h2>
+    <p class="section__sub">Setting nella dashboard barbiere (<span class="mono" style="font-size:12px; background:var(--ink-04); padding:1px 5px; border-radius:4px;">pari-bottega.jsx</span>) per definire entro quante ore prima il cliente può cancellare gratuitamente.</p>
+  </div>
+
+  <div class="row">
+    <!-- LIGHT -->
+    <div class="col">
+      <h3>Default · <span class="mono">24h</span> selected <span class="badge">light</span></h3>
+      <div class="surface">
+        <div class="pad">
+          <div class="eyebrow">Politica di cancellazione</div>
+          <h3 class="h3" style="margin:6px 0 6px;">Quanto prima il cliente può annullare gratis?</h3>
+          <p style="color:var(--ink-60); font-size:13px; line-height:1.5; margin:0;">I clienti che annullano entro questa finestra ricevono il rimborso completo. Oltre, lo slot si libera ma non c'è rimborso.</p>
+
+          <div class="set-chips">
+            <button class="chip"><span class="num">4</span><span>h</span></button>
+            <button class="chip"><span class="num">12</span><span>h</span></button>
+            <button class="chip chip--on"><span class="num">24</span><span>h</span></button>
+            <button class="chip"><span class="num">48</span><span>h</span></button>
+            <button class="chip"><span class="num">72</span><span>h</span></button>
+            <button class="chip"><span class="num">1</span><span>sett</span></button>
+            <button class="chip">Personalizza</button>
+          </div>
+
+          <div class="set-current">
+            <div>
+              <div class="set-current__label">Finestra attuale</div>
+              <div class="set-current__value">24<sub>ore</sub></div>
+            </div>
+            <div style="text-align:right; font-size:11px; color:var(--ink-50);">
+              Le prenotazioni in essere mantengono<br>la finestra del momento della prenotazione.
+            </div>
+          </div>
+
+          <p class="set-help">Se metti <span class="mono" style="color:var(--ink);">0h</span>, nessun cliente può cancellare gratis — comunicalo chiaramente sul tuo profilo.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DARK -->
+    <div class="col dark">
+      <h3>Default · <span class="mono">24h</span> selected <span class="badge d">dark</span></h3>
+      <div class="surface" style="background:var(--paper-3); color:var(--ink);">
+        <div class="pad">
+          <div class="eyebrow">Politica di cancellazione</div>
+          <h3 class="h3" style="margin:6px 0 6px;">Quanto prima il cliente può annullare gratis?</h3>
+          <p style="color:var(--ink-60); font-size:13px; line-height:1.5; margin:0;">I clienti che annullano entro questa finestra ricevono il rimborso completo. Oltre, lo slot si libera ma non c'è rimborso.</p>
+
+          <div class="set-chips">
+            <button class="chip"><span class="num">4</span><span>h</span></button>
+            <button class="chip"><span class="num">12</span><span>h</span></button>
+            <button class="chip chip--on"><span class="num">24</span><span>h</span></button>
+            <button class="chip"><span class="num">48</span><span>h</span></button>
+            <button class="chip"><span class="num">72</span><span>h</span></button>
+            <button class="chip"><span class="num">1</span><span>sett</span></button>
+            <button class="chip">Personalizza</button>
+          </div>
+
+          <div class="set-current">
+            <div>
+              <div class="set-current__label">Finestra attuale</div>
+              <div class="set-current__value">24<sub>ore</sub></div>
+            </div>
+            <div style="text-align:right; font-size:11px; color:var(--ink-50);">
+              Le prenotazioni in essere mantengono<br>la finestra del momento della prenotazione.
+            </div>
+          </div>
+
+          <p class="set-help">Se metti <span class="mono" style="color:var(--ink);">0h</span>, nessun cliente può cancellare gratis — comunicalo chiaramente sul tuo profilo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edge: 0h -->
+  <div class="row">
+    <div class="col">
+      <h3>Edge · finestra <span class="mono">0</span> <span class="badge r">avviso obbligatorio</span></h3>
+      <div class="surface">
+        <div class="pad">
+          <div class="set-chips">
+            <button class="chip chip--warn"><span class="num">0</span><span>h</span></button>
+            <button class="chip"><span class="num">4</span><span>h</span></button>
+            <button class="chip"><span class="num">12</span><span>h</span></button>
+            <button class="chip"><span class="num">24</span><span>h</span></button>
+            <button class="chip"><span class="num">48</span><span>h</span></button>
+            <button class="chip"><span class="num">72</span><span>h</span></button>
+          </div>
+          <div class="callout callout--rust" style="margin-top:14px;">
+            <span class="callout__bar"></span>
+            <div class="callout__body">
+              <strong>Cancellazione gratuita disabilitata.</strong>
+              <div style="margin-top:4px;">I clienti pagano alla prenotazione e <strong>non riceveranno rimborso</strong> in caso di cancellazione. Tu puoi ancora rimborsarli manualmente.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>Pattern scartato · slider <span class="badge">no</span></h3>
+      <div class="surface" style="opacity:.6;">
+        <div class="pad">
+          <div class="eyebrow">Politica di cancellazione</div>
+          <h3 class="h3" style="margin:6px 0 6px;">Finestra di cancellazione</h3>
+          <div style="padding:18px 4px 6px;">
+            <div style="position:relative; height:6px; background:var(--linen); border-radius:9999px;">
+              <div style="position:absolute; left:0; top:0; bottom:0; width:14%; background:var(--clay); border-radius:9999px;"></div>
+              <div style="position:absolute; left:14%; top:-7px; width:20px; height:20px; background:var(--paper-3); border:2px solid var(--clay); border-radius:50%; transform:translateX(-50%);"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:10px; font-family:Geist Mono; font-size:11px; color:var(--ink-50);">
+              <span>0h</span><span>24h</span><span>48h</span><span>72h</span><span>168h</span>
+            </div>
+            <div style="margin-top:16px; text-align:center; font-family:Geist Mono; font-size:24px; font-weight:600; color:var(--clay);">24h</div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--ink-60); margin-top:10px; line-height:1.5;">Scartato: lo slider non esiste altrove in Pari V4, e i valori utili sono discreti. Le chip preset sono <strong style="color:var(--ink); font-weight:500;">touch-friendly</strong>, espongono i valori sensati, e si allineano al pattern filtri V4.</p>
+    </div>
+  </div>
+
+  <div class="rationale">
+    <h4>Decisioni — A</h4>
+    <dl>
+      <dt>Pattern di input</dt>
+      <dd><strong>Chip preset</strong> con 6 step (<span class="mono">4/12/24/48/72/168h</span>) + "Personalizza". Lo <em>slider</em> è scartato: Pari V4 non lo usa e i valori utili sono discreti. Default <span class="mono">24h</span>.</dd>
+      <dt>Valore selezionato</dt>
+      <dd>Chip attiva in <em>clay</em>, MAI ink — per non confondersi con la pillola agenda nera nel resto dell'app. Numero in mono dentro la chip.</dd>
+      <dt>Stato <span class="mono">0h</span></dt>
+      <dd>Permesso ma chip in <em>rust</em> e callout obbligatorio sotto. Disabilita automaticamente la trust pill sul profilo pubblico (vedi sezione B).</dd>
+      <dt>Anti-cheat micro-copy</dt>
+      <dd>"Le prenotazioni in essere mantengono la finestra del momento della prenotazione." → conferma visivamente la regola DB (snapshot all'INSERT) ai barbieri sospettosi.</dd>
+      <dt>Eyebrow</dt>
+      <dd>"POLITICA DI CANCELLAZIONE" — non "IMPOSTAZIONI" (burocratese).</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     B · TRUST PILL ON PUBLIC BARBER PROFILE
+     ════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section__head">
+    <span class="section__num">B</span>
+    <h2 class="section__title">Trust pill sul profilo.</h2>
+    <p class="section__sub">Sul profilo pubblico del barbiere (<span class="mono" style="font-size:12px; background:var(--ink-04); padding:1px 5px; border-radius:4px;">pari-barberprofile.jsx</span>) — comunica la finestra come segnale di fiducia, non come feature.</p>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <h3>Hero con trust pill <span class="badge">light · window <span class="mono">24h</span></span></h3>
+      <div class="surface">
+        <div class="prof-hero">
+          <div class="prof-hero__top">
+            <div class="prof-avatar">MB</div>
+            <div style="flex:1; min-width:0;">
+              <h2 class="prof-name">Marco Barba</h2>
+              <div class="prof-meta">Bottega di Marco · Castello, Cagliari</div>
+            </div>
+          </div>
+
+          <div class="prof-stats">
+            <span class="prof-stat">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="color:var(--clay);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span class="v">4,9</span><span style="color:var(--ink-60);">· 124</span>
+            </span>
+            <span class="prof-stat"><span class="v">0,8</span><span>km</span></span>
+            <span class="prof-stat"><span class="dot sage"></span><span>Aperto</span></span>
+          </div>
+
+          <div class="trust">
+            <span class="ic">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/></svg>
+            </span>
+            <span>Cancelli gratis fino a <span class="num">24h</span> prima</span>
+          </div>
+        </div>
+
+        <div class="prof-tags">
+          <span class="tag">Skin fade</span>
+          <span class="tag">Beard sculpt</span>
+          <span class="tag">Hot towel</span>
+          <span class="tag">Pompadour</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col dark">
+      <h3>Hero con trust pill <span class="badge d">dark · window <span class="mono">48h</span></span></h3>
+      <div class="surface" style="background:var(--paper-3); color:var(--ink);">
+        <div class="prof-hero" style="background:linear-gradient(180deg, var(--linen) 0%, var(--paper-3) 100%);">
+          <div class="prof-hero__top">
+            <div class="prof-avatar" style="background:var(--clay-soft); color:var(--clay-deep); border-color:var(--paper-3);">RL</div>
+            <div style="flex:1; min-width:0;">
+              <h2 class="prof-name">Rita Loi</h2>
+              <div class="prof-meta">Loi Atelier · Villanova</div>
+            </div>
+          </div>
+
+          <div class="prof-stats">
+            <span class="prof-stat">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="color:var(--clay-deep);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span class="v">5,0</span><span style="color:var(--ink-60);">· 88</span>
+            </span>
+            <span class="prof-stat"><span class="v">1,0</span><span>km</span></span>
+            <span class="prof-stat"><span class="dot sage"></span><span>Aperto</span></span>
+          </div>
+
+          <div class="trust">
+            <span class="ic">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/></svg>
+            </span>
+            <span>Cancelli gratis fino a <span class="num">48h</span> prima</span>
+          </div>
+        </div>
+
+        <div class="prof-tags">
+          <span class="tag">Donna</span><span class="tag">Pixie</span><span class="tag">Bob</span><span class="tag">Color</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edge: window 0 -->
+  <div class="row">
+    <div class="col">
+      <h3>Edge · finestra <span class="mono">0</span> <span class="badge r">nessuna pill</span></h3>
+      <div class="surface">
+        <div class="prof-hero">
+          <div class="prof-hero__top">
+            <div class="prof-avatar">NP</div>
+            <div style="flex:1; min-width:0;">
+              <h2 class="prof-name">Nico Pinna</h2>
+              <div class="prof-meta">Pinna 1962 · Stampace</div>
+            </div>
+          </div>
+          <div class="prof-stats">
+            <span class="prof-stat">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="color:var(--clay);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span class="v">4,7</span><span style="color:var(--ink-60);">· 312</span>
+            </span>
+            <span class="prof-stat"><span class="v">2,1</span><span>km</span></span>
+            <span class="prof-stat"><span class="dot sage"></span><span>Aperto</span></span>
+          </div>
+          <!-- nessuna trust pill -->
+        </div>
+        <div class="prof-tags">
+          <span class="tag">Pompadour</span><span class="tag">Classico</span><span class="tag">Boy</span>
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--ink-60); margin-top:10px; line-height:1.5;">Con <span class="mono" style="color:var(--ink);">window=0</span> NON mostriamo la pill. La regola "no cancellation" emerge nel booking sheet, dove c'è spazio per spiegarla senza punire il profilo.</p>
+    </div>
+
+    <div class="col">
+      <h3>Posizionamento scartato · tra le tag <span class="badge">no</span></h3>
+      <div class="surface" style="opacity:.6;">
+        <div class="prof-tags" style="padding-top:20px;">
+          <span class="tag">Skin fade</span>
+          <span class="tag">Beard sculpt</span>
+          <span class="tag" style="background:var(--clay-soft); border-color:transparent; color:var(--clay-deep);">Cancelli gratis fino a 24h prima</span>
+          <span class="tag">Hot towel</span>
+          <span class="tag">Pompadour</span>
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--ink-60); margin-top:10px; line-height:1.5;">Scartato: mischia un <strong style="color:var(--ink); font-weight:500;">trust signal con attributi stilistici</strong>. La policy non è uno "stile" alla pari di "Skin fade" — sta nello stat strip vicino a rating/distanza.</p>
+    </div>
+  </div>
+
+  <div class="rationale">
+    <h4>Decisioni — B</h4>
+    <dl>
+      <dt>Posizione</dt>
+      <dd>Nello stat strip dell'hero (dopo rating · distanza · stato apertura), come trust signal alla pari del rating. <strong>Non</strong> tra le tag stilistiche.</dd>
+      <dt>Visual tone</dt>
+      <dd>Clay-soft background + numero in clay-deep. <em>Calmo, muted</em> — è un'informazione di servizio, non marketing.</dd>
+      <dt>Copy definitiva</dt>
+      <dd>"Cancelli gratis fino a <span class="mono">24h</span> prima". <strong>Tu implicito</strong> (informale Pari), numero in mono, <span class="mono">h</span> abbreviato (lo schermo è piccolo). Mai "Cancellation policy: 24h" o "Cancellazione gratuita fino a 24 ore prima" (verboso).</dd>
+      <dt>Edge <span class="mono">window=0</span></dt>
+      <dd><em>Nessuna pill</em>. Non si rende un negativo un trust signal. La regola appare al momento della prenotazione, nel sheet di pagamento.</dd>
+      <dt>Icona</dt>
+      <dd>Chat bubble (conversazione, flessibilità) — non orologio, che evocherebbe la deadline.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     C · CANCEL BUTTON 3 STATES + CONFIRMATION SHEETS
+     ════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section__head">
+    <span class="section__num">C</span>
+    <h2 class="section__title">Bottone Annulla, 3 stati.</h2>
+    <p class="section__sub">In MyAppointments (<span class="mono" style="font-size:12px; background:var(--ink-04); padding:1px 5px; border-radius:4px;">pari-appointments.jsx</span>). Card + sheet. Il tono visivo segue il rischio economico.</p>
+  </div>
+
+  <div class="row row--triple">
+    <!-- 1. Entro window paid -->
+    <div class="col">
+      <h3>1 · Entro finestra <span class="badge s">paid · refund pieno</span></h3>
+      <div class="surface">
+        <div class="pad">
+          <div class="appt-card">
+            <div class="appt-row">
+              <div class="appt-date">
+                <div class="d">sab</div><div class="n">31</div><div class="m">mag</div>
+              </div>
+              <div class="appt-info">
+                <div class="appt-time">
+                  <span class="t">10:00</span><span class="sep"></span><span class="s">Skin fade + barba</span>
+                </div>
+                <div class="name">Marco Barba</div>
+                <div class="where">Bottega di Marco · Castello</div>
+                <div class="appt-status">
+                  <span class="stchip sage"><span class="dot sage"></span>confermato</span>
+                  <span class="appt-price">€50,00 · pagata online</span>
+                </div>
+              </div>
+            </div>
+            <div class="appt-actions">
+              <span class="appt-note">Cancelli gratis fino a <span class="mono">sab 9:00</span></span>
+              <span class="spacer"></span>
+              <button class="btn" style="font-size:13px;">Annulla prenotazione</button>
+            </div>
+          </div>
+
+          <div style="height:20px;"></div>
+
+          <div class="sheet">
+            <div class="sheet__grab"></div>
+            <div class="eyebrow" style="margin-bottom:6px;">Annullare?</div>
+            <h3 class="h2-display" style="margin:0 0 10px;">Annulli la prenotazione.</h3>
+            <p style="margin:0 0 18px; font-size:13.5px; line-height:1.55; color:var(--ink-80);">Lo slot delle <span class="mono" style="color:var(--ink); font-weight:500;">10:00</span> di sabato si libera per altri clienti.</p>
+
+            <div class="refund-line">
+              <span class="label">Riceverai il rimborso</span>
+              <span class="amount">€50,00</span>
+            </div>
+            <p style="font-size:11.5px; color:var(--ink-50); margin:8px 2px 16px;">Torna sulla tua carta in <span class="mono">5–10</span> giorni lavorativi.</p>
+
+            <div class="sheet-actions">
+              <button class="btn btn--rust btn--block">Sì, annulla</button>
+              <button class="btn btn--block" style="background:transparent;">Indietro</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Oltre window paid -->
+    <div class="col">
+      <h3>2 · Oltre finestra <span class="badge r">paid · no refund</span></h3>
+      <div class="surface">
+        <div class="pad">
+          <div class="appt-card" style="border-color:rgba(176,94,72,.20);">
+            <div class="appt-row">
+              <div class="appt-date">
+                <div class="d">oggi</div><div class="n">26</div><div class="m">mag</div>
+              </div>
+              <div class="appt-info">
+                <div class="appt-time">
+                  <span class="t">18:00</span><span class="sep"></span><span class="s">Taglio classico</span>
+                </div>
+                <div class="name">Fadi Khoury</div>
+                <div class="where">Khoury Cuts · Marina</div>
+                <div class="appt-status">
+                  <span class="stchip sage"><span class="dot sage"></span>confermato</span>
+                  <span class="appt-price">€18,00 · pagata online</span>
+                </div>
+              </div>
+            </div>
+            <div class="appt-actions">
+              <span class="appt-note warn">Fuori dalla finestra <span class="mono">24h</span></span>
+              <span class="spacer"></span>
+              <button class="btn btn--rust-ghost" style="font-size:13px;">Annulla senza rimborso</button>
+            </div>
+          </div>
+
+          <div style="height:20px;"></div>
+
+          <div class="sheet" style="border-color:rgba(176,94,72,.25);">
+            <div class="sheet__grab"></div>
+            <div class="eyebrow" style="margin-bottom:6px; color:var(--rust);">Attenzione</div>
+            <h3 class="h2-display" style="margin:0 0 10px;">Annulli senza rimborso.</h3>
+            <p style="margin:0 0 18px; font-size:13.5px; line-height:1.55; color:var(--ink-80);">Sei fuori dalla finestra di cancellazione gratuita (<span class="mono" style="color:var(--ink); font-weight:500;">24h</span> prima). Lo slot si libererà ma i soldi non tornano indietro.</p>
+
+            <div class="refund-line">
+              <span class="label">Rimborso</span>
+              <span class="amount none">€18,00</span>
+            </div>
+            <p style="font-size:11.5px; color:var(--rust); margin:8px 2px 16px;">I <span class="mono">€18,00</span> già pagati <strong style="font-weight:500;">non verranno rimborsati</strong>.</p>
+
+            <div class="sheet-actions">
+              <button class="btn btn--rust btn--block">Annulla comunque</button>
+              <button class="btn btn--block" style="background:transparent;">Indietro</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Cash -->
+    <div class="col">
+      <h3>3 · Paga al posto <span class="badge">cash · neutrale</span></h3>
+      <div class="surface">
+        <div class="pad">
+          <div class="appt-card">
+            <div class="appt-row">
+              <div class="appt-date">
+                <div class="d">mer</div><div class="n">4</div><div class="m">giu</div>
+              </div>
+              <div class="appt-info">
+                <div class="appt-time">
+                  <span class="t">18:30</span><span class="sep"></span><span class="s">Donna · taglio</span>
+                </div>
+                <div class="name">Rita Loi</div>
+                <div class="where">Loi Atelier · Villanova</div>
+                <div class="appt-status">
+                  <span class="stchip clay"><span class="dot clay"></span>in attesa</span>
+                  <span class="appt-price">€34,00 · paghi in bottega</span>
+                </div>
+              </div>
+            </div>
+            <div class="appt-actions">
+              <span class="appt-note">Conferma entro <span class="mono">48h</span></span>
+              <span class="spacer"></span>
+              <button class="btn" style="font-size:13px;">Annulla prenotazione</button>
+            </div>
+          </div>
+
+          <div style="height:20px;"></div>
+
+          <div class="sheet">
+            <div class="sheet__grab"></div>
+            <div class="eyebrow" style="margin-bottom:6px;">Annullare?</div>
+            <h3 class="h2-display" style="margin:0 0 10px;">Annulli la prenotazione.</h3>
+            <p style="margin:0 0 18px; font-size:13.5px; line-height:1.55; color:var(--ink-80);">Lo slot delle <span class="mono" style="color:var(--ink); font-weight:500;">18:30</span> di mercoledì si libera per altri clienti. <strong style="color:var(--ink); font-weight:500;">Non hai pagato niente</strong>, quindi non c'è nulla da rimborsare.</p>
+
+            <div class="sheet-actions">
+              <button class="btn btn--rust btn--block">Sì, annulla</button>
+              <button class="btn btn--block" style="background:transparent;">Indietro</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rationale">
+    <h4>Decisioni — C</h4>
+    <dl>
+      <dt>Bottone stato 1</dt>
+      <dd>Ghost neutro (1px ink-15 border), copy "Annulla prenotazione". Nessun allarme — c'è il rimborso pieno.</dd>
+      <dt>Bottone stato 2</dt>
+      <dd>Ghost <em>rust</em> (border + testo rust). Copy esplicita: "Annulla senza rimborso" — il warning è nel bottone, non solo nello sheet.</dd>
+      <dt>Bottone stato 3</dt>
+      <dd>Stessa apparenza dello stato 1 (ghost neutro) ma sheet semplificato (niente refund-line). Niente warning perché niente rischio.</dd>
+      <dt>Micro-copy prima del bottone</dt>
+      <dd>"Cancelli gratis fino a <span class="mono">sab 9:00</span>" (stato 1) oppure "Fuori dalla finestra <span class="mono">24h</span>" in rust (stato 2). Espone la regola senza aprire il sheet.</dd>
+      <dt>Sheet · refund-line</dt>
+      <dd>Stato 1: amount in sage. Stato 2: amount barrato in rust. Stato 3: no refund-line. La line è dove l'occhio cerca la cifra — non nasconderla.</dd>
+      <dt>Copy stato 2 (cruciale)</dt>
+      <dd>"Lo slot si libererà <strong>ma</strong> i soldi non tornano indietro". Il "ma" è cruciale: rende il fatto. Mai "il pagamento NON verrà rimborsato" (burocratico passivo).</dd>
+      <dt>CTA primario</dt>
+      <dd>Sempre rust (azione distruttiva). Full width. Secondario "Indietro" trasparente sotto.</dd>
+      <dt>Stato 2 — copy bottone</dt>
+      <dd>"Annulla comunque" non "Annulla senza rimborso" (già detto nel titolo). Il "comunque" esprime la consapevolezza.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     D · POST-CANCELLATION TOAST + EDGE STATE
+     ════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section__head">
+    <span class="section__num">D</span>
+    <h2 class="section__title">Toast post-cancellazione.</h2>
+    <p class="section__sub">4 varianti più 1 edge state per il fallimento del rimborso Stripe. Si materializzano in alto dopo la cancellazione, autodismiss <span class="mono">~4s</span>.</p>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <h3>1 · Entro window + paid <span class="badge s">sage</span></h3>
+      <div class="toast" style="margin-top:12px;">
+        <span class="toast__bar sage"></span>
+        <div style="flex:1; min-width:0;">
+          <div class="toast__title">Prenotazione annullata.</div>
+          <div class="toast__sub"><span class="mono">€50,00</span> tornano sulla tua carta in <span class="mono">5–10</span> giorni lavorativi.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>2 · Oltre window + paid <span class="badge r">rust soft</span></h3>
+      <div class="toast toast--rust" style="margin-top:12px;">
+        <span class="toast__bar rust"></span>
+        <div style="flex:1; min-width:0;">
+          <div class="toast__title">Prenotazione annullata.</div>
+          <div class="toast__sub">Nessun rimborso — eri fuori dalla finestra <span class="mono">24h</span>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col">
+      <h3>3 · Cash (entro o oltre) <span class="badge s">sage</span></h3>
+      <div class="toast" style="margin-top:12px;">
+        <span class="toast__bar sage"></span>
+        <div style="flex:1; min-width:0;">
+          <div class="toast__title">Prenotazione annullata.</div>
+          <div class="toast__sub">Lo slot si è liberato.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>4 · Decline barbiere <span class="badge s">sage · lato barber</span></h3>
+      <div class="toast" style="margin-top:12px;">
+        <span class="toast__bar sage"></span>
+        <div style="flex:1; min-width:0;">
+          <div class="toast__title">Prenotazione declinata.</div>
+          <div class="toast__sub">Rimborso di <span class="mono">€50,00</span> in arrivo per Andrea. Lo slot è libero.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dark variants -->
+  <div class="row">
+    <div class="col dark">
+      <h3>1 · dark <span class="badge d">paid · refund</span></h3>
+      <div class="toast" style="margin-top:12px; background:var(--paper-3); color:var(--ink); border-color:var(--ink-15);">
+        <span class="toast__bar sage"></span>
+        <div style="flex:1; min-width:0;">
+          <div class="toast__title">Prenotazione annullata.</div>
+          <div class="toast__sub"><span class="mono">€50,00</span> tornano sulla tua carta in <span class="mono">5–10</span> giorni lavorativi.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col dark">
+      <h3>2 · dark <span class="badge d">no refund</span></h3>
+      <div class="toast toast--rust" style="margin-top:12px;">
+        <span class="toast__bar rust"></span>
+        <div style="flex:1; min-width:0;">
+          <div class="toast__title">Prenotazione annullata.</div>
+          <div class="toast__sub">Nessun rimborso — eri fuori dalla finestra <span class="mono">24h</span>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDGE: refund failed -->
+  <div class="row">
+    <div class="col">
+      <h3>Edge · refund Stripe fallito <span class="badge r">in-app alert persistente</span></h3>
+      <div class="surface">
+        <div class="pad">
+          <div class="alert-card">
+            <div class="alert-card__icon">!</div>
+            <div class="alert-card__body">
+              <div class="alert-card__title">Rimborso in elaborazione manuale</div>
+              <div class="alert-card__sub">Il rimborso di <span class="mono" style="color:var(--rust);">€50,00</span> per la prenotazione del <span class="mono">31 mag</span> non è andato a buon fine automaticamente. Il nostro team lo sta gestendo — ti contatteremo entro <span class="mono">48h</span>.</div>
+              <div class="alert-card__cta">
+                <button class="btn" style="font-size:12.5px; padding:8px 14px;">Contatta il supporto</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--ink-60); margin-top:10px; line-height:1.5;">Si vede in cima a MyAppointments come riga sticky finché il refund non è risolto manualmente. Non è un toast effimero perché il problema è economico — non può sparire dopo <span class="mono">4s</span>.</p>
+    </div>
+    <div class="col">
+      <h3>Stato dopo risoluzione <span class="badge s">cleared</span></h3>
+      <div class="surface">
+        <div class="pad" style="padding:30px 20px; text-align:center;">
+          <div style="width:48px; height:48px; border-radius:50%; background:var(--sage-soft); display:inline-flex; align-items:center; justify-content:center; color:var(--sage); margin-bottom:12px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div style="font-family:Instrument Serif, serif; font-size:18px; color:var(--ink); margin-bottom:4px;">Rimborso completato.</div>
+          <div style="font-size:12.5px; color:var(--ink-60);"><span class="mono">€50,00</span> tornati sulla tua carta.</div>
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--ink-60); margin-top:10px; line-height:1.5;">L'alert sparisce, viene sostituito da un toast sage di chiusura quando il supporto risolve. Lo stato "cleared" si vede una volta poi scompare.</p>
+    </div>
+  </div>
+
+  <div class="rationale">
+    <h4>Decisioni — D</h4>
+    <dl>
+      <dt>Variante 1 (paid+entro)</dt>
+      <dd>Sage. Copy "<span class="mono">€50,00</span> tornano sulla tua carta in <span class="mono">5–10</span> giorni lavorativi". Importo + tempo concreti.</dd>
+      <dt>Variante 2 (paid+oltre)</dt>
+      <dd><em>Rust soft</em> background (non solo barra) — il fatto è economicamente negativo e l'utente DEVE notarlo. Copy "Nessun rimborso — eri fuori dalla finestra <span class="mono">24h</span>" → rafforza la regola che ha violato (il "perché", non solo il "cosa").</dd>
+      <dt>Variante 3 (cash)</dt>
+      <dd>Sage. Copy minima "Lo slot si è liberato". Niente riferimenti a soldi — non c'erano. Tre parole.</dd>
+      <dt>Variante 4 (decline lato barbiere)</dt>
+      <dd>Sage. Copy "Rimborso di <span class="mono">€50,00</span> in arrivo per Andrea" → il barbiere vede il nome del cliente (sa chi) e l'importo (sa quanto). "Lo slot è libero" chiude.</dd>
+      <dt>Edge · refund failed</dt>
+      <dd>NON è un toast — è un <em>alert sticky in MyAppointments</em>. Persiste finché non risolto. Il cliente non può perdersi l'informazione tra le notifiche. CTA "Contatta il supporto" inline, non profondo.</dd>
+      <dt>Tempi specifici</dt>
+      <dd>"<span class="mono">5–10</span> giorni lavorativi" è la finestra Stripe — non "presto", non "alcuni giorni". "<span class="mono">48h</span>" per il team supporto è l'SLA interno.</dd>
+      <dt>Tono variante 2</dt>
+      <dd>Rust soft (background tinto) > rust forte (testo rosso shock). Rispetta il pattern "informa, non gridare" di Pari. L'utente ha già accettato il rischio nello sheet.</dd>
+    </dl>
+  </div>
+</section>
+
+<footer class="foot">
+  <strong style="color: var(--ink); font-weight: 500;">Booking lifecycle V4</strong> · 4 mock + 2 edge state · light & dark · italiano informale Pari<br>
+  Pronto per Claude Code — i nomi dei file di destinazione sono nelle section header.<br>
+  Token: <span class="mono">colors_and_type.css</span> · Tutto in scope di Pari V4.
+</footer>
+
+</body>
+</html>

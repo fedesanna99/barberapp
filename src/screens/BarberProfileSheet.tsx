@@ -151,6 +151,32 @@ export function BarberProfileSheet({ barber, onClose, onBook, userId, isBarber, 
               <Icon name="pin" size={13} color={C.accent} />
               {barber.city}{dist != null ? ` · ${formatKm(dist)}` : ''}
             </div>
+            {/* PR-tris Sezione B — trust pill cancellation window.
+                Edge case: se cancellation_window_hours=0, NON renderizzare
+                (rationale design: non si rende un negativo un trust signal). */}
+            {(() => {
+              const win = parseInt(info.cancellation_window_hours, 10) || 0
+              if (win <= 0) return null
+              const label = win === 168
+                ? '1 settimana'
+                : win % 24 === 0 && win >= 24
+                  ? `${win / 24} ${win === 24 ? 'giorno' : 'giorni'}`
+                  : `${win}h`
+              return (
+                <div style={{
+                  marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '5px 10px', borderRadius: 'var(--r-pill)',
+                  background: 'var(--clay-soft)', color: 'var(--clay-deep)',
+                  fontSize: 12, fontWeight: 500,
+                }}>
+                  {/* Chat bubble icon (decisione design: NON orologio) */}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                  </svg>
+                  <span>Cancelli gratis fino a <span className="bb-mono" style={{ fontWeight: 600 }}>{label}</span> prima</span>
+                </div>
+              )
+            })()}
           </div>
         </div>
 

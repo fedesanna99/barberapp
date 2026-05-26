@@ -180,7 +180,13 @@ Deno.serve(async (req) => {
     }
 
     // ── 6. Stripe refund — solo se paid + (within window OR barber/auto) ───
+    // Mig. 040: su Stripe error la cancellazione VA AVANTI (slot si libera) e
+    // settiamo refund_status='failed_pending_manual'. Il client vede l'alert
+    // sticky in MyAppointments e il supporto rimborsa manualmente.
     let refundId: string | null = null
+    let refundFailed = false
+    let refundFailedReason: string | null = null
+
     const shouldRefund =
       booking.payment_status === 'paid'
       && booking.stripe_payment_intent_id
@@ -189,28 +195,38 @@ Deno.serve(async (req) => {
     if (shouldRefund) {
       try {
         const refund = await stripe.refunds.create(
-          { payment_intent: booking.stripe_payment_intent_id! },
+          {
+            payment_intent: booking.stripe_payment_intent_id!,
+            reason: 'requested_by_customer',
+          },
           { idempotencyKey: `refund_${booking.id}` },  // doppia chiamata = stesso refund
         )
         refundId = refund.id
       } catch (err) {
-        // Refund Stripe fallito: NON aggiorniamo il DB. Riportiamo 500.
-        // L'utente o il cron ritenteranno.
-        const msg = err instanceof Error ? err.message : 'Stripe refund failed'
-        return json({ error: `Refund Stripe fallito: ${msg}` }, 500)
+        // Refund Stripe fallito: NON 500. Flagghiamo refund_status e proseguiamo
+        // con la cancellazione. Il supporto interviene manualmente.
+        refundFailed = true
+        refundFailedReason = err instanceof Error ? err.message : 'Stripe refund failed'
+        console.error('Stripe refund failed:', refundFailedReason, 'booking:', booking.id)
       }
     }
 
     // ── 7. DB update (service_role bypassa trigger pinning su payment_status) ─
+    // Tre scenari per payment_status / refund_status:
+    //   (a) Refund OK     → payment_status='refunded', refund_status='succeeded'
+    //   (b) Refund failed → payment_status='paid'    , refund_status='failed_pending_manual'
+    //   (c) Niente refund → payment_status invariato, refund_status='none'
+    //       (cash, oltre-window paid, oppure pending_online non-confermato)
     const updatePayload: Record<string, string> = { status: targetStatus }
     if (refundId) {
       updatePayload.payment_status = 'refunded'
-    } else if (booking.payment_status === 'paid' && !withinWindow) {
-      // Cliente fuori window: status=cancelled MA payment_status resta 'paid'
-      // (cliente perde i soldi). Non c'è uno stato "kept" — restiamo su 'paid'
-      // ma con status='cancelled', che indica chiaramente il caso "cliente ha
-      // cancellato fuori window e non ha avuto refund".
+      updatePayload.refund_status = 'succeeded'
+    } else if (refundFailed) {
+      // Stripe ha rifiutato — soldi ancora con Stripe, supporto manuale necessario.
+      updatePayload.refund_status = 'failed_pending_manual'
     }
+    // Caso (c) niente refund: NON tocchiamo payment_status (resta 'paid' o 'pending_cash'),
+    // NON tocchiamo refund_status (resta 'none' di default).
 
     const { error: upErr } = await admin
       .from('bookings')
@@ -218,8 +234,10 @@ Deno.serve(async (req) => {
       .eq('id', bookingId)
 
     if (upErr) {
-      // Stripe ha rimborsato ma DB UPDATE fallisce → inconsistenza nota.
+      // Refund OK su Stripe ma DB UPDATE fallisce → inconsistenza nota.
       // Stripe non si "unrefunda"; logghiamo e ritorniamo 500 per ritentare.
+      // Niente refund_status='failed_pending_manual' qui — il refund è OK,
+      // solo il DB write è in errore; alla retry il refund è idempotente.
       return json({
         error: `DB update failed after refund: ${upErr.message}`,
         refundId,
@@ -232,11 +250,18 @@ Deno.serve(async (req) => {
       action: targetStatus,
       refunded: !!refundId,
       refundId,
+      refund_failed: refundFailed,
+      refund_failed_reason: refundFailedReason,
       withinWindow,
       booking: {
         id: booking.id,
         status: targetStatus,
         payment_status: refundId ? 'refunded' : booking.payment_status,
+        refund_status: refundId
+          ? 'succeeded'
+          : refundFailed
+            ? 'failed_pending_manual'
+            : 'none',
       },
     })
   } catch (err) {

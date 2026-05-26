@@ -87,28 +87,38 @@ export function useBooking() {
 }
 
 // Edge function response shape (refund-booking).
+// PR-tris mig. 040: `refund_failed` indica Stripe error (DB aggiornato comunque,
+// refund_status='failed_pending_manual', il client vede alert sticky).
 export type RefundResp = {
   ok?: boolean
   action?: 'cancelled' | 'declined'
   refunded?: boolean
   refundId?: string | null
+  refund_failed?: boolean
+  refund_failed_reason?: string | null
   withinWindow?: boolean
-  booking?: { id: string; status: string; payment_status: string }
+  booking?: { id: string; status: string; payment_status: string; refund_status?: string }
   idempotent?: boolean
   error?: string
 }
 
 // ── Queries ────────────────────────────────────────────────────────────────
 
-// Booking with joined barber display data
+// Booking with joined barber display data + service price for refund display.
+// PR-tris (mig. 040): include refund_status nello shape — già parte di Booking
+// via `*`, ma esplicitato qui per il consumer CancelBookingSheet.
+// service:services(price) e barbers(default_price) servono al CancelBookingSheet
+// per mostrare l'importo del rimborso atteso. Fallback: service.price ?? barbers.default_price.
 export type BookingWithBarber = Booking & {
   barbers: {
     id: string
+    default_price: number | null
     profile: { display_name: string | null; avatar_url: string | null } | null
   } | null
+  service: { price: number } | null
 }
 
-const CLIENT_SELECT = '*, barbers(id, profile:profiles(display_name, avatar_url))'
+const CLIENT_SELECT = '*, barbers(id, default_price, profile:profiles(display_name, avatar_url)), service:services(price)'
 
 export function useClientBookings(clientId: string | undefined) {
   const [bookings, setBookings] = useState<BookingWithBarber[]>([])

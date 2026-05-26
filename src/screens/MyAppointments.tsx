@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { C } from '../lib/colors'
 import { Avatar } from '../components/Avatar'
 import { Icon } from '../components/Icon'
 import { ReviewSheet } from '../components/ReviewSheet'
+import { CancelBookingSheet, getCancelVariant } from '../components/CancelBookingSheet'
+import { RefundFailedAlert, RefundResolvedBanner } from '../components/RefundFailedAlert'
 import { useBooking, useClientBookings, type BookingWithBarber } from '../hooks/useBooking'
+import { useRefundFailedBookings } from '../hooks/useRefundFailedBookings'
 import { useReviews } from '../hooks/useReviews'
 import type { ToastEvent } from '../components/Toast'
 
@@ -58,11 +61,55 @@ const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
   declined:  { bg: C.redSoft,     fg: C.red },
 }
 
+function priceOf(b: BookingWithBarber): number {
+  return Number(b.service?.price ?? b.barbers?.default_price ?? 0)
+}
+
+function formatEur(n: number): string {
+  return Number.isInteger(n) ? `€${n}` : `€${n.toFixed(2).replace('.', ',')}`
+}
+
 export function MyAppointments({ userId, onClose, onToast }: Props) {
   const { bookings, loading, loadError } = useClientBookings(userId)
   const { cancelBooking } = useBooking()
+  const { bookings: refundFailed } = useRefundFailedBookings(userId)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [cancelTarget, setCancelTarget] = useState<BookingWithBarber | null>(null)
   const [reviewBooking, setReviewBooking] = useState<BookingWithBarber | null>(null)
+  // PR-tris: dedup "resolved" banner via localStorage marker. Cache price
+  // by booking id so we can show the right amount when the booking has
+  // already left the failed list.
+  const failedPriceCache = useRef<Map<string, number>>(new Map())
+  const [recentlyResolved, setRecentlyResolved] = useState<{ id: string; price: number }[]>([])
+
+  // Track id→price snapshot for failed bookings. When a booking leaves the
+  // failed list (refund_status switched to 'succeeded' or 'resolved_manually'),
+  // promote it to recentlyResolved IF localStorage marker is missing.
+  useEffect(() => {
+    const currentIds = new Set(refundFailed.map(b => b.id))
+    // Cache prices for currently-failed bookings (for future detection).
+    refundFailed.forEach(b => failedPriceCache.current.set(b.id, priceOf(b)))
+    // Find ids that were previously in the cache but are no longer failed.
+    const newlyResolved: { id: string; price: number }[] = []
+    for (const [id, price] of failedPriceCache.current.entries()) {
+      if (!currentIds.has(id) && !localStorage.getItem(`bb_refund_banner_${id}`)) {
+        newlyResolved.push({ id, price })
+      }
+    }
+    if (newlyResolved.length > 0) {
+      setRecentlyResolved(prev => {
+        const have = new Set(prev.map(r => r.id))
+        const add = newlyResolved.filter(r => !have.has(r.id))
+        return add.length > 0 ? [...prev, ...add] : prev
+      })
+    }
+  }, [refundFailed])
+
+  function dismissResolved(id: string) {
+    localStorage.setItem(`bb_refund_banner_${id}`, '1')
+    setRecentlyResolved(prev => prev.filter(r => r.id !== id))
+    failedPriceCache.current.delete(id)
+  }
 
   const now = Date.now()
   const upcoming = bookings.filter(b =>
@@ -80,21 +127,55 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
     bookingTime(b.date, b.time_slot) - bookingTime(a.date, a.time_slot)
   )
 
-  async function handleCancel(b: BookingWithBarber) {
+  async function confirmCancel() {
+    const b = cancelTarget
+    if (!b) return
     const name = b.barbers?.profile?.display_name ?? 'il barbiere'
-    if (!window.confirm(`Annullare la prenotazione con ${name} del ${fmtDate(b.date)} alle ${b.time_slot}?`)) return
+    const variant = getCancelVariant(b)
+    const price = priceOf(b)
     setCancellingId(b.id)
-    const { error } = await cancelBooking(b.id)
+    const { data, error } = await cancelBooking(b.id)
     setCancellingId(null)
+    setCancelTarget(null)
     if (error) {
       onToast?.({ kind: 'error', title: 'Annullamento fallito', message: error.message })
+      return
+    }
+    // Toast variant logic (Pari V4 Sezione D):
+    //   refunded:true  + within  → 'success' "tornano sulla tua carta..."
+    //   refund_failed  + within  → 'success' "rimborso in elaborazione" (alert sticky comparirà)
+    //   refund:false   + outside → 'warning' "nessun rimborso — eri fuori dalla finestra"
+    //   cash variant            → 'success' "lo slot si è liberato"
+    if (data?.refund_failed) {
+      onToast?.({
+        kind:    'success',
+        title:   'Prenotazione annullata.',
+        message: 'Rimborso in elaborazione. Ti aggiorniamo entro 48h.',
+      })
+    } else if (variant === 'within-paid' && data?.refunded) {
+      onToast?.({
+        kind:    'success',
+        title:   'Prenotazione annullata.',
+        message: `${formatEur(price)} tornano sulla tua carta in 5–10 giorni lavorativi.`,
+      })
+    } else if (variant === 'outside-paid') {
+      onToast?.({
+        kind:    'warning',
+        title:   'Prenotazione annullata.',
+        message: `Nessun rimborso — eri fuori dalla finestra ${b.cancellation_window_hours}h.`,
+      })
     } else {
+      // cash
       onToast?.({
         kind:    'success',
         title:   'Prenotazione annullata.',
         message: `${name} · ${fmtDate(b.date)} alle ${b.time_slot}`,
       })
     }
+  }
+
+  function handleContactSupport() {
+    onToast?.({ kind: 'info', title: 'Supporto', message: 'Apri Menu → Aiuto per parlare col team.' })
   }
 
   return (
@@ -122,6 +203,16 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
           <EmptyState />
         ) : (
           <>
+            {/* PR-tris Sezione D edge — alert sticky refund failed.
+                Sopra la lista, persistente fino a risoluzione da parte del supporto. */}
+            {refundFailed.map(b => (
+              <RefundFailedAlert key={b.id} booking={b} onContact={handleContactSupport} />
+            ))}
+            {/* "Cleared" banner: una volta sola, dopo che il supporto risolve. */}
+            {recentlyResolved.map(r => (
+              <RefundResolvedBanner key={r.id} price={r.price} onDismiss={() => dismissResolved(r.id)} />
+            ))}
+
             <Section title="Prossimi" count={upcoming.length}>
               {upcoming.length === 0
                 ? <div style={{ fontSize: 12.5, color: C.muted, padding: '12px 0' }}>Nessun appuntamento futuro.</div>
@@ -130,7 +221,7 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
                       key={b.id}
                       booking={b}
                       cancelling={cancellingId === b.id}
-                      onCancel={() => handleCancel(b)}
+                      onCancel={() => setCancelTarget(b)}
                     />
                   ))
               }
@@ -157,6 +248,15 @@ export function MyAppointments({ userId, onClose, onToast }: Props) {
           booking={reviewBooking}
           onClose={() => setReviewBooking(null)}
           onToast={onToast}
+        />
+      )}
+
+      {cancelTarget && (
+        <CancelBookingSheet
+          booking={cancelTarget}
+          busy={cancellingId === cancelTarget.id}
+          onConfirm={confirmCancel}
+          onCancel={() => setCancelTarget(null)}
         />
       )}
     </div>
@@ -247,54 +347,91 @@ function BookingCard({ booking, cancelling, onCancel, onReview }: {
   const status = booking.status as keyof typeof STATUS_COLOR
   const color  = STATUS_COLOR[status] ?? STATUS_COLOR.cancelled
 
+  // PR-tris: variant micro-copy + ghost button styling
+  const variant = onCancel ? getCancelVariant(booking) : null
+  const isOutside = variant === 'outside-paid'
+  const cancelLabel = variant === 'outside-paid' ? 'Annulla senza rimborso' : 'Annulla'
+  // Compute "Cancelli gratis fino a {dayLabel}" micro-copy for within-paid only.
+  let microCopy: { text: string; tone: 'muted' | 'rust' } | null = null
+  if (variant === 'within-paid') {
+    const apptMs = bookingTime(booking.date, booking.time_slot)
+    const freeUntilMs = apptMs - booking.cancellation_window_hours * 3_600_000
+    if (freeUntilMs > Date.now()) {
+      const d = new Date(freeUntilMs)
+      const DAYS = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab']
+      const hh = String(d.getHours()).padStart(2, '0')
+      const mm = String(d.getMinutes()).padStart(2, '0')
+      microCopy = { text: `Cancelli gratis fino a ${DAYS[d.getDay()]} ${d.getDate()} alle ${hh}:${mm}`, tone: 'muted' }
+    }
+  } else if (variant === 'outside-paid') {
+    microCopy = { text: `Fuori dalla finestra ${booking.cancellation_window_hours}h`, tone: 'rust' }
+  }
+
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 12,
+      display: 'flex', flexDirection: 'column', gap: 8,
       padding: '12px 14px', borderRadius: 'var(--r-md)', marginBottom: 8,
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: C.surface,
+      border: isOutside ? '1px solid rgba(176, 94, 72, 0.20)' : `1px solid ${C.border}`,
     }}>
-      <Avatar initials={initials(name)} size={40} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {name}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Avatar initials={initials(name)} size={40} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {name}
+          </div>
+          <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>
+            {fmtDate(booking.date)} · <span className="bb-mono">{booking.time_slot}</span>
+          </div>
         </div>
-        <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>
-          {fmtDate(booking.date)} · <span style={{ fontFamily: 'var(--font-mono)' }}>{booking.time_slot}</span>
-        </div>
+        <span style={{ fontSize: 11, background: color.bg, color: color.fg, padding: '3px 9px', borderRadius: 9999, flexShrink: 0, fontWeight: 500 }}>
+          {STATUS_LABEL[status] ?? status}
+        </span>
       </div>
-      <span style={{ fontSize: 11, background: color.bg, color: color.fg, padding: '3px 9px', borderRadius: 9999, flexShrink: 0, fontWeight: 500 }}>
-        {STATUS_LABEL[status] ?? status}
-      </span>
-      {onCancel && (
-        <button
-          onClick={onCancel}
-          disabled={cancelling}
-          style={{
-            padding: '7px 12px', borderRadius: 'var(--r-md)',
-            border: `1px solid ${C.red}`,
-            background: C.bg, color: C.red,
-            fontSize: 12, fontWeight: 500,
-            cursor: cancelling ? 'default' : 'pointer',
-            fontFamily: 'inherit', flexShrink: 0,
-            opacity: cancelling ? 0.6 : 1,
-          }}
-        >
-          {cancelling ? '…' : 'Annulla'}
-        </button>
+      {microCopy && (
+        <div style={{
+          fontSize: 11.5,
+          color: microCopy.tone === 'rust' ? 'var(--rust)' : C.muted,
+          paddingLeft: 52,
+        }}>
+          {microCopy.text}
+        </div>
       )}
-      {onReview && (
-        <button
-          onClick={onReview}
-          style={{
-            padding: '7px 12px', borderRadius: 'var(--r-md)',
-            border: `1px solid ${C.borderMed}`,
-            background: C.bg, color: C.text,
-            fontSize: 12, fontWeight: 500,
-            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-          }}
-        >
-          Recensisci
-        </button>
+      {(onCancel || onReview) && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingLeft: 52 }}>
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              disabled={cancelling}
+              style={{
+                padding: '8px 14px', borderRadius: 'var(--r-md)',
+                border: `1px solid ${isOutside ? 'rgba(176, 94, 72, 0.30)' : 'var(--ink-15)'}`,
+                background: 'transparent',
+                color: isOutside ? 'var(--rust)' : C.text,
+                fontSize: 12.5, fontWeight: 500,
+                cursor: cancelling ? 'default' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: cancelling ? 0.6 : 1,
+              }}
+            >
+              {cancelling ? '…' : cancelLabel}
+            </button>
+          )}
+          {onReview && (
+            <button
+              onClick={onReview}
+              style={{
+                padding: '8px 14px', borderRadius: 'var(--r-md)',
+                border: `1px solid ${C.borderMed}`,
+                background: C.bg, color: C.text,
+                fontSize: 12.5, fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Recensisci
+            </button>
+          )}
+        </div>
       )}
     </div>
   )
