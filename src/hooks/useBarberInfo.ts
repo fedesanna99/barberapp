@@ -12,15 +12,22 @@ export interface BarberInfo {
   // mid-typing; parsed to int/numeric in saveInfo.
   default_slot_minutes: string
   default_price: string
+  // Cancellation window (hours, 0-168). PR-bis mig. 039. Cliente che cancella
+  // entro questa finestra prima dell'appuntamento ottiene refund automatico
+  // (se booking paid). Oltre la finestra: cancel consentito ma NO refund.
+  // Snapshot all'INSERT su bookings.cancellation_window_hours — modifiche
+  // future di questo valore NON impattano le booking esistenti (anti-cheat).
+  cancellation_window_hours: string
 }
 
 const DEMO_INFO: BarberInfo = {
-  shop_name:            '',
-  address:              '',
-  phone:                '',
-  social_link:          '',
-  default_slot_minutes: '30',
-  default_price:        '25',
+  shop_name:                 '',
+  address:                   '',
+  phone:                     '',
+  social_link:               '',
+  default_slot_minutes:      '30',
+  default_price:             '25',
+  cancellation_window_hours: '24',
 }
 
 interface NominatimHit {
@@ -119,17 +126,18 @@ export function useBarberInfo(barberId: string | undefined, profileId: string | 
     if (IS_DEMO || !barberId) return
     supabase
       .from('barbers')
-      .select('shop_name, phone, address, social_link, default_slot_minutes, default_price')
+      .select('shop_name, phone, address, social_link, default_slot_minutes, default_price, cancellation_window_hours')
       .eq('id', barberId)
       .single()
       .then(({ data }) => {
         if (data) setInfo({
-          shop_name:            data.shop_name   ?? '',
-          address:              data.address     ?? '',
-          phone:                data.phone       ?? '',
-          social_link:          data.social_link ?? '',
-          default_slot_minutes: String(data.default_slot_minutes ?? 30),
-          default_price:        String(data.default_price ?? 25),
+          shop_name:                 data.shop_name   ?? '',
+          address:                   data.address     ?? '',
+          phone:                     data.phone       ?? '',
+          social_link:               data.social_link ?? '',
+          default_slot_minutes:      String(data.default_slot_minutes ?? 30),
+          default_price:             String(data.default_price ?? 25),
+          cancellation_window_hours: String(data.cancellation_window_hours ?? 24),
         })
       })
   }, [barberId])
@@ -147,17 +155,26 @@ export function useBarberInfo(barberId: string | undefined, profileId: string | 
     // rather than rejecting outright (the input is text and may be empty mid-typing).
     const slotMin = Math.max(1, Math.min(240, parseInt(clean.default_slot_minutes, 10) || 30))
     const price   = Math.max(0, parseFloat(clean.default_price.replace(',', '.')) || 0)
-    setInfo({ ...clean, default_slot_minutes: String(slotMin), default_price: String(price) })
+    // cancellation_window_hours: 0-168 range, default 24. DB ha CHECK constraint
+    // identico; clamp client-side per UX (no errore 500 al save).
+    const cancelWin = Math.max(0, Math.min(168, parseInt(clean.cancellation_window_hours, 10) || 24))
+    setInfo({
+      ...clean,
+      default_slot_minutes:      String(slotMin),
+      default_price:             String(price),
+      cancellation_window_hours: String(cancelWin),
+    })
     if (IS_DEMO || !barberId || !profileId) return null
     setSaving(true)
     try {
       const { error } = await supabase.from('barbers').update({
-        shop_name:            clean.shop_name   || null,
-        phone:                clean.phone       || null,
-        address:              clean.address     || null,
-        social_link:          clean.social_link || null,
-        default_slot_minutes: slotMin,
-        default_price:        price,
+        shop_name:                 clean.shop_name   || null,
+        phone:                     clean.phone       || null,
+        address:                   clean.address     || null,
+        social_link:               clean.social_link || null,
+        default_slot_minutes:      slotMin,
+        default_price:             price,
+        cancellation_window_hours: cancelWin,
       }).eq('id', barberId)
 
       if (error) {
