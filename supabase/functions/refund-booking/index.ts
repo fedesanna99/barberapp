@@ -48,6 +48,20 @@ const json = (body: unknown, status = 200) =>
 type Reason = 'client_cancel' | 'barber_decline' | 'auto_expire'
 const VALID_REASONS: Reason[] = ['client_cancel', 'barber_decline', 'auto_expire']
 
+// Decodifica il payload (parte 2) di un JWT. NON verifica la firma.
+// Vedi auto-decline-expired/index.ts per trust model (admin-controlled bearer).
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+    return JSON.parse(atob(padded)) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST')    return json({ error: 'Method not allowed' }, 405)
@@ -62,11 +76,13 @@ Deno.serve(async (req) => {
     if (!authHeader) return json({ error: 'Unauthorized' }, 401)
 
     // Determina se il caller è service_role (auto_expire) o un utente normale.
-    // Per identificarlo, proviamo prima a vedere se il bearer matcha la
-    // service_role key esatta (atteso solo per chiamate interne da
-    // auto-decline-expired). In tutti gli altri casi usiamo il JWT user.
-    const bearer = authHeader.replace(/^Bearer\s+/i, '')
-    const isServiceRoleCaller = bearer === serviceRoleKey
+    // Decodifichiamo il JWT e guardiamo il claim `role`. Pattern coerente con
+    // auto-decline-expired (vedi quel file per motivazione: Vault può
+    // contenere uno tra legacy JWT e sb_secret_* formati, env può contenere
+    // l'altro — strict equality non funziona).
+    const bearer = authHeader.replace(/^Bearer\s+/i, '').trim()
+    const bearerPayload = decodeJwtPayload(bearer)
+    const isServiceRoleCaller = bearerPayload?.role === 'service_role'
 
     let callerId: string | null = null
     if (!isServiceRoleCaller) {

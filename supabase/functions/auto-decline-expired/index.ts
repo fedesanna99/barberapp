@@ -79,6 +79,11 @@ Deno.serve(async (req) => {
     // Per ognuna, chiama refund-booking. Lo facciamo via HTTP per riusare
     // tutta la logica (refund Stripe + update DB + audit response). Errori
     // di singole booking non bloccano le altre.
+    // IMPORTANTE: forward del bearer JWT originale (dal Vault via pg_net),
+    // NON usare Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'). Quest'ultimo può
+    // essere il nuovo formato sb_secret_* che il gateway Supabase rifiuta
+    // come "UNAUTHORIZED_INVALID_JWT_FORMAT" a livello upstream. Il bearer
+    // Vault è un JWT valid e passa il check del gateway.
     const results: Array<Record<string, unknown>> = []
     for (const b of candidates) {
       try {
@@ -86,7 +91,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${serviceRoleKey}`,
+            'Authorization': `Bearer ${bearer}`,
           },
           body: JSON.stringify({ bookingId: b.id, reason: 'auto_expire' }),
         })
