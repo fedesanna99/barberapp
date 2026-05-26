@@ -91,6 +91,18 @@ supabase db push
 >
 > Coordinamento con edge function: `refund-booking` (re-deployare in §2.3) ora popola `refund_status='succeeded'` su Stripe success, e `'failed_pending_manual'` invece di 500 su Stripe error → la cancellazione va avanti, lo slot si libera, solo il refund resta pending. Niente nuovi cron, niente nuovi secret.
 
+> ⚠️ Migration **041_next_available_slots.sql** — RPC computata per i quick slots Discover (Pari V4 Blocco 4.5). Aggiunge:
+> - funzione `public.next_available_slots(p_barber_id uuid, p_count int=6, p_from timestamptz=now())` `LANGUAGE plpgsql STABLE SECURITY INVOKER`;
+> - lookout window 14 giorni constant; slot interval da `barbers.default_slot_minutes` con fallback 30;
+> - vacation-aware (return 0 righe se `accepting_bookings=false`);
+> - ritorna mix available+taken ordinati cronologicamente (LIMIT N); taken via `NOT EXISTS booking_slots` (mig 032);
+> - filtra slot passati + slot dentro break window (stessa logica di `useAvailability.ts`);
+> - `GRANT EXECUTE TO anon, authenticated`.
+>
+> No nuovi indici (riusa `bookings_no_double` partial unique di mig 008/009 per il NOT EXISTS lookup). No nuovi cron, no nuovi secret. Post-deploy verifica plan con `EXPLAIN ANALYZE SELECT * FROM next_available_slots('<barber>'::uuid, 6, now());` — deve usare `bookings_no_double` index scan.
+>
+> NOTA bug noto: la RPC marca taken solo time_slot esatto, NON considera service duration overlap. Coerente con `useAvailability.ts` + `bookings_no_double`. Fix multi-layer è item backlog post-handoff (vedi `FIX_BLOCK_4_5_NEXT_SLOTS_NOTES.md`).
+
 ### 2.2 OAuth — Google login (Redirect URLs allowlist)
 
 Authentication → **URL Configuration** → **Redirect URLs**: aggiungi:

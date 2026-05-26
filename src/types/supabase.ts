@@ -753,6 +753,18 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: void
       }
+      next_available_slots: {
+        Args: {
+          p_barber_id: string
+          p_count?:    number
+          p_from?:     string
+        }
+        Returns: {
+          slot_date:      string
+          slot_time:      string
+          slot_available: boolean
+        }[]
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
