@@ -21,20 +21,32 @@ export interface BookingConfirmParams {
   serviceName?: string
   servicePrice?: number
   paymentMethod: 'cash' | 'online'
-  stripePaymentIntentId?: string
+  // Per il flow online: bookingId presente significa che la riga in bookings
+  // esiste già (creata da handlePayOnline con payment_status='pending_online')
+  // e il webhook Stripe l'ha promossa a 'paid'. App.handleConfirm in questo
+  // caso NON deve fare INSERT — solo side-effects UI (toast, chiusura sheet).
+  // Per cash, bookingId è undefined e App.handleConfirm fa l'INSERT come prima.
+  bookingId?: string
 }
 
 interface BookingSheetProps {
   barber:    DemoBarber
+  // userId del cliente loggato. Necessario per INSERT della booking online
+  // PRIMA del PaymentIntent (chiude F001-Sess2 ordering: niente più PI charged
+  // su un INSERT che potrebbe poi fallire per race su bookings_no_double).
+  userId?:   string
   onClose:   () => void
   onConfirm: (params: BookingConfirmParams) => void
+  // Callback per refresh slot dopo conflitto 23505. Opzionale: se non passato,
+  // l'utente dovrà cambiare giorno per vedere lo slot rilasciato.
+  onSlotConflict?: () => void
 }
 
 type Step = 'service' | 'datetime' | 'confirm' | 'payment'
 
 const DEMO_TAKEN = new Set(SLOTS.filter((_, i) => TAKEN_INDICES.has(i)))
 
-export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) {
+export function BookingSheet({ barber, userId, onClose, onConfirm, onSlotConflict }: BookingSheetProps) {
   const dates = useMemo(() => getNext7Days(), [])
   const { coords: userCoords } = useGeolocation()
   const dist: number | null =
@@ -55,6 +67,10 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
   const [payError,    setPayError]    = useState<string | null>(null)
   const [payBusy,     setPayBusy]     = useState(false)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
+  // Booking creata da handlePayOnline PRIMA del PaymentIntent (nuovo ordering
+  // per chiudere F001-Sess2). Resta non-null mentre l'utente è in step='payment'
+  // ed è usata per la subscription Realtime alla transizione payment_status='paid'.
+  const [bookingId,   setBookingId]   = useState<string | null>(null)
 
   // Sync step when services load after initial render
   useEffect(() => {
@@ -83,30 +99,74 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
     setPayError(null)
 
     if (IS_DEMO || !STRIPE_ENABLED) {
-      // Simula pagamento in demo o quando Stripe non è configurato
+      // Demo / Stripe non configurato: shortcut. App.handleConfirm gestisce
+      // l'inserimento demo (paymentMethod='online', niente bookingId reale).
       await new Promise(r => setTimeout(r, 800))
       setPayBusy(false)
       onConfirm({
         barber, date: dates[selDate], time: selTime!,
         serviceId: selService?.id, serviceName, servicePrice: price,
-        paymentMethod: 'online', stripePaymentIntentId: 'demo_pi_simulated',
+        paymentMethod: 'online',
       })
       return
     }
 
-    // Richiedi payment intent all'edge function
+    if (!userId) {
+      setPayBusy(false)
+      setPayError('Devi essere loggato per pagare online')
+      return
+    }
+
+    // ── STEP 1: INSERT booking con payment_status='pending_online'. ─────────
+    // Il pagamento parte SOLO dopo che la riga è committed. Se la INSERT
+    // fallisce per race su bookings_no_double (codice 23505), l'utente non
+    // ha pagato nulla — è il fix di F001-Sess2.
+    const d = dates[selDate].date
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const { data: inserted, error: insertErr } = await supabase
+      .from('bookings')
+      .insert({
+        client_id:      userId,
+        barber_id:      String(barber.id),
+        date:           dateStr,
+        time_slot:      selTime!,
+        ...(selService?.id && { service_id: selService.id }),
+        payment_status: 'pending_online',
+      })
+      .select('id')
+      .single()
+
+    if (insertErr || !inserted) {
+      setPayBusy(false)
+      const code = (insertErr as { code?: string } | null)?.code
+      if (code === '23505' || (insertErr?.message ?? '').includes('bookings_no_double')) {
+        setPayError('Lo slot è stato appena prenotato da qualcun altro. Scegli un altro orario.')
+        onSlotConflict?.()
+        // Torna allo step datetime perché lo slot va riselezionato.
+        setStep('datetime')
+        setSelTime(null)
+      } else if (code === '23514' || /barber.*book.*herself|cannot book themselves/i.test(insertErr?.message ?? '')) {
+        setPayError('Non puoi prenotare con te stesso.')
+      } else {
+        setPayError(insertErr?.message ?? 'Errore nella creazione della prenotazione')
+      }
+      return
+    }
+
+    setBookingId(inserted.id)
+
+    // ── STEP 2: PaymentIntent autorizzato server-side dal bookingId ─────────
+    // Amount derivato server-side da services.price / barbers.default_price.
+    // Chiude F001/F002/F004.
     const { data, error } = await supabase.functions.invoke('create-payment-intent', {
-      body: {
-        amount:    Math.round(price * 100),
-        currency:  'eur',
-        barberId:  barberId ?? '',
-        serviceId: selService?.id ?? '',
-      },
+      body: { bookingId: inserted.id },
     })
 
     if (error || !data?.clientSecret) {
       setPayBusy(false)
       setPayError(error?.message ?? 'Impossibile avviare il pagamento')
+      // Booking abbandonata in 'pending_online': pg_cron (mig. 038) la rimuoverà
+      // entro 15-20 min, liberando lo slot. Niente DELETE client-side (no policy).
       return
     }
 
@@ -123,11 +183,15 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
     })
   }
 
-  function handlePaymentSuccess(intentId: string) {
+  // Chiamato dal StripePaymentStep dopo che il webhook ha promosso
+  // payment_status a 'paid' (osservato via Realtime), o dopo il fallback 20s.
+  function handlePaymentConfirmed() {
+    if (!bookingId) return // Difensivo: non dovrebbe mai succedere
     onConfirm({
       barber, date: dates[selDate], time: selTime!,
       serviceId: selService?.id, serviceName, servicePrice: price,
-      paymentMethod: 'online', stripePaymentIntentId: intentId,
+      paymentMethod: 'online',
+      bookingId,
     })
   }
 
@@ -195,12 +259,12 @@ export function BookingSheet({ barber, onClose, onConfirm }: BookingSheetProps) 
           />
         )}
 
-        {step === 'payment' && clientSecret && (
+        {step === 'payment' && clientSecret && bookingId && (
           <StripePaymentStep
             clientSecret={clientSecret}
+            bookingId={bookingId}
             priceFmt={priceFmt}
-            onSuccess={handlePaymentSuccess}
-            onBack={() => { setStep('confirm'); setClientSecret(null) }}
+            onSuccess={handlePaymentConfirmed}
             onClose={onClose}
           />
         )}
@@ -568,17 +632,20 @@ function ConfirmStep({
 
 /* ── Step 3: Stripe Payment Element ─────────────────────────────────────── */
 
-function StripePaymentStep({ clientSecret, priceFmt, onSuccess, onBack, onClose }: {
+function StripePaymentStep({ clientSecret, bookingId, priceFmt, onSuccess, onClose }: {
   clientSecret: string
-  priceFmt: string
-  onSuccess: (intentId: string) => void
-  onBack: () => void
-  onClose: () => void
+  bookingId:    string  // Per la subscription Realtime su payment_status
+  priceFmt:     string
+  onSuccess:    () => void  // Niente intentId: il webhook è la fonte di verità
+  onClose:      () => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stripeRef    = useRef<{ stripe: NonNullable<Awaited<ReturnType<typeof getStripe>>>; elements: ReturnType<NonNullable<Awaited<ReturnType<typeof getStripe>>>['elements']> } | null>(null)
   const [ready,      setReady]      = useState(false)
   const [processing, setProcessing] = useState(false)
+  // verifying = card charged su Stripe, in attesa che il webhook flippi
+  // payment_status a 'paid' (osservato via Realtime).
+  const [verifying,  setVerifying]  = useState(false)
   const [error,      setError]      = useState<string | null>(null)
 
   useEffect(() => {
@@ -594,6 +661,78 @@ function StripePaymentStep({ clientSecret, priceFmt, onSuccess, onBack, onClose 
     return () => { stripeRef.current = null }
   }, [clientSecret])
 
+  // Subscription Realtime: scattata solo durante verifying. Ascolta UPDATE
+  // sulla booking corrente. Il webhook Stripe (mig. 038) promuove
+  // payment_status a 'paid' tramite mark_booking_paid.
+  useEffect(() => {
+    if (!verifying) return
+    let resolved = false
+
+    const channel = supabase
+      .channel(`booking_payment_${bookingId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `id=eq.${bookingId}` },
+        payload => {
+          const next = payload.new as { payment_status?: string }
+          if (next.payment_status === 'paid') {
+            resolved = true
+            channel.unsubscribe()
+            onSuccess()
+          } else if (next.payment_status === 'failed') {
+            resolved = true
+            channel.unsubscribe()
+            setVerifying(false)
+            setError('Pagamento non riuscito. Riprova o paga in loco alla fine dell\'appuntamento.')
+          }
+        },
+      )
+      .subscribe(async status => {
+        // Race: il webhook può aver completato l'UPDATE PRIMA che questo channel
+        // diventi SUBSCRIBED, perdendo l'evento. Quando lo stream è attivo,
+        // facciamo un GET puntuale: se lo stato è già paid/failed, gestisci ora
+        // e cancella il subscribe (i futuri UPDATE non interessano più).
+        if (status !== 'SUBSCRIBED' || resolved) return
+        const { data } = await supabase
+          .from('bookings')
+          .select('payment_status')
+          .eq('id', bookingId)
+          .single()
+        if (resolved) return
+        if (data?.payment_status === 'paid') {
+          resolved = true
+          channel.unsubscribe()
+          onSuccess()
+        } else if (data?.payment_status === 'failed') {
+          resolved = true
+          channel.unsubscribe()
+          setVerifying(false)
+          setError('Pagamento non riuscito. Riprova o paga in loco alla fine dell\'appuntamento.')
+        }
+      })
+
+    // Fallback: 20s. Stripe ha già confermato il charge → ottimisticamente
+    // diamo per buona la transizione anche senza ack webhook (potrebbe avere
+    // semplicemente un ritardo). pg_cron non cancellerà la booking perché il
+    // webhook arriverà entro 15 min in pratica.
+    // IMPORTANTE: `resolved = true` PRIMA di onSuccess. Se Realtime ha una
+    // callback già in queue nell'event loop (es. arrivata insieme al tick del
+    // timer), il check `if (resolved) return` nelle altre branch evita doppio
+    // onSuccess. channel.unsubscribe() rimuove il listener, ma non vacanta i
+    // callback già queued — il flag è la safety net.
+    const timer = window.setTimeout(() => {
+      if (resolved) return
+      resolved = true
+      channel.unsubscribe()
+      onSuccess()
+    }, 20_000)
+
+    return () => {
+      window.clearTimeout(timer)
+      channel.unsubscribe()
+    }
+  }, [verifying, bookingId, onSuccess])
+
   async function submit() {
     if (!stripeRef.current || processing) return
     const { stripe, elements } = stripeRef.current
@@ -608,30 +747,45 @@ function StripePaymentStep({ clientSecret, priceFmt, onSuccess, onBack, onClose 
     if (stripeErr) {
       setError(stripeErr.message ?? 'Pagamento non riuscito')
     } else if (paymentIntent?.status === 'succeeded') {
-      onSuccess(paymentIntent.id)
+      // Card charged. Ora si attende il webhook → payment_status='paid'.
+      setVerifying(true)
     }
   }
 
   return (
     <>
+      {/* Niente back-button: una volta che si è in step='payment' la booking
+          è già committed; tornare a 'confirm' creerebbe un orfano. Si può
+          solo chiudere lo sheet (la riga pending_online verrà pulita dal cron). */}
       <div style={{ padding: '0 20px 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={onBack} aria-label="Indietro" style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: C.muted, display: 'flex' }}>
-          <Icon name="back" size={20} />
-        </button>
         <div style={{ flex: 1, fontSize: 12, color: C.muted, fontWeight: 500 }}>Pagamento</div>
         <button onClick={onClose} aria-label="Chiudi" style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: C.muted, display: 'flex' }}>
           <Icon name="close" size={20} />
         </button>
       </div>
       <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 24, letterSpacing: '-0.025em', margin: '10px 20px 16px', color: C.text }}>
-        Inserisci i dati carta
+        {verifying ? 'Confermo la prenotazione…' : 'Inserisci i dati carta'}
       </h2>
 
-      <div ref={containerRef} style={{ margin: '0 20px 16px', minHeight: 120 }} />
+      {/* Elements container — mantenuto sempre montato per stabilità della
+          ref; nascosto via display:none durante verifying. */}
+      <div
+        ref={containerRef}
+        style={{ margin: '0 20px 16px', minHeight: 120, display: verifying ? 'none' : 'block' }}
+      />
 
-      {!ready && (
+      {!ready && !verifying && (
         <div style={{ margin: '0 20px 16px', padding: 16, background: C.surface, borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="refresh" size={18} color={C.hint} style={{ animation: 'spin 0.8s linear infinite' }} />
+        </div>
+      )}
+
+      {verifying && (
+        <div style={{ margin: '0 20px 16px', padding: 24, background: C.surface, borderRadius: 'var(--r-md)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+          <Icon name="refresh" size={24} color={C.hint} style={{ animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 1.5 }}>
+            Pagamento accettato.<br/>Attesa di conferma server-side…
+          </div>
         </div>
       )}
 
@@ -641,23 +795,25 @@ function StripePaymentStep({ clientSecret, priceFmt, onSuccess, onBack, onClose 
         </div>
       )}
 
-      <div style={{ padding: '0 20px' }}>
-        <button
-          onClick={submit}
-          disabled={!ready || processing}
-          style={{
-            width: '100%', padding: '14px 20px', borderRadius: 'var(--r-md)',
-            background: ready && !processing ? 'var(--clay)' : C.surface,
-            color: ready && !processing ? 'var(--paper-3)' : C.hint,
-            border: `1px solid ${ready && !processing ? 'var(--clay)' : C.border}`,
-            fontSize: 14.5, fontWeight: 500,
-            cursor: ready && !processing ? 'pointer' : 'not-allowed',
-            fontFamily: 'inherit',
-          }}
-        >
-          {processing ? 'Elaborazione…' : `Paga · ${priceFmt}`}
-        </button>
-      </div>
+      {!verifying && (
+        <div style={{ padding: '0 20px' }}>
+          <button
+            onClick={submit}
+            disabled={!ready || processing}
+            style={{
+              width: '100%', padding: '14px 20px', borderRadius: 'var(--r-md)',
+              background: ready && !processing ? 'var(--clay)' : C.surface,
+              color: ready && !processing ? 'var(--paper-3)' : C.hint,
+              border: `1px solid ${ready && !processing ? 'var(--clay)' : C.border}`,
+              fontSize: 14.5, fontWeight: 500,
+              cursor: ready && !processing ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit',
+            }}
+          >
+            {processing ? 'Elaborazione…' : `Paga · ${priceFmt}`}
+          </button>
+        </div>
+      )}
     </>
   )
 }

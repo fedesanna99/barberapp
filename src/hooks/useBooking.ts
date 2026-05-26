@@ -14,8 +14,13 @@ export function useBooking() {
     date: Date
     timeSlot: string
     serviceId?: string
-    paymentStatus?: 'pending_cash' | 'pending_online' | 'paid'
-    stripePaymentIntentId?: string
+    // Solo stati iniziali. 'paid' / 'refunded' / 'failed' sono enforced server-side
+    // via webhook Stripe + mark_booking_* SECURITY DEFINER functions (mig. 038).
+    // INSERT con altri valori fallisce su bookings_insert RLS WITH CHECK.
+    paymentStatus?: 'pending_cash' | 'pending_online'
+    // NOTA: stripe_payment_intent_id NON è settabile dal client. Lo scrive
+    // l'edge function create-payment-intent (service_role) dopo aver creato il
+    // PaymentIntent. Vedi migration 038 trigger + INSERT policy.
   }) {
     setLoading(true)
     const d = params.date
@@ -30,7 +35,6 @@ export function useBooking() {
         time_slot:                 params.timeSlot,
         ...(params.serviceId && { service_id: params.serviceId }),
         payment_status:            params.paymentStatus ?? 'pending_cash',
-        ...(params.stripePaymentIntentId && { stripe_payment_intent_id: params.stripePaymentIntentId }),
         // M1: insert as 'pending' so the barber can confirm/decline
       })
       .select()

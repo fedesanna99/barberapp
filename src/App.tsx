@@ -206,21 +206,55 @@ export default function App() {
     else if (asBarber) setScreen('dashboard')
   }
 
-  async function handleConfirm({ barber, date, time, serviceId, paymentMethod, stripePaymentIntentId }: BookingConfirmParams) {
+  async function handleConfirm({ barber, date, time, serviceId, paymentMethod, bookingId }: BookingConfirmParams) {
+    // ── Online flow ────────────────────────────────────────────────────────
+    // La booking è stata creata da BookingSheet.handlePayOnline con
+    // payment_status='pending_online'. Il webhook Stripe (mig. 038) l'ha
+    // promossa a 'paid' (osservato via Realtime in StripePaymentStep prima
+    // di chiamare onSuccess → questo onConfirm). Qui solo side-effects UI.
+    //
+    // Caso demo (no Stripe configurato): bookingId è undefined ma paymentMethod='online'.
+    // Per ora rispecchiamo il vecchio comportamento (toast + chiusura). In demo
+    // mode la booking non viene persistita (cf. IS_DEMO branch).
+    if (paymentMethod === 'online') {
+      if (!IS_DEMO && bookingId) {
+        writeLog('booking.created', `Nuova prenotazione paid online (id=${bookingId}) da ${barber.name} alle ${time}`, 'info', {
+          userId,
+          metadata: { barber_id: barber.id, booking_id: bookingId, date: date.date, time_slot: time },
+        })
+      } else {
+        writeLog('booking.created', `Nuova prenotazione (demo online) da ${barber.name} alle ${time}`, 'info', {
+          metadata: { barber: barber.name, time_slot: time },
+        })
+      }
+      setBookingBarber(null)
+      setProfileBarber(null)
+      setToast({
+        kind:    'success',
+        title:   'Prenotato.',
+        message: `${date.day} ${date.num} ${date.month} · ${time} · ${barber.name} · Pagato online`,
+      })
+      return
+    }
+
+    // ── Cash flow ──────────────────────────────────────────────────────────
+    // BookingSheet ha solo chiamato onConfirm; l'INSERT lo facciamo qui.
     if (!IS_DEMO && userId) {
-      const paymentStatus = paymentMethod === 'online' ? 'paid' : 'pending_cash'
       const { error } = await createBooking({
-        clientId:              userId,
-        barberId:              barber.id,
-        date:                  date.date,
-        timeSlot:              time,
+        clientId:      userId,
+        barberId:      barber.id,
+        date:          date.date,
+        timeSlot:      time,
         serviceId,
-        paymentStatus,
-        stripePaymentIntentId,
+        paymentStatus: 'pending_cash',
       })
       if (error) {
         const code = (error as { code?: string }).code
-        const isConflict = code === '23P01' || error.message.includes('bookings_no_double')
+        // Postgres 23505 = unique_violation (partial unique index bookings_no_double).
+        // Il vecchio code 23P01 (exclusion_violation) era sbagliato — l'index non è
+        // un EXCLUDE constraint. Tieni il fallback su message per resilienza ai cambi
+        // di SDK error shape.
+        const isConflict = code === '23505' || error.message.includes('bookings_no_double')
         const isSelfBook = code === '23514' || /barber.*book.*herself|cannot book themselves/i.test(error.message)
         writeLog('booking.conflict', `Prenotazione fallita: ${error.message}`, 'warning', { userId, metadata: { barber_id: barber.id, time_slot: time } })
         if (isConflict) {
@@ -238,11 +272,10 @@ export default function App() {
     }
     setBookingBarber(null)
     setProfileBarber(null)
-    const payLabel = paymentMethod === 'online' ? ' · Pagato online' : ' · Paga in loco'
     setToast({
       kind:    'success',
       title:   'Prenotato.',
-      message: `${date.day} ${date.num} ${date.month} · ${time} · ${barber.name}${payLabel}`,
+      message: `${date.day} ${date.num} ${date.month} · ${time} · ${barber.name} · Paga in loco`,
     })
   }
 
@@ -342,8 +375,10 @@ export default function App() {
         {bookingBarber && (
           <BookingSheet
             barber={bookingBarber}
+            userId={userId}
             onClose={() => setBookingBarber(null)}
             onConfirm={params => handleConfirm(params)}
+            onSlotConflict={() => setRefreshNonce(n => n + 1)}
           />
         )}
 
