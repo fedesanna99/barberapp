@@ -178,6 +178,7 @@ export type Database = {
           social_link: string | null
           default_slot_minutes: number
           default_price: number
+          cancellation_window_hours: number
           created_at: string
         }
         Insert: {
@@ -196,6 +197,7 @@ export type Database = {
           social_link?: string | null
           default_slot_minutes?: number
           default_price?: number
+          cancellation_window_hours?: number
           created_at?: string
         }
         Update: {
@@ -212,6 +214,7 @@ export type Database = {
           social_link?: string | null
           default_slot_minutes?: number
           default_price?: number
+          cancellation_window_hours?: number
         }
         Relationships: [
           {
@@ -511,6 +514,7 @@ export type Database = {
           service_id: string | null
           payment_status: PaymentStatus
           stripe_payment_intent_id: string | null
+          cancellation_window_hours: number
           created_at: string
         }
         Insert: {
@@ -523,11 +527,14 @@ export type Database = {
           service_id?: string | null
           payment_status?: PaymentStatus
           stripe_payment_intent_id?: string | null
+          cancellation_window_hours?: number  // snapshot trigger lo popola se null
           created_at?: string
         }
         Update: {
           status?: BookingStatus
           payment_status?: PaymentStatus
+          // cancellation_window_hours è immutabile post-INSERT (trigger anti-cheat);
+          // service_role può comunque cambiarla via edge function (admin override).
         }
         Relationships: [
           {

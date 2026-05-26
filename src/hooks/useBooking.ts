@@ -52,14 +52,50 @@ export function useBooking() {
       .single()
   }
 
-  const cancelBooking  = (bookingId: string) => updateStatus(bookingId, 'cancelled')
   const confirmBooking = (bookingId: string) => updateStatus(bookingId, 'confirmed')
-  // 'declined' is the barber-side rejection of a pending booking, semantically
-  // distinct from 'cancelled' (which is the client's annulment).
-  const declineBooking = (bookingId: string) => updateStatus(bookingId, 'declined')
   const markDone       = (bookingId: string) => updateStatus(bookingId, 'done')
 
+  // ── Refund-aware cancellation / decline (PR-bis, mig. 039) ─────────────────
+  // cancelBooking (client) e declineBooking (barber) ora delegano all'edge
+  // function refund-booking, che decide se scatenare il refund Stripe in base
+  // a payment_status='paid' + cancellation_window_hours (snapshot all'INSERT).
+  // Reason: 'client_cancel' applica la window, 'barber_decline' la bypassa.
+  // Edge function fa anche l'UPDATE bookings via service_role → bypass del
+  // trigger immutable per cambiare payment_status='refunded'.
+  // Return shape diverso da updateStatus: { data: RefundResp, error }.
+  // Chi consuma deve gestire il nuovo shape (vedi FIX_BOOKING_LIFECYCLE_NOTES).
+
+  async function cancelBooking(bookingId: string) {
+    setLoading(true)
+    const r = await supabase.functions.invoke<RefundResp>('refund-booking', {
+      body: { bookingId, reason: 'client_cancel' },
+    })
+    setLoading(false)
+    return { data: r.data ?? null, error: r.error as Error | null }
+  }
+
+  async function declineBooking(bookingId: string) {
+    setLoading(true)
+    const r = await supabase.functions.invoke<RefundResp>('refund-booking', {
+      body: { bookingId, reason: 'barber_decline' },
+    })
+    setLoading(false)
+    return { data: r.data ?? null, error: r.error as Error | null }
+  }
+
   return { createBooking, cancelBooking, declineBooking, confirmBooking, markDone, loading }
+}
+
+// Edge function response shape (refund-booking).
+export type RefundResp = {
+  ok?: boolean
+  action?: 'cancelled' | 'declined'
+  refunded?: boolean
+  refundId?: string | null
+  withinWindow?: boolean
+  booking?: { id: string; status: string; payment_status: string }
+  idempotent?: boolean
+  error?: string
 }
 
 // ── Queries ────────────────────────────────────────────────────────────────

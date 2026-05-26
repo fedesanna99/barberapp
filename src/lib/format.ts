@@ -70,3 +70,26 @@ export function formatDateLong(d: Date | string | null | undefined): string {
 export function joinMeta(...parts: Array<string | null | undefined | false>): string {
   return parts.filter(Boolean).join(MIDDOT)
 }
+
+/**
+ * Renderizza la cancellation window in italiano leggibile.
+ * Esempi:
+ *   0   → "Cancellabile fino all'ultimo momento"
+ *   1   → "Cancellazione gratuita fino a 1 ora prima"
+ *   24  → "Cancellazione gratuita fino a 24 ore prima"  (più naturale di "1 giorno")
+ *   48  → "Cancellazione gratuita fino a 2 giorni prima"
+ *   72  → "Cancellazione gratuita fino a 3 giorni prima"
+ *   30  → "Cancellazione gratuita fino a 1 giorno 6 ore prima"
+ *   168 → "Cancellazione gratuita fino a 7 giorni prima"
+ */
+export function formatCancellationWindow(hours: number): string {
+  if (!Number.isFinite(hours) || hours < 0) return 'Cancellazione gratuita fino a 24 ore prima'
+  const h = Math.floor(hours)
+  if (h === 0) return "Cancellabile fino all'ultimo momento"
+  if (h < 24) return `Cancellazione gratuita fino a ${h} ${h === 1 ? 'ora' : 'ore'} prima`
+  if (h === 24) return 'Cancellazione gratuita fino a 24 ore prima'
+  const days = Math.floor(h / 24)
+  const rem  = h % 24
+  if (rem === 0) return `Cancellazione gratuita fino a ${days} ${days === 1 ? 'giorno' : 'giorni'} prima`
+  return `Cancellazione gratuita fino a ${days} ${days === 1 ? 'giorno' : 'giorni'} ${rem} ${rem === 1 ? 'ora' : 'ore'} prima`
+}

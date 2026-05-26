@@ -44,17 +44,18 @@ Guida operativa per portare la build di produzione in linea. Va seguita **per in
 
 ### 2.0 Ordine consigliato di prima installazione
 
-Se questo è il primo deploy in un nuovo progetto Supabase (o stai applicando per la prima volta la mig. 038), segui questa sequenza. I passi 3, 4, 5 sono **idempotenti** (puoi rifarli senza danno); il passo 1 (db push) è una volta sola.
+Se questo è il primo deploy in un nuovo progetto Supabase (o stai applicando per la prima volta le mig. 038-039), segui questa sequenza. I passi 3, 4, 5, 6 sono **idempotenti** (puoi rifarli senza danno); il passo 1 (db push) è una volta sola.
 
-1. **Applica le migrations** con `supabase db push` (vedi §2.1). Se è la prima volta che usi la CLI su un progetto storicamente gestito da Dashboard SQL Editor, prima fai `supabase migration repair --status applied 001 002 ... 037 --linked` per allineare il tracking, poi push applica solo 038.
-2. **Deploy delle Edge Functions** (vedi §2.3): `admin-create-user`, `create-payment-intent`, `stripe-webhook`.
+1. **Applica le migrations** con `supabase db push` (vedi §2.1). Se è la prima volta che usi la CLI su un progetto storicamente gestito da Dashboard SQL Editor, prima fai `supabase migration repair --status applied 001 002 ... 037 --linked` per allineare il tracking, poi push applica solo 038-039.
+2. **Deploy delle Edge Functions** (vedi §2.3): `admin-create-user`, `create-payment-intent`, `stripe-webhook`, `refund-booking` (mig. 039), `auto-decline-expired` (mig. 039).
 3. **Set dei secret runtime** (vedi §1 + §Stripe): `supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=... ALLOWED_ORIGIN=...`. Senza, le edge functions partono ma rispondono 500 alla prima invocazione.
-4. **Webhook endpoint** su Stripe Dashboard (vedi §Webhook setup): l'URL deve esistere prima di pubblicare la PWA, altrimenti i pagamenti completati su Stripe non aggiornano il DB.
-5. **Cron job** via Supabase Dashboard UI (vedi §Cron jobs setup): schedula `cleanup-abandoned-online-bookings`. Va fatto a mano una sola volta — pg_cron non è schedulable da SQL sul ruolo `postgres` di Supabase.
+4. **Vault secret** (mig. 039, vedi §Vault setup): aggiungi via Dashboard UI un secret `name='service_role_key'` con value=la tua service_role key. Senza, la function `auto_decline_expired_bookings()` solleva `P0001` e il cron 72h non parte.
+5. **Webhook endpoint** su Stripe Dashboard (vedi §Webhook setup): l'URL deve esistere prima di pubblicare la PWA, altrimenti i pagamenti completati su Stripe non aggiornano il DB.
+6. **Cron jobs** via Supabase Dashboard UI (vedi §Cron jobs setup): schedula **due job** — `cleanup-abandoned-online-bookings` (mig. 038) e `auto-decline-expired-bookings` (mig. 039). Pg_cron non è schedulable da SQL sul ruolo `postgres` di Supabase.
 
 ### 2.1 Applica le migrations
 
-Cartella: `supabase/migrations/`. Numerate `001` → `038`, vanno applicate **in ordine**. Da Supabase SQL Editor o `supabase db push`:
+Cartella: `supabase/migrations/`. Numerate `001` → `039`, vanno applicate **in ordine**. Da Supabase SQL Editor o `supabase db push`:
 
 ```bash
 # se usi la CLI:
@@ -73,6 +74,14 @@ supabase db push
 >
 > Il cleanup delle booking abbandonate (`pending_online` > 15 min) **non** è nella migration: va schedulato a mano via Dashboard UI dopo il push. Vedi §Cron jobs setup. Motivo: il ruolo `postgres` di Supabase non ha privilegi su `cron.job`, l'unica via supportata è la UI (che opera come `supabase_admin`).
 
+> ⚠️ Migration **039_cancellation_policy.sql** — booking lifecycle (cancellation policy + TTL 72h auto-decline + refund flow). Aggiunge:
+> - `barbers.cancellation_window_hours` (default 24, range 0-168);
+> - `bookings.cancellation_window_hours` (snapshot all'INSERT via trigger, anti-cheat);
+> - estende trigger immutable con anti-cheat su `cancellation_window_hours`;
+> - function `auto_decline_expired_bookings()` (legge service_role_key da Vault, chiama edge function via pg_net).
+>
+> Stessa nota cron della 038: il secondo job (`auto-decline-expired-bookings`, schedule `0 * * * *`) va schedulato via Dashboard. Pre-requisito: Vault secret `service_role_key` esistente (vedi §Vault setup).
+
 ### 2.2 OAuth — Google login (Redirect URLs allowlist)
 
 Authentication → **URL Configuration** → **Redirect URLs**: aggiungi:
@@ -90,12 +99,14 @@ Site URL (sezione superiore): impostala sul dominio di produzione.
 
 ### 2.3 Deploy delle Edge Functions
 
-Le edge functions sono tre:
+Le edge functions sono cinque:
 
 ```bash
 supabase functions deploy admin-create-user
 supabase functions deploy create-payment-intent
 supabase functions deploy stripe-webhook
+supabase functions deploy refund-booking
+supabase functions deploy auto-decline-expired
 ```
 
 | Function | Scopo | Quando è obbligatoria |
@@ -103,6 +114,8 @@ supabase functions deploy stripe-webhook
 | `admin-create-user`     | Creazione utenti dall'AdminPanel (richiede `is_admin=true` sul chiamante). | Per AdminPanel. |
 | `create-payment-intent` | Crea Stripe PaymentIntent autorizzato server-side per una booking esistente. Riceve `{bookingId}`, NON `amount`. | Per pagamenti online. |
 | `stripe-webhook`        | Riceve eventi Stripe (`payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`). Unica fonte di verità per transizioni `paid` / `failed` / `refunded`. | Per pagamenti online. |
+| `refund-booking`        | Cancella una booking + eventuale refund Stripe. Reason: `client_cancel` (applica window) / `barber_decline` / `auto_expire`. Chiamata da `useBooking.cancelBooking()` / `useBooking.declineBooking()` e da `auto-decline-expired`. | Per cancellation policy + refund. |
+| `auto-decline-expired`  | Itera su bookings `pending+paid` create da >72h, chiama `refund-booking` con reason=`auto_expire` per ciascuna. Invocata da pg_cron via `auto_decline_expired_bookings()` (mig. 039) → pg_net → questo endpoint. Auth: service_role only. | Per TTL 72h auto-decline. |
 
 > ⚠️ Senza il deploy di `create-payment-intent` e `stripe-webhook`, i pagamenti online non funzionano (toast d'errore al click su "Paga ora"). Setta anche i secret runtime (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `ALLOWED_ORIGIN`) — vedi §1 secret e §Stripe sotto.
 
@@ -144,11 +157,33 @@ supabase functions deploy stripe-webhook
 
 4. **Rotation del webhook signing secret.** Se cambi URL endpoint (es. nuovo project ref, dominio diverso) o sospetti compromissione: su Stripe Dashboard → Webhooks → endpoint → "Roll secret" → genera nuovo `whsec_...` → `supabase secrets set STRIPE_WEBHOOK_SECRET=<nuovo>`. Stripe accetta entrambi i secret per 24h durante la rotation grace window — nessun downtime se redeploy entro quel periodo.
 
+### Vault setup (manuale, prerequisito per mig. 039)
+
+La function `auto_decline_expired_bookings()` (mig. 039) legge la service_role key da Supabase Vault per fare la chiamata HTTP all'edge function `auto-decline-expired`. Senza il secret in Vault, la function solleva `P0001` e il cron `auto-decline-expired-bookings` fallisce.
+
+1. Vai su **Supabase Dashboard → Project Settings → Vault** (oppure Database → Vault, dipende dalla versione del Dashboard).
+2. Click **"Add new secret"**.
+3. Configura:
+   - **Name:** `service_role_key`
+   - **Secret:** copia la tua service_role key da **Project Settings → API → "service_role secret"** (formato JWT ~250 char, inizia con `eyJ...`).
+   - **Description:** *(opzionale)* "Used by pg_cron HTTP calls to internal edge functions"
+4. Click **"Add secret"**.
+
+**Verifica via SQL:**
+```sql
+SELECT name, length(decrypted_secret) AS len
+  FROM vault.decrypted_secrets
+ WHERE name = 'service_role_key';
+```
+Atteso: 1 riga con `len` tra 200 e 300 (il JWT della service_role è lungo).
+
+> **Rotation della service_role key:** se la ruoti su Dashboard → API, devi aggiornare anche il secret in Vault. Le edge functions usano `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')` che è auto-popolato da Supabase, quindi quelle si aggiornano da sole. La function `auto_decline_expired_bookings()` invece legge da Vault — se non lo aggiorni resta con la chiave vecchia e Stripe accetta il bearer scaduto (no auth failure visibile) ma il refund-booking risponde 401.
+
 ### Cron jobs setup (manuale, una volta sola)
 
-Una booking in `payment_status='pending_online'` occupa lo slot (perché ha `status='pending'` e il partial unique index `bookings_no_double` blocca duplicati). Se l'utente abbandona durante il pagamento, lo slot resta bloccato finché qualcosa non rimuove la riga.
+#### Job 1: cleanup-abandoned-online-bookings (mig. 038)
 
-Dopo `supabase db push` di 038, schedula il cleanup via Dashboard:
+Una booking in `payment_status='pending_online'` occupa lo slot (perché ha `status='pending'` e il partial unique index `bookings_no_double` blocca duplicati). Se l'utente abbandona durante il pagamento, lo slot resta bloccato finché qualcosa non rimuove la riga.
 
 1. Vai su **Supabase Dashboard → Database → Cron Jobs** (UI sotto la voce Database nella sidebar; richiede `pg_cron` abilitato in Extensions — abilitalo prima se non lo è).
 2. Click **"Add cron job"** (o "Create a new cron job").
@@ -165,9 +200,27 @@ Dopo `supabase db push` di 038, schedula il cleanup via Dashboard:
 
 Lo slot si libera entro 15-20 min dall'abbandono.
 
+#### Job 2: auto-decline-expired-bookings (mig. 039)
+
+Una booking online `paid + pending` non risposta dal barbiere blocca lo slot e tiene fermi i soldi del cliente. TTL 72h: se il barbiere non conferma né declina entro 72 ore, il sistema auto-declina la booking e rimborsa Stripe.
+
+**Pre-requisito:** Vault secret `service_role_key` esistente (vedi §Vault setup sopra).
+
+1. Sulla stessa pagina Cron Jobs del Dashboard, click **"Add cron job"**.
+2. Configura:
+   - **Name:** `auto-decline-expired-bookings`
+   - **Schedule:** `0 * * * *` (ogni ora, allo scoccare)
+   - **SQL:**
+     ```sql
+     SELECT public.auto_decline_expired_bookings();
+     ```
+3. Salva.
+
+La function chiama via pg_net l'edge function `auto-decline-expired`, che itera sulle booking idonee e per ognuna chiama `refund-booking` con reason=`auto_expire`. Risultato: status=`declined`, payment_status=`refunded`, Stripe refund issued.
+
 > **Perché non in SQL/migration?** pg_cron su Supabase richiede `INSERT/UPDATE/DELETE` su `cron.job` (schema di proprietà di `supabase_admin`). Il ruolo `postgres` con cui gira `supabase db push` ha solo `SELECT`. La Dashboard UI esegue come `supabase_admin` dietro le quinte e bypassa il vincolo. Non c'è workaround SQL su Supabase managed.
 
-**Alternativa:** scheduled edge function `cleanup-abandoned-bookings` triggerata da Vercel Cron / Upstash QStash / GitHub Actions, che chiama lo stesso DELETE via service_role. Più componenti da deployare ma niente vincolo Supabase. Pattern fuori scope di questa migration.
+**Alternativa cron Supabase-free:** scheduled edge function triggerata da Vercel Cron / Upstash QStash / GitHub Actions che POSTa direttamente a `/functions/v1/auto-decline-expired` con l'Authorization service_role header. Pattern fuori scope di questa migration.
 
 ### 2.4 Storage buckets
 
