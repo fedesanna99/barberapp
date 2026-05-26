@@ -270,37 +270,18 @@ CREATE INDEX IF NOT EXISTS bookings_stripe_payment_intent_id_idx
   ON public.bookings (stripe_payment_intent_id)
   WHERE stripe_payment_intent_id IS NOT NULL;
 
--- ── 5. Cleanup pg_cron job (opzionale: fallback edge function se non disponibile)
--- Cancella ogni 5 min le booking 'pending_online' più vecchie di 15 min.
--- Slot libero (bookings_no_double filtra su status IN ('pending','confirmed')
--- e il DELETE rimuove la riga, quindi lo slot torna disponibile).
--- pg_cron su Supabase NON è abilitabile via `CREATE EXTENSION` da SQL (serve
--- superuser, che l'utente postgres di Supabase non ha). Va abilitato dal
--- Dashboard → Database → Extensions. Qui controlliamo se è già abilitato
--- e falliamo loud se non lo è: meglio un errore esplicito che un silenzio
--- che lascia il cleanup inattivo senza che nessuno se ne accorga.
-DO $body$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
-    RAISE EXCEPTION USING
-      MESSAGE  = 'pg_cron extension not installed.',
-      DETAIL   = 'Mig. 038 needs pg_cron for the cleanup of abandoned pending_online bookings.',
-      HINT     = 'Enable it from Supabase Dashboard → Database → Extensions → pg_cron, then re-run THIS block only (the rest of mig. 038 is already idempotent). Alternative: deploy the scheduled edge function fallback documented in DEPLOYMENT.md §Cleanup pagamenti abbandonati and skip this block manually.',
-      ERRCODE  = 'feature_not_supported';
-  END IF;
-
-  -- Idempotenza re-run della migration: rimuovi job preesistente con stesso nome.
-  IF EXISTS (
-    SELECT 1 FROM information_schema.tables
-     WHERE table_schema = 'cron' AND table_name = 'job'
-  ) THEN
-    DELETE FROM cron.job WHERE jobname = 'cleanup-abandoned-online-bookings';
-  END IF;
-
-  PERFORM cron.schedule(
-    'cleanup-abandoned-online-bookings',
-    '*/5 * * * *',
-    'DELETE FROM public.bookings WHERE payment_status = ''pending_online'' AND created_at < now() - interval ''15 minutes'''
-  );
-END;
-$body$;
+-- =====================================================================
+-- pg_cron schedule MANUALE via Supabase Dashboard
+-- =====================================================================
+-- Su Supabase il ruolo `postgres` non ha INSERT/UPDATE/DELETE su
+-- cron.job (privilegi di supabase_admin). La schedulazione va fatta
+-- via Dashboard → Database → Cron Jobs:
+--
+--   Name:     cleanup-abandoned-online-bookings
+--   Schedule: */5 * * * *
+--   SQL:      DELETE FROM bookings
+--             WHERE payment_status = 'pending_online'
+--               AND created_at < now() - interval '15 minutes';
+--
+-- Vedi DEPLOYMENT.md sezione "Cron jobs setup".
+-- =====================================================================

@@ -42,17 +42,15 @@ Guida operativa per portare la build di produzione in linea. Va seguita **per in
 
 ## 2. Configurazione Supabase
 
-### 2.0 Ordine OBBLIGATORIO di prima installazione
+### 2.0 Ordine consigliato di prima installazione
 
-Se questo è il primo deploy in un nuovo progetto Supabase (o stai applicando per la prima volta la mig. 038), segui questa sequenza **esatta**. Invertire i passi 1↔2 fa fallire la mig. 038 in modo loud (errore `feature_not_supported` su `pg_cron`); non è catastrofico, ma richiede rollback parziale del DDL già applicato dalla 038 prima di ritentare.
+Se questo è il primo deploy in un nuovo progetto Supabase (o stai applicando per la prima volta la mig. 038), segui questa sequenza. I passi 3, 4, 5 sono **idempotenti** (puoi rifarli senza danno); il passo 1 (db push) è una volta sola.
 
-1. **Abilita pg_cron** da Supabase Dashboard → Database → Extensions → cerca `pg_cron` → toggle ON. Non c'è equivalente SQL: `CREATE EXTENSION pg_cron` richiede superuser, che Supabase non concede.
-2. **Applica le migrations** con `supabase db push` (vedi §2.1). Verifica che mig. 038 termini senza errori; in particolare che il blocco finale `cron.schedule('cleanup-abandoned-online-bookings', ...)` non sollevi exception.
-3. **Deploy delle Edge Functions** (vedi §2.3): `admin-create-user`, `create-payment-intent`, `stripe-webhook`.
-4. **Set dei secret runtime** (vedi §1 + §Stripe): `supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=... ALLOWED_ORIGIN=...`. Senza, le edge functions partono ma rispondono 500 alla prima invocazione.
-5. **Webhook endpoint** su Stripe Dashboard (vedi §Webhook setup): l'URL deve esistere prima di pubblicare la PWA, altrimenti i pagamenti completati su Stripe non aggiornano il DB.
-
-> ⚠️ **Rollback se ordine invertito:** se hai fatto `supabase db push` PRIMA di abilitare pg_cron, la mig. 038 ha applicato schema/trigger/function/policy ma è abortita sul blocco cron. Il DB è in stato consistente (la transazione è atomica per blocco DO) ma il cleanup non è schedulato. Fix: abilita pg_cron dal Dashboard, poi rieseegui SOLO il blocco DO finale di `038_payment_security.sql` (l'unico non-idempotente al re-run; il resto è già `IF NOT EXISTS` / `CREATE OR REPLACE`).
+1. **Applica le migrations** con `supabase db push` (vedi §2.1). Se è la prima volta che usi la CLI su un progetto storicamente gestito da Dashboard SQL Editor, prima fai `supabase migration repair --status applied 001 002 ... 037 --linked` per allineare il tracking, poi push applica solo 038.
+2. **Deploy delle Edge Functions** (vedi §2.3): `admin-create-user`, `create-payment-intent`, `stripe-webhook`.
+3. **Set dei secret runtime** (vedi §1 + §Stripe): `supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=... ALLOWED_ORIGIN=...`. Senza, le edge functions partono ma rispondono 500 alla prima invocazione.
+4. **Webhook endpoint** su Stripe Dashboard (vedi §Webhook setup): l'URL deve esistere prima di pubblicare la PWA, altrimenti i pagamenti completati su Stripe non aggiornano il DB.
+5. **Cron job** via Supabase Dashboard UI (vedi §Cron jobs setup): schedula `cleanup-abandoned-online-bookings`. Va fatto a mano una sola volta — pg_cron non è schedulable da SQL sul ruolo `postgres` di Supabase.
 
 ### 2.1 Applica le migrations
 
@@ -71,8 +69,9 @@ supabase db push
 > - 3 function `SECURITY DEFINER` (`mark_booking_paid`, `mark_booking_payment_failed`, `mark_booking_refunded`) — l'unica via per transizionare a paid/failed/refunded;
 > - estensione del trigger `bookings_prevent_immutable_change` che pinna `payment_status` e `stripe_payment_intent_id` contro UPDATE da client;
 > - restringimento della policy `bookings_insert` (no `payment_status='paid'` su INSERT, no `stripe_payment_intent_id` settato dal client);
-> - indice partial su `stripe_payment_intent_id` (lookup webhook);
-> - pg_cron job per cleanup booking abbandonate. **Richiede pg_cron abilitato PRIMA dell'apply** — vedi §2.0 punto 1. Senza, la mig. 038 fallisce loud con `feature_not_supported`.
+> - indice partial su `stripe_payment_intent_id` (lookup webhook).
+>
+> Il cleanup delle booking abbandonate (`pending_online` > 15 min) **non** è nella migration: va schedulato a mano via Dashboard UI dopo il push. Vedi §Cron jobs setup. Motivo: il ruolo `postgres` di Supabase non ha privilegi su `cron.job`, l'unica via supportata è la UI (che opera come `supabase_admin`).
 
 ### 2.2 OAuth — Google login (Redirect URLs allowlist)
 
@@ -145,26 +144,30 @@ supabase functions deploy stripe-webhook
 
 4. **Rotation del webhook signing secret.** Se cambi URL endpoint (es. nuovo project ref, dominio diverso) o sospetti compromissione: su Stripe Dashboard → Webhooks → endpoint → "Roll secret" → genera nuovo `whsec_...` → `supabase secrets set STRIPE_WEBHOOK_SECRET=<nuovo>`. Stripe accetta entrambi i secret per 24h durante la rotation grace window — nessun downtime se redeploy entro quel periodo.
 
-### Cleanup pagamenti abbandonati
+### Cron jobs setup (manuale, una volta sola)
 
 Una booking in `payment_status='pending_online'` occupa lo slot (perché ha `status='pending'` e il partial unique index `bookings_no_double` blocca duplicati). Se l'utente abbandona durante il pagamento, lo slot resta bloccato finché qualcosa non rimuove la riga.
 
-**Soluzione default (mig. 038):** pg_cron job ogni 5 min:
-```sql
-DELETE FROM bookings
- WHERE payment_status = 'pending_online'
-   AND created_at < now() - interval '15 minutes';
-```
+Dopo `supabase db push` di 038, schedula il cleanup via Dashboard:
+
+1. Vai su **Supabase Dashboard → Database → Cron Jobs** (UI sotto la voce Database nella sidebar; richiede `pg_cron` abilitato in Extensions — abilitalo prima se non lo è).
+2. Click **"Add cron job"** (o "Create a new cron job").
+3. Configura:
+   - **Name:** `cleanup-abandoned-online-bookings`
+   - **Schedule:** `*/5 * * * *` (ogni 5 minuti)
+   - **SQL:**
+     ```sql
+     DELETE FROM bookings
+      WHERE payment_status = 'pending_online'
+        AND created_at < now() - interval '15 minutes';
+     ```
+4. Salva.
+
 Lo slot si libera entro 15-20 min dall'abbandono.
 
-**Se pg_cron non è disponibile** sul tuo piano Supabase (es. Free): la mig. 038 termina con `RAISE EXCEPTION feature_not_supported`. Due opzioni:
-- Upgrade a un piano che include pg_cron (Pro+).
-- Skip manuale del blocco cron in mig. 038 e deploy di una scheduled edge function `cleanup-abandoned-bookings` triggerata da Vercel Cron / Upstash QStash / GitHub Actions. Schema:
+> **Perché non in SQL/migration?** pg_cron su Supabase richiede `INSERT/UPDATE/DELETE` su `cron.job` (schema di proprietà di `supabase_admin`). Il ruolo `postgres` con cui gira `supabase db push` ha solo `SELECT`. La Dashboard UI esegue come `supabase_admin` dietro le quinte e bypassa il vincolo. Non c'è workaround SQL su Supabase managed.
 
-```bash
-# Esempio: function "cleanup-abandoned-bookings" + cron Vercel/Upstash
-# Implementazione lasciata come follow-up; il pattern è banale.
-```
+**Alternativa:** scheduled edge function `cleanup-abandoned-bookings` triggerata da Vercel Cron / Upstash QStash / GitHub Actions, che chiama lo stesso DELETE via service_role. Più componenti da deployare ma niente vincolo Supabase. Pattern fuori scope di questa migration.
 
 ### 2.4 Storage buckets
 
