@@ -37,6 +37,9 @@ import { BarberList } from '../components/BarberList'
 import { Icon } from '../components/Icon'
 import { ratingDisplay } from '../lib/rating'
 import { formatKm } from '../lib/geo'
+import { useNextAppointment } from '../hooks/useNextAppointment'
+import { useNextSlots } from '../hooks/useNextSlots'
+import { formatNextAppointmentPill } from '../lib/format'
 
 const MapView = lazy(() => import('../components/MapView').then(m => ({ default: m.MapView })))
 
@@ -107,6 +110,10 @@ export function Discover({ onBook, onViewProfile, myBarberId, userId }: Discover
   const { coords, denied, unavailable, fallback, locate } = useGeolocation()
   const { barbers: realBarbers, loading } = useBarbers(sort, coords?.lat, coords?.lng, search)
   const follows = useFollows(userId)
+
+  // Blocco 4.5 — prossimo appuntamento del cliente per agenda pill. Q5
+  // decretato null-hidden: se nessun appt futuro, il pill NON si renderizza.
+  const { next: nextAppointment } = useNextAppointment(userId ?? null)
   const followedProfileIds = useMemo(
     () => new Set(follows.filter(f => f.role === 'barber').map(f => f.profileId)),
     [follows],
@@ -252,32 +259,40 @@ export function Discover({ onBook, onViewProfile, myBarberId, userId }: Discover
         position: 'absolute', top: 76, left: 18, right: 18, zIndex: 38,
         display: 'flex', alignItems: 'center', gap: 14,
       }}>
-        {/* Agenda pill (placeholder — wire to actual next appointment via a prop later) */}
-        <button
-          aria-label="Prossimo appuntamento"
-          style={{
-            flexShrink: 0,
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            padding: '6px 11px 6px 6px',
-            background: C.text, color: C.bg,
-            border: 'none',
-            borderRadius: 9999,
-            boxShadow: '0 4px 14px -4px rgba(43,39,35,0.30)',
-            fontSize: 11.5, fontWeight: 500,
-            fontFamily: 'inherit',
-            letterSpacing: '-0.005em',
-            cursor: 'pointer',
-          }}>
-          <span style={{
-            width: 20, height: 20, borderRadius: '50%',
-            background: 'var(--clay)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Icon name="calendar" size={11} color="var(--paper-3)" />
-          </span>
-          <span>sab <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>10:00</span></span>
-          <Icon name="caret-right" size={10} color="rgba(252,250,245,0.5)" />
-        </button>
+        {/* Agenda pill — cablata a useNextAppointment (Blocco 4.5).
+            Q5 decretato null-hidden: se cliente senza appuntamenti futuri,
+            l'intero bottone NON si renderizza (no placeholder testo). */}
+        {nextAppointment && (() => {
+          const pillText = formatNextAppointmentPill(nextAppointment.date, nextAppointment.time_slot)
+          const [dayLabel, timeLabel] = pillText.split(' ')
+          return (
+            <button
+              aria-label="Prossimo appuntamento"
+              style={{
+                flexShrink: 0,
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '6px 11px 6px 6px',
+                background: C.text, color: C.bg,
+                border: 'none',
+                borderRadius: 9999,
+                boxShadow: '0 4px 14px -4px rgba(43,39,35,0.30)',
+                fontSize: 11.5, fontWeight: 500,
+                fontFamily: 'inherit',
+                letterSpacing: '-0.005em',
+                cursor: 'pointer',
+              }}>
+              <span style={{
+                width: 20, height: 20, borderRadius: '50%',
+                background: 'var(--clay)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icon name="calendar" size={11} color="var(--paper-3)" />
+              </span>
+              <span>{dayLabel} <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{timeLabel}</span></span>
+              <Icon name="caret-right" size={10} color="rgba(252,250,245,0.5)" />
+            </button>
+          )
+        })()}
 
         {/* Filter chips — scrollable right-aligned */}
         <div style={{
@@ -496,11 +511,14 @@ interface CardProps {
   onBook: (b: DemoBarber) => void
   onViewProfile: (b: DemoBarber) => void
 }
-const QUICK_SLOTS = ['10:00', '10:30', '11:00', '11:30', '14:00', '14:30']
-const TAKEN_QUICK = new Set(['10:30', '14:00'])
-
 function BarberCardSheet({ barber, isSelf, onClose, onBook, onViewProfile }: CardProps) {
   const rd = ratingDisplay({ rating: barber.rating, reviewsCount: barber.reviewsCount })
+  // Blocco 4.5 — quick slots cablati via RPC next_available_slots (mig 041).
+  // Mix available+taken ordinati cronologicamente, LIMIT 6.
+  const { slots: nextSlots } = useNextSlots(
+    !isSelf && barber.acceptingBookings !== false ? barber.id : null,
+    6,
+  )
   return (
     <div style={{ padding: '8px 0 0', animation: 'fadeIn 220ms var(--ease)' }}>
       {/* status + close */}
@@ -577,21 +595,25 @@ function BarberCardSheet({ barber, isSelf, onClose, onBook, onViewProfile }: Car
         </div>
       )}
 
-      {/* Quick slots */}
-      {!isSelf && barber.acceptingBookings !== false && (
+      {/* Quick slots — cablati via useNextSlots (Blocco 4.5).
+          Hidden se nessun slot disponibile nei prossimi 14 giorni (es.
+          barbiere in pausa o calendario tutto pieno o demo mode con id
+          non valido per RPC). */}
+      {!isSelf && barber.acceptingBookings !== false && nextSlots.length > 0 && (
         <div style={{ padding: '20px 20px 0' }}>
           <div style={{
             fontSize: 11, color: C.muted, fontWeight: 500,
             letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10,
           }}>
-            Slot di oggi
+            Prossimi slot
           </div>
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
-            {QUICK_SLOTS.map(t => {
-              const taken = TAKEN_QUICK.has(t)
+            {nextSlots.map(s => {
+              const taken = !s.slot_available
+              const label = s.slot_time.slice(0, 5)
               return (
                 <button
-                  key={t}
+                  key={`${s.slot_date}-${s.slot_time}`}
                   disabled={taken}
                   onClick={() => !taken && onBook(barber)}
                   style={{
@@ -605,7 +627,7 @@ function BarberCardSheet({ barber, isSelf, onClose, onBook, onViewProfile }: Car
                     cursor: taken ? 'not-allowed' : 'pointer',
                     textDecoration: taken ? 'line-through' : 'none',
                   }}>
-                  {t}
+                  {label}
                 </button>
               )
             })}

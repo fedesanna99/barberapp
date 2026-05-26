@@ -53,6 +53,21 @@ export function formatTimeSlot(slot: string | null | undefined): string {
   return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`
 }
 
+/**
+ * Format agenda pill del Discover: "sab 10:00" (giorno breve italiano + orario).
+ * Usato per il prossimo appuntamento del cliente nel top strip.
+ *   formatNextAppointmentPill('2026-05-30', '10:00:00') → 'sab 10:00'
+ *   formatNextAppointmentPill('2026-05-30', '15:30')    → 'sab 15:30'
+ */
+export function formatNextAppointmentPill(date: string, time: string): string {
+  // Parse "YYYY-MM-DD" + "HH:MM[:SS]" in local time
+  const [y, mo, d] = date.split('-').map(Number)
+  const [hh, mm]   = time.split(':').map(Number)
+  const dt = new Date(y, (mo ?? 1) - 1, d ?? 1, hh ?? 0, mm ?? 0)
+  if (Number.isNaN(dt.getTime())) return '—'
+  return `${DAYS_IT_SHORT[dt.getDay()]} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+}
+
 export function formatDateShort(d: Date | string | null | undefined): string {
   if (!d) return '—'
   const date = d instanceof Date ? d : new Date(d)
